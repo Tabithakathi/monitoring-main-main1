@@ -20,21 +20,52 @@ const analyzeUiUx = (htmlContent = '') => {
   }
 
   // 1. Missing labels and ARIA attributes check
+  const formElements = [];
+  
+  // Extract inputs
   const inputMatches = [...htmlContent.matchAll(/<input([^>]*)\/?>/gi)];
-  for (let match of inputMatches) {
-    const inputAttr = match[0];
+  inputMatches.forEach(match => {
     const attrs = match[1].toLowerCase();
+    if (!attrs.includes('type=["\']hidden["\']') && !attrs.includes('type=hidden')) {
+      formElements.push({
+        tag: 'input',
+        element: match[0],
+        attrs: match[1]
+      });
+    }
+  });
+
+  // Extract selects
+  const selectMatches = [...htmlContent.matchAll(/<select([^>]*)>/gi)];
+  selectMatches.forEach(match => {
+    formElements.push({
+      tag: 'select',
+      element: match[0],
+      attrs: match[1]
+    });
+  });
+
+  // Extract textareas
+  const textareaMatches = [...htmlContent.matchAll(/<textarea([^>]*)>/gi)];
+  textareaMatches.forEach(match => {
+    formElements.push({
+      tag: 'textarea',
+      element: match[0],
+      attrs: match[1]
+    });
+  });
+
+  for (let el of formElements) {
+    const elementTag = el.element.trim().substring(0, 100);
+    const attrs = el.attrs.toLowerCase();
     
-    // Ignore hidden inputs
-    if (attrs.includes('type=["\']hidden["\']') || attrs.includes('type=hidden')) continue;
-    
-    const hasAriaLabel = attrs.includes('aria-label') || attrs.includes('aria-labelledby');
+    const hasAriaLabel = attrs.includes('aria-label') || attrs.includes('aria-labelledby') || attrs.includes('title=');
     const idMatch = attrs.match(/id=["']([^"']*)["']/i);
     let hasMatchingLabel = false;
     
     if (idMatch && idMatch[1]) {
-      const inputId = idMatch[1];
-      const labelRegex = new RegExp(`<label[^>]*for=["']${inputId}["'][^>]*>`, 'gi');
+      const elementId = idMatch[1];
+      const labelRegex = new RegExp(`<label[^>]*for=["']${elementId}["'][^>]*>`, 'gi');
       if (htmlContent.match(labelRegex)) {
         hasMatchingLabel = true;
       }
@@ -42,13 +73,13 @@ const analyzeUiUx = (htmlContent = '') => {
     
     if (!hasAriaLabel && !hasMatchingLabel) {
       reports.missingLabelsViolations.push({
-        element: inputAttr.trim().substring(0, 100),
-        message: "Form input elements must possess a descriptive label or matching ARIA accessibility attribute."
+        element: elementTag,
+        message: `Interactive form <${el.tag}> elements must possess a descriptive label, title, or matching ARIA accessibility attribute.`
       });
       reports.uiHealthScore -= 8;
       reports.alerts.push({
         level: 'warning',
-        message: `Accessibility: Input element lacks a matching <label> or ARIA-label declaration.`
+        message: `Accessibility: Interactive <${el.tag}> element lacks a matching <label> or ARIA-label declaration.`
       });
     }
   }

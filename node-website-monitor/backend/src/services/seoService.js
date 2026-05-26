@@ -275,7 +275,9 @@ const analyzeSeo = async (url, htmlContent = '') => {
 
   for (let match of imgMatches) {
     const attrs = match[1];
-    const srcMatch = attrs.match(/src=["']([^"']*)["']/i);
+    const srcMatch = attrs.match(/src=["']([^"']*)["']/i) || 
+                     attrs.match(/data-src=["']([^"']*)["']/i) ||
+                     attrs.match(/srcset=["']([^"']*)["']/i);
     const altMatch = attrs.match(/alt=["']([^"']*)["']/i);
     const hasAltAttr = attrs.toLowerCase().includes('alt=');
     const src = srcMatch ? srcMatch[1] : '';
@@ -296,7 +298,7 @@ const analyzeSeo = async (url, htmlContent = '') => {
     withAlt,
     missingAlt,
     emptyAlt,
-    missingAltSrcs: missingAltSrcs.slice(0, 8),
+    missingAltSrcs: missingAltSrcs.slice(0, 50),
     status: totalImages === 0 ? "ok" : (missingAlt + emptyAlt) === 0 ? "ok" : "warning",
     message: totalImages === 0 
       ? "No images found on this page."

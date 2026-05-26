@@ -12,7 +12,7 @@ import {
 const API_BASE = typeof window !== 'undefined' && 
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port === '5173')
   ? 'http://localhost:5000/api'
-  : '/api';
+  : 'https://monitoring-main-main1.onrender.com/api';
 
 export default function SettingsPanel({ showToast }) {
   const [settings, setSettings] = useState({

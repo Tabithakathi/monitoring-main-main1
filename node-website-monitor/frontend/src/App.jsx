@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-import { ShieldCheck, ShieldAlert, Activity, Cpu, Search, RefreshCw, AlertTriangle, AlertCircle, BellRing } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Activity, Cpu, Search, RefreshCw, AlertTriangle, AlertCircle, BellRing, Sun, Moon } from 'lucide-react';
 import UptimeDashboard from './components/UptimeDashboard';
 import WordPressDashboard from './components/WordPressDashboard';
 import SSLMonitor from './components/SSLMonitor';
@@ -25,6 +25,16 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('uptime');
   const [isSocketConnected, setIsSocketConnected] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [isDark, setIsDark] = useState(true);
+
+  // Effect to toggle light/dark theme class on document.body dynamically
+  useEffect(() => {
+    if (isDark) {
+      document.body.classList.remove('light-theme');
+    } else {
+      document.body.classList.add('light-theme');
+    }
+  }, [isDark]);
 
   // Resilient client-side 15-second SRE auto-polling loop
   useEffect(() => {
@@ -167,14 +177,23 @@ export default function App() {
       <header className="bg-dark-800/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
 
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center font-black text-white shadow-lg shadow-indigo-600/30">
-              M
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center font-black text-white shadow-lg shadow-indigo-600/30">
+                M
+              </div>
+              <div>
+                <h1 className="text-sm font-extrabold tracking-tight">MonitorPro</h1>
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block -mt-1">Node SRE Module</span>
+              </div>
             </div>
-            <div>
-              <h1 className="text-sm font-extrabold tracking-tight">MonitorPro</h1>
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block -mt-1">Node SRE Module</span>
-            </div>
+            <button
+              onClick={() => setIsDark(!isDark)}
+              className="p-2 rounded-xl border border-slate-800 hover:bg-slate-800/60 transition-all text-slate-400 hover:text-slate-200 cursor-pointer"
+              title={isDark ? "Switch to Light Theme" : "Switch to Dark Theme"}
+            >
+              {isDark ? <Sun className="h-4 w-4 text-amber-400 animate-pulse" /> : <Moon className="h-4 w-4 text-indigo-500" />}
+            </button>
           </div>
 
           {/* SRE Domain search filter bar */}

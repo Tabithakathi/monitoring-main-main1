@@ -15,6 +15,10 @@ const monitorHistorySchema = new mongoose.Schema({
     expiryDate: { type: Date }
   },
   errors: [{ type: String }],
+  seoData: { type: String },
+  performanceData: { type: String },
+  uiUxData: { type: String },
+  securityData: { type: String },
   checkedAt: { type: Date, default: Date.now }
 });
 

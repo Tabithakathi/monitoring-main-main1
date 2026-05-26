@@ -3,6 +3,7 @@ Advanced Technical SEO Service.
 Covers: heading structure (H1-H6), image ALT tags, broken links,
 sitemap.xml validation, robots.txt validation, and SEO scoring.
 """
+import re
 import requests
 import warnings
 from bs4 import BeautifulSoup
@@ -114,10 +115,43 @@ def analyze_alt_tags(soup):
     }
 
 
+def audit_resources_and_redirects(soup, base_url):
+    """Scan and verify referenced stylesheets, scripts, and internal pages for 404s."""
+    resources = []
+    for link in soup.find_all("link", rel="stylesheet", href=True):
+        resources.append({"url": urljoin(base_url, link["href"]), "type": "Stylesheet"})
+    for script in soup.find_all("script", src=True):
+        resources.append({"url": urljoin(base_url, script["src"]), "type": "JavaScript"})
+        
+    broken_resources = []
+    # Head check resource paths up to 8 items to prevent bottleneck
+    for res in resources[:8]:
+        try:
+            resp = requests.head(res["url"], timeout=4, headers=_HEADERS, verify=False, allow_redirects=True)
+            if resp.status_code >= 400:
+                broken_resources.append({
+                    "url": res["url"][:100],
+                    "type": res["type"],
+                    "status_code": resp.status_code,
+                    "severity": "high" if resp.status_code == 404 else "medium"
+                })
+        except Exception:
+            broken_resources.append({
+                "url": res["url"][:100],
+                "type": res["type"],
+                "status_code": None,
+                "severity": "medium",
+                "error": "Resource unreachable"
+            })
+            
+    return broken_resources
+
+
 def check_broken_links(soup, base_url, max_links=15):
-    """Check internal links for broken URLs (404/5xx)."""
+    """Check internal and external links for broken URLs (404/5xx), returning detailed splits."""
     parsed_base = urlparse(base_url)
     base_domain = f"{parsed_base.scheme}://{parsed_base.netloc}"
+    base_host = parsed_base.netloc.split(":")[0]
 
     all_links = []
     for a in soup.find_all("a", href=True):
@@ -125,7 +159,7 @@ def check_broken_links(soup, base_url, max_links=15):
         text = a.get_text(strip=True)[:50]
 
         # Skip anchors, mailto, tel, javascript
-        if href.startswith(("#", "mailto:", "tel:", "javascript:")):
+        if href.startswith(("#", "mailto:", "tel:", "javascript:")) or not href:
             continue
 
         # Resolve relative URLs
@@ -148,42 +182,190 @@ def check_broken_links(soup, base_url, max_links=15):
 
     checked = []
     broken = []
+    redirect_loops_count = 0
+    
+    # Classify internal vs external
+    internal = []
+    external = []
+    
+    for link in unique_links:
+        try:
+            link_host = urlparse(link["url"]).netloc.split(":")[0]
+            is_internal = (link_host == base_host or not link_host)
+            if is_internal:
+                internal.append(link)
+            else:
+                external.append(link)
+        except Exception:
+            internal.append(link)
 
-    for link in unique_links[:max_links]:
+    # Check subset of links to prevent performance bottleneck, up to max_links total
+    links_to_check = internal[:max_links] + external[:max_links]
+    
+    for link in links_to_check:
         try:
             resp = requests.head(
-                link["url"], timeout=6, headers=_HEADERS,
+                link["url"], timeout=5, headers=_HEADERS,
                 verify=False, allow_redirects=True
             )
             status = resp.status_code
             is_broken = status >= 400
+            
+            # Check redirect chain
+            is_redirect_loop = len(resp.history) > 4
+            if is_redirect_loop:
+                redirect_loops_count += 1
+                is_broken = True
+                
+            link_host = urlparse(link["url"]).netloc.split(":")[0]
+            is_internal = (link_host == base_host or not link_host)
+            
             entry = {
-                "url": link["url"][:100],
-                "text": link["text"],
+                "url": link["url"][:120],
+                "text": link["text"] or "(no text)",
                 "status_code": status,
                 "is_broken": is_broken,
+                "is_internal": is_internal,
+                "redirect_chain_len": len(resp.history),
+                "is_redirect_loop": is_redirect_loop
             }
             checked.append(entry)
             if is_broken:
                 broken.append(entry)
-        except Exception:
+        except Exception as e:
+            link_host = urlparse(link["url"]).netloc.split(":")[0]
+            is_internal = (link_host == base_host or not link_host)
             entry = {
-                "url": link["url"][:100],
-                "text": link["text"],
+                "url": link["url"][:120],
+                "text": link["text"] or "(no text)",
                 "status_code": None,
                 "is_broken": True,
-                "error": "Could not reach URL",
+                "is_internal": is_internal,
+                "error": str(e)[:60]
             }
             checked.append(entry)
             broken.append(entry)
 
+    internal_checked = [l for l in checked if l.get("is_internal")]
+    external_checked = [l for l in checked if not l.get("is_internal")]
+    
+    internal_broken = [l for l in broken if l.get("is_internal")]
+    external_broken = [l for l in broken if not l.get("is_internal")]
+
+    # 404 resources (stylesheets & scripts)
+    broken_resources = audit_resources_and_redirects(soup, base_url)
+    broken_resources_404 = [r for r in broken_resources if r.get("status_code") == 404]
+
+    total_broken = len(broken) + len(broken_resources_404)
+
     return {
-        "total_links": len(all_links),
-        "checked": len(checked),
+        "total_links": len(unique_links),
+        "checked_count": len(checked),
         "broken_count": len(broken),
-        "broken_links": broken[:10],
-        "status": "good" if len(broken) == 0 else "warning" if len(broken) <= 2 else "poor",
+        "internal_checked": internal_checked,
+        "external_checked": external_checked,
+        "internal_broken_count": len(internal_broken),
+        "external_broken_count": len(external_broken),
+        "internal_broken": internal_broken,
+        "external_broken": external_broken,
+        "redirect_loops_count": redirect_loops_count,
+        "broken_resources": broken_resources,
+        "broken_resources_404_count": len(broken_resources_404),
+        "status": "good" if total_broken == 0 else "warning" if total_broken <= 2 else "poor"
     }
+
+
+def extract_top_keywords(soup):
+    """Extract top 5 high-frequency keywords from page text."""
+    # Strip scripts/styles
+    soup_copy = BeautifulSoup(str(soup), "html.parser")
+    for element in soup_copy(["script", "style", "meta", "noscript", "iframe"]):
+        element.decompose()
+        
+    text = soup_copy.get_text(separator=" ")
+    words = re.findall(r"\b[a-zA-Z]{3,15}\b", text.lower())
+    
+    stop_words = {
+        "the", "and", "a", "of", "to", "in", "is", "that", "it", "on", "for", "with", "as", "was", "for",
+        "are", "by", "at", "an", "be", "this", "from", "or", "have", "you", "not", "your", "we", "our",
+        "us", "can", "will", "would", "should", "could", "about", "more", "their", "them", "these"
+    }
+    
+    filtered = [w for w in words if w not in stop_words]
+    counts = {}
+    for w in filtered:
+        counts[w] = counts.get(w, 0) + 1
+        
+    sorted_words = sorted(counts.items(), key=lambda x: x[1], reverse=True)
+    return [{"keyword": k, "count": v} for k, v in sorted_words[:5]]
+
+
+def check_indexability(soup, robots_data):
+    """Assess page indexability from robots meta tags and robots.txt."""
+    robots_meta = soup.find("meta", attrs={"name": "robots"})
+    content = robots_meta.get("content", "").lower() if robots_meta else ""
+    
+    is_indexable = True
+    reason = "Page is fully indexable."
+    
+    if "noindex" in content:
+        is_indexable = False
+        reason = "Page has meta robots 'noindex' tag, blocking search indexing."
+    elif robots_data and robots_data.get("found"):
+        preview = robots_data.get("content_preview", "").lower()
+        if "disallow: /" in preview and not "allow: /" in preview:
+            is_indexable = False
+            reason = "robots.txt disallows root indexing ('Disallow: /')."
+            
+    return {
+        "is_indexable": is_indexable,
+        "robots_meta": content or "not set",
+        "reason": reason,
+        "status": "good" if is_indexable else "critical"
+    }
+
+
+def check_mobile_touch_targets(soup):
+    """Audit mobile friendliness viewport and touch target spacings."""
+    viewport = soup.find("meta", attrs={"name": "viewport"})
+    has_viewport = viewport is not None
+    
+    interactive_elements = soup.find_all(["a", "button", "input", "select"])
+    touch_target_issues = []
+    
+    dense_style_count = 0
+    for el in interactive_elements[:30]:  # Limit scan to prevent bottleneck
+        style = el.get("style", "").lower()
+        if style and ("display: inline" in style or "padding: 0" in style or "margin: 0" in style):
+            if "width" in style and "height" in style:
+                w_match = re.search(r"width:\s*(\d+)px", style)
+                h_match = re.search(r"height:\s*(\d+)px", style)
+                if w_match and h_match:
+                    w = int(w_match.group(1))
+                    h = int(h_match.group(1))
+                    if w < 48 or h < 48:
+                        dense_style_count += 1
+                        touch_target_issues.append(f"Small touch target discovered: <{el.name}> of size {w}x{h}px (recommended min 48x48px).")
+                        
+    if not has_viewport:
+        status = "poor"
+        msg = "Missing viewport meta tag. Touch targets may scale very small on mobile devices."
+    elif dense_style_count > 3:
+        status = "warning"
+        msg = f"Touch targets too close: {dense_style_count} elements under recommended mobile target size of 48x48px."
+    else:
+        status = "good"
+        msg = "Touch target sizes and mobile viewport configuration look optimal."
+        
+    return {
+        "has_viewport": has_viewport,
+        "viewport_content": viewport.get("content", "") if viewport else None,
+        "touch_target_issues": touch_target_issues[:5],
+        "dense_elements_count": dense_style_count,
+        "status": status,
+        "message": msg
+    }
+
 
 
 def check_sitemap(base_url):
@@ -442,6 +624,15 @@ def analyze_advanced_seo(url):
         robots_data = check_robots_txt(url)
         structured_data = check_structured_data(soup)
 
+        # 1. Keyword Frequency Analysis
+        keywords = extract_top_keywords(soup)
+        
+        # 2. Indexability Check
+        indexability = check_indexability(soup, robots_data)
+        
+        # 3. Mobile Viewport & Touch Spacings Check
+        mobile_touch = check_mobile_touch_targets(soup)
+
         # Open Graph
         og_title = soup.find("meta", property="og:title")
         og_desc = soup.find("meta", property="og:description")
@@ -460,6 +651,14 @@ def analyze_advanced_seo(url):
             has_viewport,
             structured_data["status"],
         )
+
+        # Adjust score for indexability or mobile touch errors
+        if not indexability["is_indexable"]:
+            seo_score = max(30, seo_score - 20)
+        if mobile_touch["status"] == "poor":
+            seo_score = max(30, seo_score - 15)
+        elif mobile_touch["status"] == "warning":
+            seo_score = max(30, seo_score - 5)
 
         # Alerts
         alerts = []
@@ -488,6 +687,12 @@ def analyze_advanced_seo(url):
         if not robots_data["found"]:
             alerts.append({"level": "info", "category": "seo", "message": "No robots.txt found."})
 
+        if not indexability["is_indexable"]:
+            alerts.append({"level": "critical", "category": "seo", "message": indexability["reason"]})
+
+        if mobile_touch["status"] in ("poor", "warning"):
+            alerts.append({"level": "warning", "category": "seo", "message": mobile_touch["message"]})
+
         if not structured_data["found"]:
             alerts.append({"level": "warning", "category": "seo", "message": "No structured data (JSON-LD or Schema.org) detected."})
         elif structured_data["invalid_json_ld_count"] > 0:
@@ -508,6 +713,9 @@ def analyze_advanced_seo(url):
             "sitemap": sitemap_data,
             "robots_txt": robots_data,
             "structured_data": structured_data,
+            "keywords": keywords,
+            "indexability": indexability,
+            "mobile_touch": mobile_touch,
             "open_graph": {
                 "title": og_title.get("content", "") if og_title else "",
                 "description": og_desc.get("content", "") if og_desc else "",

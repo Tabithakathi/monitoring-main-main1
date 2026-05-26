@@ -1,11 +1,12 @@
-"""
-Performance, SEO, and page-image analysis services.
-"""
+import socket
+import re
 import requests
 import time
 import warnings
+from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
+from .security import check_ssl_certificate
 
 # Suppress SSL warnings for dev environment
 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
@@ -35,6 +36,59 @@ def normalize_url(url):
     return url
 
 
+def get_whois_expiry(domain):
+    """Query WHOIS registry servers to extract domain expiration date."""
+    try:
+        ext = domain.split('.')[-1].lower()
+        whois_server = f"whois.nic.{ext}"
+        if ext in ['com', 'net']:
+            whois_server = "whois.verisign-grs.com"
+        elif ext == 'org':
+            whois_server = "whois.pir.org"
+        elif ext == 'edu':
+            whois_server = "whois.educause.edu"
+        elif ext == 'info':
+            whois_server = "whois.afilias.net"
+        else:
+            whois_server = "whois.iana.org"
+
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(3)
+        s.connect((whois_server, 43))
+        s.send((domain + "\r\n").encode("utf-8"))
+        response = b""
+        while True:
+            data = s.recv(4096)
+            if not data:
+                break
+            response += data
+        s.close()
+        text = response.decode("utf-8", errors="ignore")
+        
+        # Regex search for common expiration patterns
+        patterns = [
+            r"Registry Expiry Date:\s*([^\r\n]+)",
+            r"Registrar Registration Expiration Date:\s*([^\r\n]+)",
+            r"Expiration Date:\s*([^\r\n]+)",
+            r"expires:\s*([^\r\n]+)",
+            r"Expiry Date:\s*([^\r\n]+)",
+        ]
+        for p in patterns:
+            m = re.search(p, text, re.IGNORECASE)
+            if m:
+                date_str = m.group(1).strip()
+                # Parse standard date formats
+                for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%d-%b-%Y", "%Y/%m/%d"):
+                    try:
+                        dt = datetime.strptime(date_str[:19], fmt)
+                        return dt
+                    except ValueError:
+                        continue
+        return None
+    except Exception:
+        return None
+
+
 # ── /api/check/ ───────────────────────────────────────────────────────────────
 
 def check_status(url):
@@ -42,14 +96,64 @@ def check_status(url):
     url = normalize_url(url)
     try:
         parsed = urlparse(url)
-        if not parsed.netloc:
+        hostname = parsed.netloc.split(":")[0] if parsed.netloc else ""
+        if not hostname:
             return {"error": "Invalid URL — no domain found."}
 
+        # 1. Real-time DNS Resolution Lookup
+        start_dns = time.time()
+        try:
+            resolved_ip = socket.gethostbyname(hostname)
+            dns_time_ms = round((time.time() - start_dns) * 1000, 2)
+        except Exception:
+            resolved_ip = "Unknown"
+            dns_time_ms = None
+
+        # 2. SSL check (via our shared module)
+        ssl_valid = False
+        ssl_days_remaining = None
+        ssl_issuer = "Unknown"
+        if url.startswith("https://"):
+            ssl_info = check_ssl_certificate(hostname)
+            ssl_valid = ssl_info.get("valid", False)
+            ssl_days_remaining = ssl_info.get("days_remaining")
+            ssl_issuer = ssl_info.get("issued_by", "Unknown")
+
+        # 3. Domain Expiry WHOIS with SSL Fallback
+        domain_expiry_days = None
+        expiry_source = "failed"
+        domain_expiry_date = "Unknown"
+        
+        # Check WHOIS
+        expiry_dt = get_whois_expiry(hostname)
+        if expiry_dt:
+            now = datetime.now()
+            domain_expiry_days = (expiry_dt - now).days
+            domain_expiry_date = expiry_dt.strftime("%Y-%m-%d")
+            expiry_source = "whois"
+        elif ssl_days_remaining is not None:
+            # Fall back to SSL cert remaining days
+            domain_expiry_days = ssl_days_remaining
+            domain_expiry_date = (datetime.now() + timedelta(days=ssl_days_remaining)).strftime("%Y-%m-%d")
+            expiry_source = "ssl_fallback"
+
+        # 4. HTTP Fetch Uptime & Load Time Check
         response, load_time = _get(url)
         status_code = response.status_code
         is_up = (status_code == 200)
         ttfb = round(response.elapsed.total_seconds(), 3)
         page_size_kb = round(len(response.content) / 1024, 2)
+
+        # 5. API Health Verification
+        content_type = response.headers.get("Content-Type", "").lower()
+        is_api = "application/json" in content_type or "application/xml" in content_type
+        api_health = {
+            "is_api": is_api,
+            "content_type": content_type,
+            "latency_s": load_time,
+            "status": "good" if (load_time < 1.0 and is_api) else "warning" if is_api else "n/a",
+            "message": f"API Endpoint operational ({content_type}) in {load_time}s." if is_api else "Standard webpage detected."
+        }
 
         if load_time < 1:
             perf_rating = "excellent"
@@ -87,10 +191,17 @@ def check_status(url):
                 "level": "warning",
                 "message": f"High TTFB: {ttfb}s (recommended <0.2s).",
             })
-        elif ttfb > 0.2:
+
+        if dns_time_ms and dns_time_ms > 300:
             alerts.append({
-                "level": "info",
-                "message": f"TTFB is acceptable but above ideal 200ms: {ttfb}s.",
+                "level": "warning",
+                "message": f"Slow DNS Resolution: {dns_time_ms}ms (recommended <150ms).",
+            })
+
+        if domain_expiry_days is not None and domain_expiry_days < 30:
+            alerts.append({
+                "level": "critical",
+                "message": f"Domain registration EXPIRES in {domain_expiry_days} days! Renew immediately.",
             })
 
         if page_size_kb > 2048:
@@ -103,11 +214,6 @@ def check_status(url):
                 "level": "warning",
                 "message": f"Page size is large: {page_size_kb} KB (ideal 1–1.5 MB, max 2 MB).",
             })
-        elif page_size_kb > 100:
-            alerts.append({
-                "level": "info",
-                "message": f"Page size is {page_size_kb} KB. Aim for total page size under 2 MB (ideal 1–1.5 MB).",
-            })
 
         return {
             "url": url,
@@ -117,6 +223,15 @@ def check_status(url):
             "ttfb": ttfb,
             "page_size_kb": page_size_kb,
             "perf_rating": perf_rating,
+            "resolved_ip": resolved_ip,
+            "dns_time_ms": dns_time_ms,
+            "domain_expiry_days": domain_expiry_days,
+            "domain_expiry_date": domain_expiry_date,
+            "domain_expiry_source": expiry_source,
+            "api_health": api_health,
+            "ssl_valid": ssl_valid,
+            "ssl_days_remaining": ssl_days_remaining,
+            "ssl_issuer": ssl_issuer,
             "alerts": alerts,
         }
 
@@ -130,6 +245,7 @@ def check_status(url):
         return {"error": "Invalid URL format — please include http:// or https://"}
     except Exception as e:
         return {"error": f"Unexpected error: {str(e)}"}
+
 
 
 # ── /api/seo/ ─────────────────────────────────────────────────────────────────

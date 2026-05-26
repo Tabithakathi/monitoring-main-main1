@@ -873,7 +873,7 @@ function App() {
 
     const interval = setInterval(() => {
       runQuickScan();
-    }, 60000);
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [autoRefresh, url]);

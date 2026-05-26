@@ -21,6 +21,18 @@ export default function App() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('uptime');
   const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  
+  // Resilient client-side 15-second SRE auto-polling loop
+  useEffect(() => {
+    if (!autoRefresh || !url) return;
+    
+    const interval = setInterval(() => {
+      fetchStats(urlRef.current);
+    }, 15000);
+    
+    return () => clearInterval(interval);
+  }, [autoRefresh]);
   
   // Ref to hold the latest url so the socket closures can access it without reconnects
   const urlRef = useRef(url);
@@ -177,12 +189,31 @@ export default function App() {
             </button>
 
             <button
+              onClick={() => {
+                setAutoRefresh(!autoRefresh);
+                showToast(
+                  !autoRefresh 
+                    ? '15s SRE auto-polling active.' 
+                    : 'Auto-polling disabled.',
+                  'info'
+                );
+              }}
+              className={`px-4 py-2 border rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                autoRefresh 
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25' 
+                  : 'bg-dark-800 border-slate-700 hover:bg-dark-700/60'
+              }`}
+            >
+              <span>{autoRefresh ? 'Stop Monitor' : 'Auto-Monitor'}</span>
+            </button>
+            
+            <button
               onClick={handleRunAudit}
               disabled={loading || auditLoading}
               className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/20 flex items-center gap-1.5 transition-all"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${auditLoading ? 'rotate-infinite' : ''}`} />
-              <span>{auditLoading ? 'Auditing...' : 'Audit Now'}</span>
+              <span>{auditLoading ? 'Audit Now' : 'Audit Now'}</span>
             </button>
           </div>
 

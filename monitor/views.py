@@ -143,7 +143,8 @@ def _save_report(url, check_data, errors_data, seo_data, perf_data, sec_data, im
                 {"level": getattr(a, "level", "info"), "message": getattr(a, "message", ""), "category": getattr(a, "category", "")}
                 for a in all_alerts
             ]
-            send_alert_emails(report, alerts_payload)
+            import threading
+            threading.Thread(target=send_alert_emails, args=(report, alerts_payload)).start()
         except Exception:
             pass
 

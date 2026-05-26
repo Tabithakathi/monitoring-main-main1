@@ -1,8 +1,4 @@
-"""
-UI/UX Monitoring Service.
-Covers: Layout shift hazard detection, broken/misaligned element detection,
-responsive design audits, and visual regression (DOM structure comparison + OpenCV/Pillow image diffing).
-"""
+import re
 import time
 import requests
 import warnings
@@ -40,19 +36,121 @@ def _get(url, timeout=10):
     except Exception:
         return None
 
+
+def check_accessibility(soup):
+    """Audit accessibility violations: contrast hazards, missing ARIA tags, and empty buttons."""
+    issues = []
+    
+    # 1. Inputs missing labels
+    missing_label_count = 0
+    inputs = soup.find_all("input")
+    labels = soup.find_all("label")
+    label_ids = set()
+    for l in labels:
+        for_attr = l.get("for")
+        if for_attr:
+            label_ids.add(for_attr)
+            
+    for ip in inputs:
+        ip_type = ip.get("type", "").lower()
+        if ip_type in ("hidden", "submit", "button", "image"):
+            continue
+            
+        ip_id = ip.get("id")
+        has_label_bind = ip_id in label_ids if ip_id else False
+        
+        # Check parent node for <label>
+        parent = ip.parent
+        has_parent_label = False
+        while parent:
+            if parent.name == "label":
+                has_parent_label = True
+                break
+            parent = parent.parent
+            
+        aria_label = ip.get("aria-label")
+        aria_labelledby = ip.get("aria-labelledby")
+        
+        if not (has_label_bind or has_parent_label or aria_label or aria_labelledby):
+            missing_label_count += 1
+            ip_name = ip.get("name") or ip.get("id") or "unnamed"
+            issues.append({
+                "type": "Missing Input Label",
+                "message": f"Input field '{ip_name}' lacks a label element or 'aria-label' attribute.",
+                "severity": "high"
+            })
+
+    # 2. Buttons missing accessible names
+    empty_button_count = 0
+    for btn in soup.find_all("button"):
+        text = btn.get_text(strip=True)
+        aria_label = btn.get("aria-label")
+        aria_labelledby = btn.get("aria-labelledby")
+        
+        # Check if button contains nested image with alt
+        has_alt_img = False
+        for img in btn.find_all("img"):
+            if img.get("alt"):
+                has_alt_img = True
+                break
+                
+        if not (text or aria_label or aria_labelledby or has_alt_img):
+            empty_button_count += 1
+            issues.append({
+                "type": "Empty Button Target",
+                "message": "Interactive button element contains no visible text or ARIA description tag.",
+                "severity": "high"
+            })
+
+    # 3. Contrast checks (Heuristic scan of color and background-color settings)
+    contrast_hazards_count = 0
+    for el in soup.find_all(style=True):
+        style = el.get("style", "").lower()
+        if "color" in style and ("background" in style or "bg" in style):
+            color_match = re.search(r"color:\s*(#[a-f0-9]{3,6})", style)
+            bg_match = re.search(r"background(?:-color)?:\s*(#[a-f0-9]{3,6})", style)
+            if color_match and bg_match:
+                c = color_match.group(1)
+                b = bg_match.group(1)
+                if c[:2] == b[:2] or c == b:
+                    contrast_hazards_count += 1
+                    issues.append({
+                        "type": "Low Contrast Spacings",
+                        "message": f"Potential low contrast hazard: text color '{c}' and background color '{b}' are visually similar.",
+                        "severity": "medium"
+                    })
+                    
+    # Generate rating
+    score = 100 - (missing_label_count * 15) - (empty_button_count * 15) - (contrast_hazards_count * 10)
+    score = max(20, score)
+    
+    if score >= 90:
+        rating = "Excellent"
+        color = "green"
+    elif score >= 70:
+        rating = "Good"
+        color = "green"
+    elif score >= 50:
+        rating = "Needs Improvement"
+        color = "orange"
+    else:
+        rating = "Poor"
+        color = "red"
+        
+    return {
+        "score": score,
+        "rating": rating,
+        "color": color,
+        "missing_labels_count": missing_label_count,
+        "empty_buttons_count": empty_button_count,
+        "contrast_hazards_count": contrast_hazards_count,
+        "issues": issues[:10]
+    }
+
+
 def analyze_ui_ux(url, html_content=None, previous_report=None, current_screenshot=None, previous_screenshot=None):
     """
-    Perform a complete UI/UX and visual audit.
-    
-    Args:
-        url: Checked website URL
-        html_content: Optional already fetched HTML string
-        previous_report: Optional dict of the previous AnalysisReport for regression check
-        current_screenshot: Optional bytes or base64 string of the current screenshot
-        previous_screenshot: Optional bytes or base64 string of the previous screenshot
-        
-    Returns:
-        dict with UI/UX monitoring results
+    Perform a complete UI/UX, visual, and accessibility audit.
     """
     if not html_content:
         resp = _get(url)
@@ -79,6 +177,9 @@ def analyze_ui_ux(url, html_content=None, previous_report=None, current_screensh
         current_screenshot, 
         previous_screenshot
     )
+    
+    # 5. Accessibility Auditing
+    accessibility_data = check_accessibility(soup)
     
     # Compute UI Health Score (0-100)
     score = 100
@@ -128,6 +229,13 @@ def analyze_ui_ux(url, html_content=None, previous_report=None, current_screensh
             "message": f"Warning: Found {broken_count} potential design alignment or broken asset issues."
         })
         
+    # Accessibility alerts
+    for a_issue in accessibility_data["issues"]:
+        alerts.append({
+            "level": a_issue["severity"],
+            "message": f"Accessibility: [{a_issue['type']}] {a_issue['message']}"
+        })
+        
     # Visual regression alerts
     if visual_regression_data.get("visual_diff_detected"):
         alerts.append({
@@ -148,6 +256,7 @@ def analyze_ui_ux(url, html_content=None, previous_report=None, current_screensh
         "layout_shift": layout_shift_data,
         "broken_elements": broken_elements_data,
         "visual_regression": visual_regression_data,
+        "accessibility": accessibility_data,
         "alerts": alerts
     }
 

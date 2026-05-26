@@ -5,7 +5,7 @@ import { ShieldCheck, ShieldAlert, Activity, Cpu, Search, RefreshCw, AlertTriang
 import UptimeDashboard from './components/UptimeDashboard';
 import WordPressDashboard from './components/WordPressDashboard';
 
-const API_BASE = '/api';
+const API_BASE = 'https://monitoring-main-main1.onrender.com/api';
 
 // Helper to normalize URLs for WebSocket event comparisons
 const normalizeUrlString = (u) => {
@@ -22,18 +22,18 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('uptime');
   const [isSocketConnected, setIsSocketConnected] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
-  
+
   // Resilient client-side 15-second SRE auto-polling loop
   useEffect(() => {
     if (!autoRefresh || !url) return;
-    
+
     const interval = setInterval(() => {
       fetchStats(urlRef.current);
     }, 15000);
-    
+
     return () => clearInterval(interval);
   }, [autoRefresh]);
-  
+
   // Ref to hold the latest url so the socket closures can access it without reconnects
   const urlRef = useRef(url);
   useEffect(() => {
@@ -69,10 +69,10 @@ export default function App() {
       showToast('Please specify a valid website URL', 'error');
       return;
     }
-    
+
     setAuditLoading(true);
     showToast('Initiating concurrent SRE uptime & WordPress audits...', 'info');
-    
+
     try {
       const response = await axios.post(`${API_BASE}/audit`, { url });
       if (response.data.success) {
@@ -112,10 +112,10 @@ export default function App() {
       if (normalizedCurrent === normalizedBeat) {
         setStats((prev) => {
           if (!prev) return prev;
-          
+
           // Prepend new beat to history and keep last 30 entries
           const updatedHistory = [beat, ...prev.historyLog].slice(0, 30);
-          
+
           return {
             ...prev,
             latestStatus: {
@@ -151,11 +151,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen text-slate-100 font-sans pb-12 relative">
-      
+
       {/* Sleek Dark SRE Navigation Header */}
       <header className="bg-dark-800/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
-          
+
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center font-black text-white shadow-lg shadow-indigo-600/30">
               M
@@ -179,9 +179,9 @@ export default function App() {
                 onKeyDown={(e) => e.key === 'Enter' && fetchStats()}
               />
             </div>
-            
-            <button 
-              onClick={() => fetchStats()} 
+
+            <button
+              onClick={() => fetchStats()}
               disabled={loading || auditLoading}
               className="px-4 py-2 bg-dark-800 border border-slate-700 hover:bg-dark-700/60 rounded-xl text-xs font-bold transition-all"
             >
@@ -192,21 +192,20 @@ export default function App() {
               onClick={() => {
                 setAutoRefresh(!autoRefresh);
                 showToast(
-                  !autoRefresh 
-                    ? '15s SRE auto-polling active.' 
+                  !autoRefresh
+                    ? '15s SRE auto-polling active.'
                     : 'Auto-polling disabled.',
                   'info'
                 );
               }}
-              className={`px-4 py-2 border rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                autoRefresh 
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25' 
+              className={`px-4 py-2 border rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${autoRefresh
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
                   : 'bg-dark-800 border-slate-700 hover:bg-dark-700/60'
-              }`}
+                }`}
             >
               <span>{autoRefresh ? 'Stop Monitor' : 'Auto-Monitor'}</span>
             </button>
-            
+
             <button
               onClick={handleRunAudit}
               disabled={loading || auditLoading}
@@ -222,7 +221,7 @@ export default function App() {
 
       {/* Central workspace contents wrapper */}
       <main className="max-w-7xl mx-auto px-6 mt-8">
-        
+
         {error && (
           <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-2xl flex items-center gap-3 text-sm">
             <AlertCircle className="h-5 w-5 shrink-0" />
@@ -239,7 +238,7 @@ export default function App() {
               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block mb-1">AUDIT TARGET SOURCE</span>
               <h2 className="text-xl font-extrabold text-slate-200 tracking-tight">{stats.url}</h2>
             </div>
-            
+
             <div className="flex gap-4">
               <div className="text-right">
                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">Core status</span>
@@ -261,22 +260,20 @@ export default function App() {
         <div className="flex border-b border-slate-800 mb-6">
           <button
             onClick={() => setActiveTab('uptime')}
-            className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all ${
-              activeTab === 'uptime'
+            className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all ${activeTab === 'uptime'
                 ? 'border-indigo-500 text-indigo-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
           >
             Uptime & Error Logs
           </button>
-          
+
           <button
             onClick={() => setActiveTab('wordpress')}
-            className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all ${
-              activeTab === 'wordpress'
+            className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all ${activeTab === 'wordpress'
                 ? 'border-indigo-500 text-indigo-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
           >
             WordPress CMS Diagnostics
           </button>
@@ -310,11 +307,10 @@ export default function App() {
       {/* Floating SRE toast alert card overlay */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-[99999] animate-fade">
-          <div className={`px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border text-xs font-bold ${
-            toast.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
-            toast.type === 'error' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
-            'bg-indigo-500/10 text-indigo-400 border-indigo-500/30'
-          }`}>
+          <div className={`px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border text-xs font-bold ${toast.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+              toast.type === 'error' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
+                'bg-indigo-500/10 text-indigo-400 border-indigo-500/30'
+            }`}>
             {toast.type === 'success' && <ShieldCheck className="h-4.5 w-4.5" />}
             {toast.type === 'error' && <AlertCircle className="h-4.5 w-4.5" />}
             {toast.type === 'info' && <BellRing className="h-4.5 w-4.5 animate-bounce" />}

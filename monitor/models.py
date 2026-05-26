@@ -81,6 +81,12 @@ class AnalysisReport(models.Model):
         except Exception:
             return {}
 
+    def get_errors_data(self):
+        try:
+            return json.loads(self.errors_data) if self.errors_data else {}
+        except Exception:
+            return {}
+
 
 class AlertHistory(models.Model):
     """Stores individual alerts generated during analysis."""

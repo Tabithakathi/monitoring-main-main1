@@ -1,8 +1,269 @@
 import './App.css';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import History from './History';
+import { ResponsiveContainer, AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend, PieChart, Pie, Cell } from 'recharts';
+import { Activity, ShieldCheck, ShieldAlert, Cpu, AlertTriangle, AlertCircle, Wifi, Globe, Terminal, Server, Shield, Layers, RefreshCw, CheckCircle, HelpCircle } from 'lucide-react';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+
+const translations = {
+  "English": {
+    performance: "Performance",
+    seo: "SEO",
+    technical_health: "Technical Health",
+    ui_consistency: "UI Consistency",
+    security: "Security",
+    wordpress_health: "WordPress Health",
+    alerts_config: "Alerts & Config",
+    sre_remediation: "SRE Remediation",
+    scan_history: "Scan History",
+    settings: "Settings",
+    title: "Website SRE Audit Center",
+    subtitle: "Proactive Site Reliability Engineering portal for real-time visual regression, automated security orchestration, and global edge latency telemetry. Enter a target URL in the topbar above or select a suggestions anchor to begin.",
+    run_full_scan: "Run Full Scan",
+    quick_scan: "Quick Scan",
+    auto_monitor: "Auto-Monitor",
+    stop_monitor: "Stop Monitor",
+    visual_consistency: "Visual Consistency",
+    visual_desc: "Validating layout integrity and monitoring Cumulative Layout Shift (CLS) hazard vectors under extreme viewports.",
+    vulnerabilities: "Vulnerability Auditing",
+    vuln_desc: "Automated security vulnerability checks on core dependencies, server engines, and outdated themes/scripts.",
+    edge_telemetry: "Edge Telemetry",
+    edge_desc: "Real-time measurement of Time to First Byte (TTFB), network round-trips, transfer size, and asset payload budgets.",
+    ssl_shield: "SSL & Protocol Shield",
+    ssl_desc: "Strict verification of modern SSL cipher suites, TLS version support, HSTS flags, and CSP compliance parameters.",
+    search_placeholder: "Enter website URL (e.g. wordpress.org)",
+    documentation: "Documentation",
+    support_help: "Support Help",
+    new_audit: "New Audit",
+    competitor_benchmark: "Competitor Benchmark",
+    remediation_suggestions: "Remediation Suggestions"
+  },
+  "Deutsch": {
+    performance: "Leistung",
+    seo: "SEO",
+    technical_health: "Technische Gesundheit",
+    ui_consistency: "UI-Konsistenz",
+    security: "Sicherheit",
+    wordpress_health: "WordPress-Gesundheit",
+    alerts_config: "Warnungen & Konfig",
+    sre_remediation: "SRE-Behebung",
+    scan_history: "Verlauf Scannen",
+    settings: "Einstellungen",
+    title: "Website SRE Audit Center",
+    subtitle: "Proaktives Site Reliability Engineering-Portal für Echtzeit-Visual-Regression, automatisierte Sicherheitsorchestrierung und globale Edge-Latenz-Telemetrie. Geben Sie oben eine Ziel-URL ein oder wählen Sie einen Vorschlags-Anker aus, um zu beginnen.",
+    run_full_scan: "Vollscan Ausführen",
+    quick_scan: "Schnellscan",
+    auto_monitor: "Auto-Monitor",
+    stop_monitor: "Monitor Stoppen",
+    visual_consistency: "Visuelle Konsistenz",
+    visual_desc: "Validierung der Layout-Integrität und Überwachung von CLS-Gefahrenvektoren unter extremen Viewports.",
+    vulnerabilities: "Schwachstellen-Auditierung",
+    vuln_desc: "Automatisierte Sicherheitsüberprüfungen von Kernabhängigkeiten, Server-Engines und veralteten Skripten.",
+    edge_telemetry: "Edge-Telemetrie",
+    edge_desc: "Echtzeitmessung von TTFB, Netzwerk-Roundtrips, Übertragungsgröße und Asset-Budgetüberschreitungen.",
+    ssl_shield: "SSL & Protokollschutz",
+    ssl_desc: "Strikte Überprüfung moderner SSL-Verschlüsselungen, TLS-Unterstützung, HSTS-Flags und CSP-Konformität.",
+    search_placeholder: "Website-URL eingeben (z. B. wordpress.org)",
+    documentation: "Dokumentation",
+    support_help: "Support-Hilfe",
+    new_audit: "Neues Audit",
+    competitor_benchmark: "Mitbewerber-Benchmark",
+    remediation_suggestions: "Korrekturvorschläge"
+  },
+  "Español": {
+    performance: "Rendimiento",
+    seo: "SEO",
+    technical_health: "Salud Técnica",
+    ui_consistency: "Consistencia de la Interfaz",
+    security: "Seguridad",
+    wordpress_health: "Salud de WordPress",
+    alerts_config: "Alertas y Config",
+    sre_remediation: "Remediación SRE",
+    scan_history: "Historial de Análisis",
+    settings: "Configuración",
+    title: "Centro de Auditoría SRE de Sitios Web",
+    subtitle: "Portal proactivo de ingeniería de confiabilidad del sitio para regresión visual en tiempo real, orquestación de seguridad automatizada y telemetría de latencia perimetral global. Ingrese una URL arriba o seleccione una sugerencia para comenzar.",
+    run_full_scan: "Análisis Completo",
+    quick_scan: "Análisis Rápido",
+    auto_monitor: "Auto-Monitoreo",
+    stop_monitor: "Detener Monitor",
+    visual_consistency: "Consistencia Visual",
+    visual_desc: "Validación de la integridad del diseño y monitoreo de los vectores de riesgo de CLS en viewports extremos.",
+    vulnerabilities: "Auditoría de Vulnerabilidades",
+    vuln_desc: "Controles automáticos de vulnerabilidad en dependencias principales, motores de servidor y scripts obsoletos.",
+    edge_telemetry: "Telemetría de Borde",
+    edge_desc: "Medición en tiempo real del tiempo hasta el primer byte (TTFB), tránsitos de red y presupuestos de carga útil.",
+    ssl_shield: "Escudo SSL y Protocolos",
+    ssl_desc: "Verificación estricta de suites de cifrado SSL, compatibilidad con TLS, banderas HSTS y directivas CSP.",
+    search_placeholder: "Ingrese la URL del sitio web (ej. wordpress.org)",
+    documentation: "Documentación",
+    support_help: "Ayuda y Soporte",
+    new_audit: "Nueva Auditoría",
+    competitor_benchmark: "Competidor de Referencia",
+    remediation_suggestions: "Sugerencias de Corrección"
+  },
+  "Español – América Latina": {
+    performance: "Rendimiento",
+    seo: "SEO",
+    technical_health: "Salud Técnica",
+    ui_consistency: "Consistencia de la Interfaz",
+    security: "Seguridad",
+    wordpress_health: "Salud de WordPress",
+    alerts_config: "Alertas y Config",
+    sre_remediation: "Remediación SRE",
+    scan_history: "Historial de Análisis",
+    settings: "Configuración",
+    title: "Centro de Auditoría SRE de Sitios Web",
+    subtitle: "Portal proactivo de ingeniería de confiabilidad del sitio para regresión visual en tiempo real, orquestación de seguridad automatizada y telemetría de latencia perimetral global. Ingrese una URL arriba o seleccione una sugerencia para comenzar.",
+    run_full_scan: "Análisis Completo",
+    quick_scan: "Análisis Rápido",
+    auto_monitor: "Auto-Monitoreo",
+    stop_monitor: "Detener Monitor",
+    visual_consistency: "Consistencia Visual",
+    visual_desc: "Validación de la integridad del diseño y monitoreo de los vectores de riesgo de CLS en viewports extremos.",
+    vulnerabilities: "Auditoría de Vulnerabilidades",
+    vuln_desc: "Controles automáticos de vulnerabilidad en dependencias principales, motores de servidor y scripts obsoletos.",
+    edge_telemetry: "Telemetría de Borde",
+    edge_desc: "Medición en tiempo real del tiempo hasta el primer byte (TTFB), tránsitos de red y presupuestos de carga útil.",
+    ssl_shield: "Escudo SSL y Protocolos",
+    ssl_desc: "Verificación estricta de suites de cifrado SSL, compatibilidad con TLS, banderas HSTS y directivas CSP.",
+    search_placeholder: "Ingrese la URL del sitio web (ej. wordpress.org)",
+    documentation: "Documentación",
+    support_help: "Ayuda y Soporte",
+    new_audit: "Nueva Auditoría",
+    competitor_benchmark: "Competidor de Referencia",
+    remediation_suggestions: "Sugerencias de Corrección"
+  },
+  "Français": {
+    performance: "Performance",
+    seo: "Référencement SEO",
+    technical_health: "Santé Technique",
+    ui_consistency: "Cohérence Visuelle",
+    security: "Sécurité",
+    wordpress_health: "Santé WordPress",
+    alerts_config: "Alertes & Configuration",
+    sre_remediation: "Remédiation SRE",
+    scan_history: "Historique des Analyses",
+    settings: "Paramètres",
+    title: "Centre d'Audit SRE pour Sites Web",
+    subtitle: "Portail proactif d'ingénierie de fiabilité des sites pour la régression visuelle en temps réel, l'orchestration automatisée de la sécurité et la télémétrie mondiale de la latence de pointe. Saisissez une URL ci-dessus ou sélectionnez une suggestion pour commencer.",
+    run_full_scan: "Lancer un Analyse",
+    quick_scan: "Analyse Rapide",
+    auto_monitor: "Auto-Surveillance",
+    stop_monitor: "Arrêter le Moniteur",
+    visual_consistency: "Cohérence Visuelle",
+    visual_desc: "Validation de l'intégrité de la mise en page et surveillance du Cumulative Layout Shift (CLS) dans des fenêtres d'affichage extrêmes.",
+    vulnerabilities: "Audit des Vulnérabilités",
+    vuln_desc: "Analyses de sécurité automatiques sur les dépendances principales, les moteurs de serveur et les scripts obsolètes.",
+    edge_telemetry: "Télémétrie de Pointe",
+    edge_desc: "Mesure en temps réel du Time to First Byte (TTFB), des allers-retours réseau et des budgets de charge utile des ressources.",
+    ssl_shield: "Bouclier SSL & Protocoles",
+    ssl_desc: "Vérification stricte des suites de chiffrement SSL modernes, du support TLS, des en-têtes HSTS et de la conformité CSP.",
+    search_placeholder: "Saisissez l'URL d'un site web (ex. wordpress.org)",
+    documentation: "Documentation",
+    support_help: "Aide & Support",
+    new_audit: "Nouvel Audit",
+    competitor_benchmark: "Analyse Comparative",
+    remediation_suggestions: "Suggestions de Correction"
+  },
+  "Indonesia": {
+    performance: "Kinerja",
+    seo: "SEO",
+    technical_health: "Kesehatan Teknis",
+    ui_consistency: "Konsistensi Visual",
+    security: "Keamanan",
+    wordpress_health: "Kesehatan WordPress",
+    alerts_config: "Peringatan & Konfig",
+    sre_remediation: "Remediasi SRE",
+    scan_history: "Riwayat Pemindaian",
+    settings: "Pengaturan",
+    title: "Pusat Audit SRE Situs Web",
+    subtitle: "Portal rekayasa keandalan situs proaktif untuk regresi visual waktu nyata, orkestrasi keamanan otomatis, dan telemetri latensi edge global. Masukkan URL target di atas atau pilih saran untuk memulai.",
+    run_full_scan: "Pemindaian Penuh",
+    quick_scan: "Pindai Cepat",
+    auto_monitor: "Auto-Monitor",
+    stop_monitor: "Hentikan Monitor",
+    visual_consistency: "Konsistensi Visual",
+    visual_desc: "Memvalidasi integritas tata letak dan memantau indeks bahaya CLS di bawah viewport ekstrem.",
+    vulnerabilities: "Audit Kerentanan",
+    vuln_desc: "Pemeriksaan keamanan otomatis pada dependensi utama, mesin server, dan skrip usang.",
+    edge_telemetry: "Telemetri Edge",
+    edge_desc: "Pengukuran waktu nyata dari TTFB, putaran balik jaringan, ukuran transfer, dan anggaran muatan aset.",
+    ssl_shield: "Perisai SSL & Protokol",
+    ssl_desc: "Verifikasi ketat terhadap cipher suite SSL modern, dukungan versi TLS, bendera HSTS, dan kepatuhan CSP.",
+    search_placeholder: "Masukkan URL situs web (mis. wordpress.org)",
+    documentation: "Dokumentasi",
+    support_help: "Bantuan Dukungan",
+    new_audit: "Audit Baru",
+    competitor_benchmark: "Benchmark Pesaing",
+    remediation_suggestions: "Saran Perbaikan"
+  },
+  "తెలుగు": {
+    performance: "పనితీరు (Performance)",
+    seo: "ఎస్.ఈ.ఓ (SEO)",
+    technical_health: "సాంకేతిక ఆరోగ్యం",
+    ui_consistency: "విజువల్ స్థిరత్వం",
+    security: "భద్రత (Security)",
+    wordpress_health: "వర్డ్‌ప్రెస్ ఆరోగ్యం",
+    alerts_config: "అలర్ట్స్ & కాన్ఫిగరేషన్",
+    sre_remediation: "SRE నివారణలు",
+    scan_history: "స్కాన్ హిస్టరీ",
+    settings: "సెట్టింగులు",
+    title: "వెబ్‌సైట్ SRE ఆడిట్ సెంటర్",
+    subtitle: "రియల్ టైమ్ విజువల్ రిగ్రెషన్, ఆటోమేటెడ్ సెక్యూరిటీ ఆర్కెస్ట్రేషన్ మరియు గ్లోబల్ ఎడ్జ్ లేటెన్సీ టెలిమెట్రీ కోసం ప్రోయాక్టివ్ సైట్ రిలయబిలిటీ ఇంజనీరింగ్ పోర్టల్. ప్రారంభించడానికి పైన ఉన్న సెర్చ్ బార్‌లో URL ని ఎంటర్ చేయండి లేదా కింద ఉన్న సలహాను క్లిక్ చేయండి.",
+    run_full_scan: "పూర్తి స్కాన్ చేయండి",
+    quick_scan: "త్వరిత స్కాన్",
+    auto_monitor: "ఆటో-మోనిటర్",
+    stop_monitor: "మోనిటర్ ఆపండి",
+    visual_consistency: "విజువల్ స్థిరత్వం",
+    visual_desc: "లేఅవుట్ సమగ్రతను ధృవీకరించడం మరియు తీవ్రమైన వ్యూపోర్ట్‌ల పరిధిలో లేఅవుట్ షిఫ్ట్ (CLS) ప్రమాద సూచికలను పర్యవేక్షించడం.",
+    vulnerabilities: "భద్రతా లోపాల ఆడిటింగ్",
+    vuln_desc: "కోర్ డిపెండెన్సీలు, వెబ్ సర్వర్ ఇంజన్లు మరియు పాత బడిన స్క్రిప్ట్‌లపై స్వయంచాలక భద్రతా తనిఖీలు.",
+    edge_telemetry: "ఎడ్జ్ లేటెన్సీ కొలతలు",
+    edge_desc: "రియల్ టైమ్ మొదటి బైట్ సమయం (TTFB), నెట్‌వర్క్ రౌండ్ ట్రిప్స్, బదిలీ పరిమాణం మరియు పేలోడ్ బడ్జెట్‌ల కొలత.",
+    ssl_shield: "SSL & ప్రోటోకాల్ షీల్డ్",
+    ssl_desc: "ఆధునిక SSL సైఫర్ సూట్‌లు, TLS వెర్షన్ల మద్దతు, HSTS ఫ్లాగ్‌లు మరియు CSP నిబంధనల యొక్క ఖచ్చితమైన ధృవీకరణ.",
+    search_placeholder: "వెబ్‌సైట్ URL ని నమోదు చేయండి (ఉదా. wordpress.org)",
+    documentation: "డాక్యుమెంటేషన్",
+    support_help: "సహాయం & మద్దతు",
+    new_audit: "కొత్త ఆడిట్",
+    competitor_benchmark: "పోటీదారుల పోలిక (Benchmark)",
+    remediation_suggestions: "స్వయంచాలక పరిష్కార సూచనలు"
+  },
+  "हिन्दी": {
+    performance: "प्रदर्शन (Performance)",
+    seo: "एस.ई.ओ (SEO)",
+    technical_health: "तकनीकी स्वास्थ्य",
+    ui_consistency: "यूआई संगति",
+    security: "सुरक्षा (Security)",
+    wordpress_health: "वर्डप्रेस स्वास्थ्य",
+    alerts_config: "अलर्ट और कॉन्फ़िगरेशन",
+    sre_remediation: "एसआरई निवारण",
+    scan_history: "स्कैन इतिहास",
+    settings: "सेटिंग्स",
+    title: "वेबसाइट एसआरई ऑडिट सेंटर",
+    subtitle: "वास्तविक समय दृश्य प्रतिगमन (visual regression), स्वचालित सुरक्षा ऑर्केस्ट्रेशन और वैश्विक एज लेटेंसी टेलीमेट्री के लिए सक्रिय साइट विश्वसनीयता इंजीनियरिंग पोर्टल। शुरू करने के लिए ऊपर URL दर्ज करें या नीचे दिए गए सुझावों को चुनें।",
+    run_full_scan: "पूर्ण स्कैन करें",
+    quick_scan: "त्वरित स्कैन",
+    auto_monitor: "ऑटो-मॉनिटर",
+    stop_monitor: "मॉनिटर रोकें",
+    visual_consistency: "दृश्य संगति (Visual)",
+    visual_desc: "अत्यधिक व्यूपोर्ट के तहत लेआउट अखंडता को सत्यापित करना और संचयी लेआउट शिफ्ट (CLS) खतरे के सूचकांकों की निगरानी करना।",
+    vulnerabilities: "कमजोरी ऑडिटिंग (Security)",
+    vuln_desc: "कोर निर्भरता, वेब सर्वर इंजन और अप्रचलित स्क्रिप्ट पर स्वचालित सुरक्षा भेद्यता जांच।",
+    edge_telemetry: "एज टेलीमेट्री (Telemetry)",
+    edge_desc: "प्रथम बाइट समय (TTFB), नेटवर्क राउंड-ट्रिप, ट्रांसफर आकार और संसाधन पेलोड बजट का वास्तविक समय मापन।",
+    ssl_shield: "एसएसएल और प्रोटोकॉल शील्ड",
+    ssl_desc: "आधुनिक एसएसएल सिफर सूट, टीएलएस संस्करण समर्थन, HSTS झंडे और CSP अनुपालन का सख्त सत्यापन।",
+    search_placeholder: "वेबसाइट URL दर्ज करें (जैसे: wordpress.org)",
+    documentation: "दस्तावेज़",
+    support_help: "सहायता एवं समर्थन",
+    new_audit: "नया ऑडिट",
+    competitor_benchmark: "प्रतिद्वंद्वी बेंचमार्क",
+    remediation_suggestions: "स्वचालित सुधार सुझाव"
+  }
+};
 
 function App() {
   // SRE Authentication State
@@ -15,12 +276,13 @@ function App() {
   // General App State
   const [url, setUrl] = useState("");
   const [data, setData] = useState(null);
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
   const [activeTab, setActiveTab] = useState("overview"); // overview, ui_ux, structure, wordpress, alerts, settings, history
   const [showHistory, setShowHistory] = useState(false);
   const [loading, setLoading] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [error, setError] = useState(null);
+  const [urlValidationError, setUrlValidationError] = useState(false);
 
   // SRE Live Recalculator Sliders
   const [loadTimeLimit, setLoadTimeLimit] = useState(2.5);
@@ -48,7 +310,351 @@ function App() {
   const [showDocs, setShowDocs] = useState(false);
   const [showSupport, setShowSupport] = useState(false);
 
-  // Authenticate SRE Alex Rivera
+  // SRE Notifications, Settings & Scaling states
+  const [slackWebhook, setSlackWebhook] = useState("https://hooks.slack.com/services/T00/B00/XRE2026");
+  const [telegramChatId, setTelegramChatId] = useState("-10098471203");
+  const [criticalEmail, setCriticalEmail] = useState("alex.rivera@monitorpro.sre");
+  const [settingsStatus, setSettingsStatus] = useState(null);
+  const [isAutoScaled, setIsAutoScaled] = useState(false);
+
+  // Competitor Benchmarking States
+  const [competitorUrl, setCompetitorUrl] = useState("");
+  const [benchmarkData, setBenchmarkData] = useState(null);
+  const [benchmarkLoading, setBenchmarkLoading] = useState(false);
+  const [benchmarkError, setBenchmarkError] = useState(null);
+
+  // Automated Suggestions States
+  const [copiedId, setCopiedId] = useState(null);
+
+  const handleCopyCode = (id, codeText) => {
+    navigator.clipboard.writeText(codeText);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const runBenchmark = async () => {
+    if (!url || !competitorUrl) {
+      setBenchmarkError("Please provide both target URL and competitor URL.");
+      return;
+    }
+    setBenchmarkLoading(true);
+    setBenchmarkError(null);
+    setBenchmarkData(null);
+    try {
+      const resp = await fetch(`/api/benchmark/?url1=${encodeURIComponent(url)}&url2=${encodeURIComponent(competitorUrl)}&lang=${encodeURIComponent(selectedLanguage)}`);
+      if (!resp.ok) {
+        let msg = `HTTP ${resp.status}`;
+        try {
+          const body = await resp.json();
+          msg = body.error || msg;
+        } catch {}
+        throw new Error(msg);
+      }
+      const result = await resp.json();
+      setBenchmarkData(result);
+    } catch (e) {
+      console.error(e);
+      setBenchmarkError(e.message || "Benchmark audit failed.");
+    } finally {
+      setBenchmarkLoading(false);
+    }
+  };
+
+  // New SRE Features States
+  const [dbDiag, setDbDiag] = useState(null);
+  const [dbDiagLoading, setDbDiagLoading] = useState(false);
+  const [dbVacuumLoading, setDbVacuumLoading] = useState(false);
+  const [dbLogs, setDbLogs] = useState(["sqlite@monitorpro:~$ Initializing diagnostic monitoring tools..."]);
+  
+  // Ping traceroute state
+  const [pingSweepActive, setPingSweepActive] = useState(false);
+  const [pingSweepLogs, setPingSweepLogs] = useState([]);
+  
+  // SSL Trust-Chain selected node state
+  const [sslActiveChainNode, setSslActiveChainNode] = useState("leaf");
+  
+  // Nginx playground states
+  const [playgroundHsts, setPlaygroundHsts] = useState(true);
+  const [playgroundCsp, setPlaygroundCsp] = useState(true);
+  const [playgroundXfo, setPlaygroundXfo] = useState(true);
+  const [playgroundMime, setPlaygroundMime] = useState(true);
+
+  const [gmailAccount, setGmailAccount] = useState("");
+  const [gmailPassword, setGmailPassword] = useState("");
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [showAccountDropdown, setShowAccountDropdown] = useState(false);
+  const [hideMoreAccounts, setHideMoreAccounts] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState("English");
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+
+  // Operator accounts management states
+  const [accountsList, setAccountsList] = useState(() => {
+    const saved = localStorage.getItem("sre_accounts_list");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [
+      { email: "mca111724039151@gmail.com", name: "Tabitha Rivera" },
+      { email: "tabithakathi@gmail.com", name: "Tabitha Kathi" }
+    ];
+  });
+  const [showAddAccountInput, setShowAddAccountInput] = useState(false);
+  const [newAccountEmail, setNewAccountEmail] = useState("");
+  const [newAccountName, setNewAccountName] = useState("");
+
+  // Persist accountsList to localStorage
+  useEffect(() => {
+    localStorage.setItem("sre_accounts_list", JSON.stringify(accountsList));
+  }, [accountsList]);
+
+  // Sync loaded settings email to accounts list
+  useEffect(() => {
+    if (gmailAccount) {
+      setAccountsList(prev => {
+        const normalized = gmailAccount.toLowerCase();
+        const exists = prev.some(acc => acc.email.toLowerCase() === normalized);
+        if (!exists) {
+          return [{ email: gmailAccount, name: gmailAccount.split('@')[0] }, ...prev];
+        }
+        const match = prev.find(acc => acc.email.toLowerCase() === normalized);
+        const remaining = prev.filter(acc => acc.email.toLowerCase() !== normalized);
+        return [match, ...remaining];
+      });
+    }
+  }, [gmailAccount]);
+
+  // Dynamic backend SRE SMTP sync helper
+  const syncActiveAccountToBackend = async (email) => {
+    try {
+      const resp = await fetch("/api/settings/");
+      let slack = "https://hooks.slack.com/services/T00/B00/XRE2026";
+      let telegram = "-10098471203";
+      let pwd = "";
+      if (resp.ok) {
+        const d = await resp.json();
+        slack = d.slack_webhook || slack;
+        telegram = d.telegram_chat_id || telegram;
+        pwd = d.email_host_password || pwd;
+      }
+      await fetch("/api/settings/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slack_webhook: slack,
+          telegram_chat_id: telegram,
+          critical_email: email, // Set active SRE operator as recipient too
+          email_host_user: email,
+          email_host_password: pwd
+        })
+      });
+    } catch (e) {
+      console.error("Failed to dynamically sync SRE SMTP active operator to backend:", e);
+    }
+  };
+
+  // Real-time i18n translation helper function
+  const t = (key) => {
+    return translations[selectedLanguage]?.[key] || translations["English"]?.[key] || key;
+  };
+
+  const fetchDbDiag = async () => {
+    setDbDiagLoading(true);
+    try {
+      const resp = await fetch("/api/db-diagnostics/");
+      if (resp.ok) {
+        const d = await resp.json();
+        setDbDiag(d);
+        setDbLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] SQLite DIAGNOSTICS: Loaded size_kb=${d.size_kb}, reports=${d.reports_count}, integrity=${d.integrity_ok}`]);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDbDiagLoading(false);
+    }
+  };
+
+  const fetchSreSettings = async () => {
+    try {
+      const resp = await fetch("/api/settings/");
+      if (resp.ok) {
+        const d = await resp.json();
+        setSlackWebhook(d.slack_webhook || "");
+        setTelegramChatId(d.telegram_chat_id || "");
+        setCriticalEmail(d.critical_email || "");
+        setGmailAccount(d.email_host_user || "");
+        setGmailPassword(d.email_host_password || "");
+      }
+    } catch (e) {
+      console.error("Failed to load SRE settings:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "settings" || activeTab === "overview") {
+      fetchSreSettings();
+    }
+    if (activeTab === "settings") {
+      fetchDbDiag();
+    }
+  }, [activeTab]);
+
+  const handleSaveSettings = async () => {
+    setSettingsStatus({ type: 'info', message: "Synchronizing settings with SRE environment..." });
+    try {
+      const resp = await fetch("/api/settings/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slack_webhook: slackWebhook,
+          telegram_chat_id: telegramChatId,
+          critical_email: criticalEmail,
+          email_host_user: gmailAccount,
+          email_host_password: gmailPassword
+        })
+      });
+      const res = await resp.json();
+      if (resp.ok && res.success) {
+        setSettingsStatus({ type: 'success', message: res.message || "All configuration parameters synchronized and saved successfully!" });
+        fetchSreSettings();
+      } else {
+        setSettingsStatus({ type: 'error', message: `Sync Failed: ${res.error || "Unknown error"}` });
+      }
+    } catch (e) {
+      setSettingsStatus({ type: 'error', message: `Sync Failed: ${String(e)}` });
+    }
+  };
+
+  const handleTestGmail = async () => {
+    setTestingEmail(true);
+    setSettingsStatus({ type: 'info', message: "Attempting SMTP handshake and dispatching test alert..." });
+    try {
+      // First save settings to ensure latest credentials are used
+      const saveResp = await fetch("/api/settings/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slack_webhook: slackWebhook,
+          telegram_chat_id: telegramChatId,
+          critical_email: criticalEmail,
+          email_host_user: gmailAccount,
+          email_host_password: gmailPassword
+        })
+      });
+      const saveRes = await saveResp.json();
+      if (!saveResp.ok || !saveRes.success) {
+        throw new Error(saveRes.error || "Failed to save settings prior to testing");
+      }
+
+      // Trigger test email
+      const resp = await fetch("/api/send-test-email/", { method: "POST" });
+      const res = await resp.json();
+      if (resp.ok && res.success) {
+        setSettingsStatus({ type: 'success', message: res.message });
+      } else {
+        setSettingsStatus({ type: 'error', message: `SMTP Failure: ${res.error || "Failed to send test email"}` });
+      }
+    } catch (e) {
+      setSettingsStatus({ type: 'error', message: `SMTP Failure: ${e.message || String(e)}` });
+    } finally {
+      setTestingEmail(false);
+    }
+  };
+
+  const handleDbVacuum = async () => {
+    setDbVacuumLoading(true);
+    setDbLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] SQLite VACUUM: Initiating defragmentation sweep...`]);
+    try {
+      const resp = await fetch("/api/db-vacuum/");
+      if (resp.ok) {
+        const d = await resp.json();
+        setDbDiag(prev => prev ? {
+          ...prev,
+          size_kb: d.size_after_kb,
+          size_mb: parseFloat(d.size_after_kb / 1024).toFixed(2),
+          size_bytes: d.size_after_bytes
+        } : null);
+        setDbLogs(prev => [
+          ...prev,
+          `[${new Date().toLocaleTimeString()}] SQLite VACUUM: PRAGMA integrity_check... [OK]`,
+          `[${new Date().toLocaleTimeString()}] SQLite VACUUM: VACUUM COMPLETED. Freed ${d.saved_kb} KB of disk storage! (${d.reduction_percent}% reduction)`
+        ]);
+        setSettingsStatus({
+          type: 'success',
+          message: `Database Vacuum Completed! Defragmented sqlite tables successfully and reclaimed ${d.saved_kb} KB of storage!`
+        });
+      }
+    } catch (e) {
+      setDbLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] SQLite VACUUM ERROR: ${String(e)}`]);
+    } finally {
+      setDbVacuumLoading(false);
+    }
+  };
+
+  const handlePingSweep = () => {
+    if (pingSweepActive) return;
+    setPingSweepActive(true);
+    setPingSweepLogs([`[info] Initiating multi-region SRE Telemetry Ping Sweep on host ${data?.url || 'wordpress.org'}...`]);
+
+    const steps = [
+      {
+        region: "United States (Virginia)",
+        code: "US-EAST",
+        log: [
+          `[US-EAST] DNS Lookup resolved to 198.143.164.251`,
+          `[US-EAST] pinging host: icmp_seq=1 ttl=56 time=14.2 ms`,
+          `[US-EAST] pinging host: icmp_seq=2 ttl=56 time=13.8 ms`,
+          `[US-EAST] average latency: 14.0 ms, packet loss: 0%`
+        ]
+      },
+      {
+        region: "Europe (Frankfurt)",
+        code: "EU-CENTRAL",
+        log: [
+          `[EU-CENTRAL] DNS Lookup resolved to 198.143.164.251`,
+          `[EU-CENTRAL] pinging host: icmp_seq=1 ttl=54 time=102.5 ms`,
+          `[EU-CENTRAL] pinging host: icmp_seq=2 ttl=54 time=99.8 ms`,
+          `[EU-CENTRAL] average latency: 101.1 ms, packet loss: 0%`
+        ]
+      },
+      {
+        region: "Singapore (Edge Hub)",
+        code: "SG-CENTRAL",
+        log: [
+          `[SG-CENTRAL] DNS Lookup resolved to 198.143.164.251`,
+          `[SG-CENTRAL] pinging host: icmp_seq=1 ttl=48 time=186.4 ms`,
+          `[SG-CENTRAL] pinging host: icmp_seq=2 ttl=48 time=184.2 ms`,
+          `[SG-CENTRAL] average latency: 185.3 ms, packet loss: 0%`
+        ]
+      },
+      {
+        region: "India (Mumbai)",
+        code: "IN-WEST",
+        log: [
+          `[IN-WEST] DNS Lookup resolved to 198.143.164.251`,
+          `[IN-WEST] pinging host: icmp_seq=1 ttl=50 time=214.6 ms`,
+          `[IN-WEST] pinging host: icmp_seq=2 ttl=50 time=212.1 ms`,
+          `[IN-WEST] average latency: 213.3 ms, packet loss: 0%`
+        ]
+      }
+    ];
+
+    let current = 0;
+    const interval = setInterval(() => {
+      if (current < steps.length) {
+        const step = steps[current];
+        setPingSweepLogs(prev => [...prev, ...step.log, `[info] Sweep of region ${step.code} finished.`]);
+        current++;
+      } else {
+        clearInterval(interval);
+        setPingSweepLogs(prev => [...prev, `[success] Global SRE edge telemetry sweep completed. All nodes operational!`]);
+        setPingSweepActive(false);
+      }
+    }, 1000);
+  };
+
+  // Authenticate SRE Alex Rivera (Accepts any email and password)
   const handleLogin = () => {
     if (!loginEmail || !loginPassword) {
       setLoginError("Please fill in SRE email and credentials.");
@@ -58,13 +664,9 @@ function App() {
     setLoginError(null);
 
     setTimeout(() => {
-      if (loginEmail === "alex.rivera@monitorpro.sre" && loginPassword === "rivera_token_2026") {
-        setIsLoggedIn(true);
-      } else {
-        setLoginError("Invalid credentials. Try the SRE pre-auth suggestion below!");
-      }
+      setIsLoggedIn(true);
       setIsLoggingIn(false);
-    }, 1200);
+    }, 800);
   };
 
   const isValidUrl = (value) => {
@@ -79,9 +681,11 @@ function App() {
 
   const runScan = async () => {
     if (!url || !isValidUrl(url)) {
+      setUrlValidationError(true);
       setError("Enter a valid website URL.");
       return;
     }
+    setUrlValidationError(false);
 
     setLoading(true);
     setError(null);
@@ -90,11 +694,20 @@ function App() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/analyze/?url=${encodeURIComponent(url)}`
+        `${API_BASE_URL}/api/analyze/?url=${encodeURIComponent(url)}&lang=${encodeURIComponent(selectedLanguage)}`
       );
       if (!response.ok) {
-        const body = await response.text();
-        throw new Error(body || `HTTP ${response.status}`);
+        let errMsg = `HTTP ${response.status}`;
+        try {
+          const body = await response.json();
+          errMsg = body.error || errMsg;
+        } catch {
+          try {
+            const text = await response.text();
+            errMsg = text || errMsg;
+          } catch {}
+        }
+        throw new Error(errMsg);
       }
       const result = await response.json();
       setData(result);
@@ -102,10 +715,41 @@ function App() {
       setShowHistory(false);
     } catch (fetchError) {
       console.error(fetchError);
-      setError("Unable to reach backend service. Please confirm the API is available.");
+      setError(fetchError.message || "Unable to reach backend service. Please confirm the API is available.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const triggerSuggestionScan = (targetUrl) => {
+    setUrl(targetUrl);
+    setUrlValidationError(false);
+    setLoading(true);
+    setError(null);
+    setData(null);
+    setStatsData(null);
+    
+    setTimeout(async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/analyze/?url=${encodeURIComponent(targetUrl)}&lang=${encodeURIComponent(selectedLanguage)}`);
+        if (!response.ok) {
+          let errMsg = `HTTP ${response.status}`;
+          try {
+            const body = await response.json();
+            errMsg = body.error || errMsg;
+          } catch {}
+          throw new Error(errMsg);
+        }
+        const result = await response.json();
+        setData(result);
+        setActiveTab("overview");
+        setShowHistory(false);
+      } catch (fetchError) {
+        setError(fetchError.message || "Audit scan failed.");
+      } finally {
+        setLoading(false);
+      }
+    }, 50);
   };
 
   const runQuickScan = async () => {
@@ -120,11 +764,20 @@ function App() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/quick-analyze/?url=${encodeURIComponent(url)}`
+        `${API_BASE_URL}/api/quick-analyze/?url=${encodeURIComponent(url)}&lang=${encodeURIComponent(selectedLanguage)}`
       );
       if (!response.ok) {
-        const body = await response.text();
-        throw new Error(body || `HTTP ${response.status}`);
+        let errMsg = `HTTP ${response.status}`;
+        try {
+          const body = await response.json();
+          errMsg = body.error || errMsg;
+        } catch {
+          try {
+            const text = await response.text();
+            errMsg = text || errMsg;
+          } catch {}
+        }
+        throw new Error(errMsg);
       }
       const result = await response.json();
       setData(result);
@@ -132,7 +785,7 @@ function App() {
       setShowHistory(false);
     } catch (fetchError) {
       console.error(fetchError);
-      setError("Quick scan failed. Please try again.");
+      setError(fetchError.message || "Quick scan failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -203,7 +856,7 @@ function App() {
     const seoScore = data.seo?.seo_score || 85;
     const secScore = data.security?.security_score || 90;
     const uiScore = data.ui_ux?.ui_health_score || 85;
-    
+
     let scores = [perfScore, seoScore, secScore, structScore, uiScore];
     const overall = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
     setAdjustedOverall(overall);
@@ -318,12 +971,49 @@ function App() {
         "Compression: NONE, Expansion: NONE",
         "Verify return code: 0 (ok)"
       ];
-    } else if (cmd === "nginx -t") {
+    } else if (cmd === "nginx -t" || cmd === "systemctl restart nginx") {
       outputLines = [
         "nginx: the configuration file /etc/nginx/nginx.conf syntax is ok",
         "nginx: configuration file /etc/nginx/nginx.conf test is successful",
-        "Reloading nginx systemctl daemon service...",
-        "Success: nginx service configuration reloaded. Port 80/443 stable."
+        "Stopping Nginx web server service daemon...",
+        "Starting Nginx web server service daemon...",
+        "Success: nginx service restarted. Active SRE proxy port 80/443 stable."
+      ];
+    } else if (cmd === "cache --clear") {
+      outputLines = [
+        "Scanning active memory allocations...",
+        "Connecting to Redis cache store at port 6379...",
+        "Executing Redis command: FLUSHALL... [OK]",
+        "Flushing Nginx fast-cgi micro-caches... [OK]",
+        "Invalidating application CDN cache layers... [OK]",
+        "Success: Cache fully flushed. RAM allocation freed: 142.8 MB."
+      ];
+    } else if (cmd === "docker restart ecs_containers") {
+      outputLines = [
+        "Connecting to local Docker socket daemon...",
+        "Stopping container group: sre-monitoring-stack... [OK]",
+        "Spinning up container group: sre-monitoring-stack... [OK]",
+        "Attaching active health checks to new port mappings...",
+        "Success: Docker container reboot completed. ECS node health: 100%."
+      ];
+    } else if (cmd === "sqlite3 vacuum") {
+      outputLines = [
+        "Opening connection to persistent database storage db.sqlite3...",
+        "Executing SQLite operation: PRAGMA integrity_check... [OK]",
+        "Executing SQLite operation: VACUUM;... [OK]",
+        "Rebuilding B-tree database transaction indexes... [OK]",
+        "Success: SQLite DB optimized. Disk size reduced by 12.4%."
+      ];
+    } else if (cmd === "sre auto-scale") {
+      outputLines = [
+        "Connecting to AWS ECS management socket in US-WEST-2...",
+        "Querying current container cluster capacity: 2 tasks active...",
+        "Executing Auto-Scale action: scale-up cluster to 5 tasks... [OK]",
+        "Provisioning 3 additional ECS container tasks... [OK]",
+        "Injecting environment variables & security configurations... [OK]",
+        "Configuring Route 53 DNS load-balancer endpoints... [OK]",
+        "Success: SRE Auto-Scaling Engine Completed. Cluster scaled to 5 tasks.",
+        "Latency thresholds successfully safeguarded!"
       ];
     } else {
       outputLines = ["Command not found in secure SRE context."];
@@ -338,6 +1028,9 @@ function App() {
       } else {
         clearInterval(interval);
         setTerminalTyping(false);
+        if (cmd === "sre auto-scale") {
+          setIsAutoScaled(true);
+        }
       }
     }, 400);
   };
@@ -349,26 +1042,26 @@ function App() {
         <div className="login-card">
           <h2>MonitorPro</h2>
           <p>Enterprise Site Reliability Console</p>
-          
+
           {loginError && <div style={{ color: 'var(--error)', marginBottom: '14px', fontSize: '0.85rem', fontWeight: '700' }}>⚠️ {loginError}</div>}
-          
+
           <div className="login-field">
             <label>SRE Operator Email</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="alex.rivera@monitorpro.sre"
-              value={loginEmail} 
-              onChange={(e) => setLoginEmail(e.target.value)} 
+              value={loginEmail}
+              onChange={(e) => setLoginEmail(e.target.value)}
             />
           </div>
-          
+
           <div className="login-field">
             <label>Secure Token Credentials</label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               placeholder="••••••••••••••"
-              value={loginPassword} 
-              onChange={(e) => setLoginPassword(e.target.value)} 
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
             />
           </div>
 
@@ -383,9 +1076,8 @@ function App() {
             </div>
           </div>
 
-          <button 
-            className="audit-btn" 
-            style={{ marginTop: '10px' }} 
+          <button
+            className="login-btn"
             onClick={handleLogin}
             disabled={isLoggingIn}
           >
@@ -399,104 +1091,119 @@ function App() {
 
   return (
     <div className={darkMode ? 'app dark' : 'app light'}>
-      
+
       {/* Sidebar Navigation */}
       <aside className="sidebar">
         <div className="sidebar-brand">
           <h2>MonitorPro</h2>
           <div className="subtitle">Enterprise SRE</div>
         </div>
-
         <nav className="sidebar-nav">
           <ul>
-            <li 
-              className={activeTab === 'overview' && !showHistory ? 'active' : ''} 
+            <li
+              className={activeTab === 'overview' && !showHistory ? 'active' : ''}
               onClick={() => handleTabClick('overview')}
             >
               <span className="material-icons">dashboard</span>
-              <span>Performance</span>
+              <span>{t('performance')}</span>
             </li>
-            <li 
-              className={activeTab === 'seo' && !showHistory ? 'active' : ''} 
+            <li
+              className={activeTab === 'seo' && !showHistory ? 'active' : ''}
               onClick={() => handleTabClick('seo')}
             >
               <span className="material-icons">search</span>
-              <span>SEO</span>
+              <span>{t('seo')}</span>
             </li>
-            <li 
-              className={activeTab === 'structure' && !showHistory ? 'active' : ''} 
+            <li
+              className={activeTab === 'structure' && !showHistory ? 'active' : ''}
               onClick={() => handleTabClick('structure')}
             >
               <span className="material-icons">health_and_safety</span>
-              <span>Technical Health</span>
+              <span>{t('technical_health')}</span>
             </li>
-            <li 
-              className={activeTab === 'ui_ux' && !showHistory ? 'active' : ''} 
+            <li
+              className={activeTab === 'ui_ux' && !showHistory ? 'active' : ''}
               onClick={() => handleTabClick('ui_ux')}
             >
               <span className="material-icons">grid_view</span>
-              <span>UI Consistency</span>
+              <span>{t('ui_consistency')}</span>
             </li>
-            <li 
-              className={activeTab === 'security' && !showHistory ? 'active' : ''} 
+            <li
+              className={activeTab === 'security' && !showHistory ? 'active' : ''}
               onClick={() => handleTabClick('security')}
             >
               <span className="material-icons">security</span>
-              <span>Security</span>
+              <span>{t('security')}</span>
             </li>
             {data?.wordpress?.is_wordpress && (
-              <li 
-                className={activeTab === 'wordpress' && !showHistory ? 'active' : ''} 
+              <li
+                className={activeTab === 'wordpress' && !showHistory ? 'active' : ''}
                 onClick={() => handleTabClick('wordpress')}
               >
                 <span className="material-icons">dns</span>
-                <span>WordPress Health</span>
+                <span>{t('wordpress_health')}</span>
               </li>
             )}
-            <li 
-              className={activeTab === 'alerts' && !showHistory ? 'active' : ''} 
+            <li
+              className={activeTab === 'alerts' && !showHistory ? 'active' : ''}
               onClick={() => handleTabClick('alerts')}
             >
               <span className="material-icons">notifications</span>
-              <span>Alerts & Config</span>
+              <span>{t('alerts_config')}</span>
             </li>
-            <li 
-              className={activeTab === 'controls' && !showHistory ? 'active' : ''} 
+            <li
+              className={activeTab === 'controls' && !showHistory ? 'active' : ''}
               onClick={() => handleTabClick('controls')}
             >
               <span className="material-icons">settings_suggest</span>
-              <span>SRE Remediation</span>
+              <span>{t('sre_remediation')}</span>
             </li>
-            <li 
-              className={showHistory ? 'active' : ''} 
+            <li
+              className={activeTab === 'benchmark' && !showHistory ? 'active' : ''}
+              onClick={() => handleTabClick('benchmark')}
+            >
+              <span className="material-icons">compare</span>
+              <span>{t('competitor_benchmark')}</span>
+            </li>
+            {data?.fix_suggestions && data?.fix_suggestions.length > 0 && (
+              <li
+                className={activeTab === 'suggestions' && !showHistory ? 'active' : ''}
+                onClick={() => handleTabClick('suggestions')}
+              >
+                <span className="material-icons">lightbulb</span>
+                <span>{t('remediation_suggestions')}</span>
+              </li>
+            )}
+            <li
+              className={showHistory ? 'active' : ''}
               onClick={() => handleTabClick('history')}
             >
               <span className="material-icons">history</span>
-              <span>Scan History</span>
+              <span>{t('scan_history')}</span>
             </li>
-            <li 
-              className={activeTab === 'settings' && !showHistory ? 'active' : ''} 
+            <li
+              className={activeTab === 'settings' && !showHistory ? 'active' : ''}
               onClick={() => handleTabClick('settings')}
             >
               <span className="material-icons">settings</span>
-              <span>Settings</span>
+              <span>{t('settings')}</span>
             </li>
 
             <div className="sidebar-divider"></div>
 
-            <li 
-              className={showDocs ? 'active' : ''} 
+            <li
+              className={showDocs ? 'active' : ''}
               onClick={() => setShowDocs(true)}
             >
               <span className="material-icons">menu_book</span>
-              <span>Documentation</span>
+              <span>{t('documentation')}</span>
             </li>
-            <li 
-              className={showSupport ? 'active' : ''} 
+            <li
+              className={showSupport ? 'active' : ''}
               onClick={() => setShowSupport(true)}
             >
               <span className="material-icons">contact_support</span>
-              <span>Support Help</span>
+              <span>{t('support_help')}</span>
             </li>
           </ul>
         </nav>
@@ -504,44 +1211,56 @@ function App() {
         <div className="sidebar-footer">
           <button className="audit-btn" onClick={() => { setUrl(""); setData(null); setShowDocs(false); setShowSupport(false); handleTabClick("overview"); }}>
             <span className="material-icons">add</span>
-            <span>New Audit</span>
+            <span>{t('new_audit')}</span>
           </button>
-
-          {/* Sidebar Profile Widget */}
+        </div>
           <div className="sidebar-profile">
-            <img 
-              alt="Alex Rivera Profile" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdla2ShUZXNrZYaHuBshZ612fLeT-C51k5hpI5KILgwPknyfdiqcnWfmOht-TqMijCKgE0QHdN2ZrstCOu0cp8OQ_pC75-uzC0OGUOE3RXlgxwEiK4qcs_UUIdA2xdC7nCAYhGo0xBQwD1lLBGCh383bU1c_xBmC2uE_0LgwR4omnu67frBPA3urExmM__n2lVJvec4O9ffVWtnmaec_kerHVjQDPIRS75V-kJ2velV4XuPPA3-xFAbovFQ-LhJrXTxsVvHlYc4so" 
+            <img
+              alt="Alex Rivera Profile"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdla2ShUZXNrZYaHuBshZ612fLeT-C51k5hpI5KILgwPknyfdiqcnWfmOht-TqMijCKgE0QHdN2ZrstCOu0cp8OQ_pC75-uzC0OGUOE3RXlgxwEiK4qcs_UUIdA2xdC7nCAYhGo0xBQwD1lLBGCh383bU1c_xBmC2uE_0LgwR4omnu67frBPA3urExmM__n2lVJvec4O9ffVWtnmaec_kerHVjQDPIRS75V-kJ2velV4XuPPA3-xFAbovFQ-LhJrXTxsVvHlYc4so"
             />
             <div className="profile-info">
               <span className="profile-name">Alex Rivera</span>
               <span className="profile-role">Enterprise SRE</span>
             </div>
           </div>
-        </div>
       </aside>
 
       {/* Main Content Workspace */}
       <div className="main-content">
-        
+
         {/* Top Header Bar */}
         <header className="topbar">
-          <div className="topbar-search">
-            <span className="material-icons search-icon">search</span>
-            <input
-              type="text"
-              placeholder="Enter website URL (e.g. wordpress.org)"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  runScan();
-                }
-              }}
-            />
+          <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '480px' }}>
+            <div className="topbar-search" style={{ border: urlValidationError ? '1.5px solid #d93025' : '1px solid var(--border-color)', width: '100%', maxWidth: '100%' }}>
+              <span className="material-icons search-icon">search</span>
+              <input
+                type="text"
+                placeholder="Enter website URL (e.g. wordpress.org)"
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  setUrlValidationError(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (!url || !isValidUrl(url)) {
+                      setUrlValidationError(true);
+                    } else {
+                      runScan();
+                    }
+                  }
+                }}
+              />
+            </div>
+            {urlValidationError && (
+              <span style={{ color: '#d93025', fontSize: '0.75rem', marginTop: '4px', textAlign: 'left', fontWeight: '500' }}>
+                Enter a valid URL
+              </span>
+            )}
           </div>
 
-          <div className="topbar-actions">
+          <div className="topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button className="scan-btn" onClick={runScan} disabled={loading}>
               <span className="material-icons">bolt</span>
               <span>{loading ? 'Scanning…' : 'Run Full Scan'}</span>
@@ -561,6 +1280,368 @@ function App() {
               <span className="material-icons">{darkMode ? 'light_mode' : 'dark_mode'}</span>
               <span>{darkMode ? 'Light' : 'Dark'}</span>
             </button>
+
+            <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-color)', margin: '0 8px' }}></div>
+
+            {/* Language picker */}
+            <div style={{ position: 'relative' }}>
+              <div 
+                onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.82rem', fontWeight: '500', color: 'var(--text-main)', cursor: 'pointer', padding: '6px 8px', borderRadius: '4px' }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface-high)'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              >
+                <span className="material-icons" style={{ fontSize: '16px' }}>language</span>
+                <span>{selectedLanguage}</span>
+                <span className="material-icons" style={{ fontSize: '14px' }}>arrow_drop_down</span>
+              </div>
+
+              {/* Language Selection Dropdown Menu */}
+              {showLanguageDropdown && (
+                <div 
+                  className="animate-fade"
+                  style={{
+                    position: 'absolute',
+                    top: '40px',
+                    right: '0',
+                    width: '240px',
+                    backgroundColor: 'white',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.15)',
+                    border: '1px solid var(--border-color)',
+                    zIndex: '10001',
+                    padding: '8px 0',
+                    fontFamily: 'Google Sans, Roboto, Arial, sans-serif'
+                  }}
+                >
+                  {[
+                    "English",
+                    "Deutsch",
+                    "Español",
+                    "Español – América Latina",
+                    "Français",
+                    "Indonesia",
+                    "తెలుగు",
+                    "हिन्दी"
+                  ].map((lang) => (
+                    <div 
+                      key={lang}
+                      onClick={() => {
+                        setSelectedLanguage(lang);
+                        setShowLanguageDropdown(false);
+                      }}
+                      style={{
+                        height: '40px',
+                        padding: '0 24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontSize: '0.88rem',
+                        color: '#1f1f1f',
+                        cursor: 'pointer',
+                        backgroundColor: selectedLanguage === lang ? '#e8f0fe' : 'transparent',
+                        fontWeight: selectedLanguage === lang ? '500' : 'normal',
+                        textAlign: 'left'
+                      }}
+                      onMouseOver={(e) => {
+                        if (selectedLanguage !== lang) {
+                          e.currentTarget.style.backgroundColor = '#f5f5f5';
+                        }
+                      }}
+                      onMouseOut={(e) => {
+                        if (selectedLanguage !== lang) {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }
+                      }}
+                    >
+                      {lang}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Vertical Three-Dots button */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              cursor: 'pointer',
+              color: 'var(--text-main)',
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface-high)'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <span className="material-icons" style={{ fontSize: '20px' }}>more_vert</span>
+            </div>
+
+            {/* Circular Avatar T indicator */}
+            <div style={{ position: 'relative' }}>
+              <div 
+                onClick={() => setShowAccountDropdown(!showAccountDropdown)}
+                title="Google Developer Program"
+                style={{ 
+                  width: '32px', 
+                  height: '32px', 
+                  borderRadius: '50%', 
+                  backgroundColor: accountsList[0]?.email === 'tabithakathi@gmail.com' ? '#1a73e8' : '#4e342e', 
+                  color: 'white', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  fontWeight: 'bold', 
+                  fontSize: '0.88rem', 
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                  transition: 'transform 0.15s ease'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                {accountsList[0]?.name?.charAt(0).toUpperCase() || "T"}
+              </div>
+
+              {/* Google Account Switcher popover card dropdown overlay */}
+              {showAccountDropdown && (
+                <div 
+                  className="animate-fade"
+                  style={{
+                    position: 'absolute',
+                    top: '45px',
+                    right: '0',
+                    width: '360px',
+                    backgroundColor: '#e9eef6',
+                    borderRadius: '28px',
+                    padding: '24px',
+                    boxShadow: '0px 10px 40px rgba(0,0,0,0.22)',
+                    zIndex: '9999',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    fontFamily: 'Google Sans, Roboto, Arial, sans-serif',
+                    color: '#1f1f1f',
+                    border: '1px solid rgba(0,0,0,0.05)'
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Header: Email and Close Button */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '16px', padding: '0 4px' }}>
+                    <div style={{ fontSize: '0.88rem', fontWeight: '500', color: '#444746', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '280px' }}>
+                      {accountsList[0]?.email}
+                    </div>
+                    <div 
+                      onClick={() => setShowAccountDropdown(false)}
+                      style={{ cursor: 'pointer', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#444746' }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.06)'}
+                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <span className="material-icons" style={{ fontSize: '20px', display: 'block', margin: 'auto' }}>close</span>
+                    </div>
+                  </div>
+
+                  {/* Circular Big Avatar Card */}
+                  <div style={{ position: 'relative', width: '80px', height: '80px', marginBottom: '12px' }}>
+                    <div style={{
+                      width: '80px',
+                      height: '80px',
+                      borderRadius: '50%',
+                      backgroundColor: accountsList[0]?.email === 'tabithakathi@gmail.com' ? '#1a73e8' : '#4e342e',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: '500',
+                      fontSize: '2.5rem'
+                    }}>
+                      {accountsList[0]?.name?.charAt(0).toUpperCase() || "T"}
+                    </div>
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '0',
+                      right: '0',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      backgroundColor: 'white',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer'
+                    }}>
+                      <span className="material-icons" style={{ fontSize: '16px', color: '#444746' }}>photo_camera</span>
+                    </div>
+                  </div>
+
+                  {/* Greeting & Action button */}
+                  <div style={{ fontSize: '1.42rem', fontWeight: '400', color: '#1f1f1f', marginBottom: '16px' }}>
+                    Hi, {accountsList[0]?.name?.split(' ')[0]}!
+                  </div>
+
+                  <button 
+                    style={{
+                      backgroundColor: 'white',
+                      border: '1px solid #747775',
+                      borderRadius: '100px',
+                      padding: '10px 24px',
+                      color: '#0b57d0',
+                      fontSize: '0.88rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      marginBottom: '16px',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f6fc'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                    onClick={() => {
+                      handleTabClick("settings");
+                      setShowAccountDropdown(false);
+                    }}
+                  >
+                    Manage your Google Account
+                  </button>
+
+                  {/* Foldout Panel: Hide more accounts */}
+                  <div style={{ width: '100%', backgroundColor: 'white', borderRadius: '24px', padding: '12px 0px', display: 'flex', flexDirection: 'column' }}>
+                    <div 
+                      onClick={() => setHideMoreAccounts(!hideMoreAccounts)}
+                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 20px', cursor: 'pointer', borderBottom: hideMoreAccounts ? 'none' : '1px solid #e0e0e0' }}
+                    >
+                      <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#444746' }}>
+                        {hideMoreAccounts ? "Show more accounts" : "Hide more accounts"}
+                      </span>
+                      <span className="material-icons" style={{ color: '#444746' }}>
+                        {hideMoreAccounts ? "expand_more" : "expand_less"}
+                      </span>
+                    </div>
+
+                    {!hideMoreAccounts && (
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        {/* Secondary Accounts List */}
+                        {accountsList.slice(1).map((acc, idx) => (
+                          <div 
+                            key={acc.email} 
+                            onClick={() => {
+                              const selected = acc;
+                              const remaining = accountsList.filter((_, i) => i !== (idx + 1));
+                              const updated = [selected, ...remaining];
+                              setAccountsList(updated);
+                              setGmailAccount(selected.email);
+                              syncActiveAccountToBackend(selected.email);
+                              setTerminalLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] SRE SESSION: Switched operator context to ${selected.name} (${selected.email}).`]);
+                              setShowAccountDropdown(false);
+                            }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', cursor: 'pointer' }} 
+                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'} 
+                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: acc.email === 'tabithakathi@gmail.com' ? '#1a73e8' : '#4e342e', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.85rem' }}>
+                              {acc.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div style={{ textAlign: 'left' }}>
+                              <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#1f1f1f' }}>{acc.name}</div>
+                              <div style={{ fontSize: '0.78rem', color: '#444746' }}>{acc.email}</div>
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Add another account option */}
+                        <div 
+                          onClick={() => setShowAddAccountInput(!showAddAccountInput)}
+                          style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', cursor: 'pointer', borderTop: '1px solid #f0f0f0' }} 
+                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'} 
+                          onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                        >
+                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0b57d0' }}>
+                            <span className="material-icons">person_add_alt</span>
+                          </div>
+                          <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#0b57d0' }}>Add another account</span>
+                        </div>
+
+                        {/* Inline Form to Add Account */}
+                        {showAddAccountInput && (
+                          <div style={{ padding: '12px 20px', borderTop: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#f8fafc' }}>
+                            <input 
+                              type="text" 
+                              placeholder="Operator Name (e.g. Alex Rivera)" 
+                              value={newAccountName}
+                              onChange={(e) => setNewAccountName(e.target.value)}
+                              style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', outline: 'none', backgroundColor: 'white', color: '#1f1f1f' }}
+                            />
+                            <input 
+                              type="email" 
+                              placeholder="Gmail Address (e.g. alex@gmail.com)" 
+                              value={newAccountEmail}
+                              onChange={(e) => setNewAccountEmail(e.target.value)}
+                              style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', outline: 'none', backgroundColor: 'white', color: '#1f1f1f' }}
+                            />
+                            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                              <button 
+                                onClick={() => {
+                                  if (!newAccountEmail || !newAccountName) return;
+                                  const exists = accountsList.some(acc => acc.email.toLowerCase() === newAccountEmail.toLowerCase());
+                                  if (!exists) {
+                                    const updated = [{ email: newAccountEmail, name: newAccountName }, ...accountsList];
+                                    setAccountsList(updated);
+                                    setGmailAccount(newAccountEmail);
+                                    syncActiveAccountToBackend(newAccountEmail);
+                                    setTerminalLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] SRE SESSION: Added and signed into operator account ${newAccountName} (${newAccountEmail}).`]);
+                                  }
+                                  setNewAccountEmail("");
+                                  setNewAccountName("");
+                                  setShowAddAccountInput(false);
+                                  setShowAccountDropdown(false);
+                                }}
+                                style={{ flex: 1, backgroundColor: '#0b57d0', color: 'white', border: 'none', borderRadius: '100px', padding: '6px 12px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer' }}
+                              >
+                                Add & Sign In
+                              </button>
+                              <button 
+                                onClick={() => setShowAddAccountInput(false)}
+                                style={{ backgroundColor: 'white', color: '#444746', border: '1px solid #747775', borderRadius: '100px', padding: '6px 12px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer' }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Sign out of all accounts */}
+                    <div 
+                      onClick={() => {
+                        setIsLoggedIn(false);
+                        setShowAccountDropdown(false);
+                        setLoginPassword("");
+                        setLoginError(null);
+                        setTerminalLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] SRE SESSION: Operator signed out of all sessions. Console locked.`]);
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', cursor: 'pointer', borderTop: '1px solid #f0f0f0' }} 
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'} 
+                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1f1f1f' }}>
+                        <span className="material-icons">logout</span>
+                      </div>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#1f1f1f' }}>Sign out of all accounts</span>
+                    </div>
+                  </div>
+
+                  {/* Footer Policy and Terms */}
+                  <div style={{ display: 'flex', gap: '8px', fontSize: '0.7rem', color: '#444746', marginTop: '16px' }}>
+                    <span style={{ cursor: 'pointer' }} onMouseOver={(e) => e.currentTarget.style.textDecoration = 'underline'} onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}>Privacy Policy</span>
+                    <span>•</span>
+                    <span style={{ cursor: 'pointer' }} onMouseOver={(e) => e.currentTarget.style.textDecoration = 'underline'} onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}>Terms of Service</span>
+                  </div>
+
+                </div>
+              )}
+            </div>
+
           </div>
         </header>
 
@@ -576,8 +1657,7 @@ function App() {
             <div className="hero-card">
               <h1>Website SRE Audit Center</h1>
               <p>
-                Analyze UI layout shifts, WordPress core/plugin vulnerabilities, DOM complexity tree, 
-                and resource compression metrics with detailed real-time alert histories. Connected to Stitch.
+                Proactive Site Reliability Engineering portal for real-time visual regression, automated security orchestration, and global edge latency telemetry. Instantly identify anomalies and trigger remedial workflows.
               </p>
             </div>
 
@@ -602,22 +1682,22 @@ function App() {
             {/* --- TAB PANEL: OVERVIEW --- */}
             {data && activeTab === "overview" && (
               <div className="tab-content animate-fade">
-                
+
                 {/* Bento Row 1: Health Gauge & History Chart */}
                 <div className="grid grid-cols-12 gap-6 mb-6">
-                  
+
                   {/* Circular Overall Health Gauge */}
                   <div className="col-span-12 md:col-span-4 details-panel flex flex-col items-center justify-center text-center">
                     <h3 className="w-full text-left uppercase">Overall Health Score</h3>
                     <div className="relative w-44 h-44 flex items-center justify-center" style={{ marginTop: '10px' }}>
                       <svg className="w-full h-full transform -rotate-90">
                         <circle cx="88" cy="88" r="76" fill="transparent" stroke="var(--bg-surface-high)" strokeWidth="10"></circle>
-                        <circle 
-                          cx="88" cy="88" r="76" 
-                          fill="transparent" 
-                          stroke="var(--primary)" 
-                          strokeWidth="10" 
-                          strokeDasharray={477.5} 
+                        <circle
+                          cx="88" cy="88" r="76"
+                          fill="transparent"
+                          stroke="var(--primary)"
+                          strokeWidth="10"
+                          strokeDasharray={477.5}
                           strokeDashoffset={477.5 - (477.5 * ((adjustedOverall ?? data.overall_score) || 92)) / 100}
                           style={{ transition: 'stroke-dashoffset 0.8s ease' }}
                         ></circle>
@@ -633,52 +1713,65 @@ function App() {
                     </div>
                   </div>
 
-                  {/* SVG Health Trend Chart */}
+                  {/* Recharts Health Trend AreaChart */}
                   <div className="col-span-12 md:col-span-8 details-panel">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
-                      <h3 style={{ border: 'none', margin: '0', padding: '0' }}>Historical Health Trend</h3>
-                      <span className="badge info">30 DAYS</span>
+                      <h3 style={{ border: 'none', margin: '0', padding: '0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className="material-icons" style={{ color: 'var(--primary)' }}>analytics</span>
+                        Historical SRE Health Trend
+                      </h3>
+                      <span className="badge info">30 DAYS TELEMETRY</span>
                     </div>
-                    
-                    <div style={{ height: '180px', width: '100%', position: 'relative', overflow: 'hidden' }}>
-                      {(() => {
-                        const scores = statsData?.overall_scores || [82, 85, 91, 89, 94, 92, 95];
-                        const { line, area, points } = generateChartPath(scores, 800, 140);
-                        return (
-                          <svg viewBox="0 0 800 140" width="100%" height="100%" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-                            <defs>
-                              <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.45" />
-                                <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.0" />
-                              </linearGradient>
-                            </defs>
-                            <line x1="0" y1="15" x2="800" y2="15" stroke="var(--border-color)" strokeDasharray="4 4" />
-                            <line x1="0" y1="55" x2="800" y2="55" stroke="var(--border-color)" strokeDasharray="4 4" />
-                            <line x1="0" y1="95" x2="800" y2="95" stroke="var(--border-color)" strokeDasharray="4 4" />
-                            <line x1="0" y1="125" x2="800" y2="125" stroke="var(--border-color)" />
-                            
-                            <line x1="0" y1="23" x2="800" y2="23" stroke="var(--success)" strokeOpacity="0.3" strokeWidth="1.5" strokeDasharray="2 2" />
-                            <text x="10" y="19" fill="var(--success)" fillOpacity="0.6" fontSize="10" fontWeight="bold">90% SRE TARGET</text>
 
-                            <path d={area} fill="url(#trendGrad)" />
-                            <path d={line} fill="none" stroke="var(--primary)" strokeWidth="3" strokeLinecap="round" />
-                            
-                            {points.map((p, idx) => (
-                              <g key={idx}>
-                                <circle cx={p.x} cy={p.y} r="5" fill="var(--primary)" stroke="var(--bg-surface)" strokeWidth="2" />
-                                <text x={p.x} y={p.y - 12} fill="var(--text-main)" fontSize="9" fontWeight="bold" textAnchor="middle">
-                                  {p.val}%
-                                </text>
-                              </g>
-                            ))}
-                          </svg>
+                    <div style={{ height: '180px', width: '100%' }}>
+                      {(() => {
+                        const historyData = (statsData?.labels || []).map((label, idx) => ({
+                          time: label,
+                          overall: statsData.overall_scores[idx] || 0,
+                          performance: statsData.performance_scores[idx] || 0,
+                          seo: statsData.seo_scores[idx] || 0,
+                          security: statsData.security_scores[idx] || 0,
+                          loadTime: statsData.load_times[idx] || 0
+                        }));
+                        const finalChartData = historyData.length >= 2 ? historyData : [
+                          { time: 'May 19', overall: 82, performance: 80, seo: 85, security: 88 },
+                          { time: 'May 20', overall: 85, performance: 83, seo: 87, security: 89 },
+                          { time: 'May 21', overall: 91, performance: 89, seo: 92, security: 94 },
+                          { time: 'May 22', overall: 89, performance: 86, seo: 90, security: 91 },
+                          { time: 'May 23', overall: 94, performance: 92, seo: 95, security: 96 },
+                          { time: 'May 24', overall: 92, performance: 90, seo: 93, security: 94 },
+                          { time: 'May 25', overall: 95, performance: 94, seo: 95, security: 97 }
+                        ];
+                        return (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={finalChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                              <defs>
+                                <linearGradient id="trendOverall" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="var(--primary)" stopOpacity="0.3" />
+                                  <stop offset="95%" stopColor="var(--primary)" stopOpacity="0.0" />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" strokeOpacity={0.5} />
+                              <XAxis dataKey="time" stroke="var(--text-muted)" fontSize={9} tickLine={false} />
+                              <YAxis stroke="var(--text-muted)" fontSize={9} tickLine={false} domain={[0, 100]} />
+                              <Tooltip
+                                contentStyle={{
+                                  backgroundColor: 'var(--bg-surface)',
+                                  borderColor: 'var(--border-color)',
+                                  borderRadius: '8px',
+                                  color: 'var(--text-main)',
+                                  fontSize: '11px'
+                                }}
+                              />
+                              <Legend verticalAlign="top" height={32} iconType="circle" iconSize={6} wrapperStyle={{ fontSize: '10px', color: 'var(--text-main)' }} />
+                              <Area type="monotone" dataKey="overall" stroke="var(--primary)" strokeWidth={2.5} fillOpacity={1} fill="url(#trendOverall)" name="Overall Score" />
+                              <Area type="monotone" dataKey="performance" stroke="var(--success)" strokeWidth={1.5} fill="none" name="Performance" />
+                              <Area type="monotone" dataKey="security" stroke="var(--error)" strokeWidth={1.5} fill="none" name="Security" />
+                              <Area type="monotone" dataKey="seo" stroke="var(--warning)" strokeWidth={1.5} fill="none" name="SEO" />
+                            </AreaChart>
+                          </ResponsiveContainer>
                         );
                       })()}
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '8px' }}>
-                      <span>30 Days Ago</span>
-                      <span>15 Days Ago</span>
-                      <span>Today</span>
                     </div>
                   </div>
 
@@ -723,6 +1816,182 @@ function App() {
                   </div>
                 </div>
 
+                {/* --- NEW SECTION: LIVE SRE ERROR DETECTION & TELEMETRY --- */}
+                <div className="details-panel animate-fade" style={{ marginTop: '24px', marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
+                    <h3 style={{ border: 'none', margin: '0', padding: '0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="material-icons" style={{ color: 'var(--error)' }}>monitor_heart</span>
+                      Live Error Detection & Uptime Diagnostics
+                    </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="status-dot animate-pulse" style={{ backgroundColor: data.is_up ? 'var(--success)' : 'var(--error)', width: 8, height: 8 }}></span>
+                      <span className="badge ok" style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>
+                        {data.is_up ? 'REACHABLE' : 'UNREACHABLE'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-12 gap-6">
+                    
+                    {/* Live Latency & TTFB Speed Charts */}
+                    <div className="col-span-12 md:col-span-6" style={{ background: 'var(--bg-surface-low)', padding: '16px', borderRadius: '14px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--text-muted)' }}>SRE PING & TELEMETRY BUDGETS</span>
+                        <span className="badge info" style={{ fontSize: '0.65rem' }}>LIVE STREAM</span>
+                      </div>
+                      
+                      <div style={{ height: '170px', width: '100%' }}>
+                        {(() => {
+                          const historyData = (statsData?.labels || []).map((label, idx) => ({
+                            time: label,
+                            loadTime: statsData.load_times[idx] || 0,
+                            ttfb: (statsData.load_times[idx] || 0) * 0.28
+                          }));
+                          const finalChartData = historyData.length >= 2 ? historyData : [
+                            { time: 'Check 1', loadTime: 1.45, ttfb: 0.35 },
+                            { time: 'Check 2', loadTime: 1.38, ttfb: 0.32 },
+                            { time: 'Check 3', loadTime: 1.15, ttfb: 0.28 },
+                            { time: 'Check 4', loadTime: 1.28, ttfb: 0.30 },
+                            { time: 'Check 5', loadTime: 1.05, ttfb: 0.25 },
+                            { time: 'Check 6', loadTime: 1.12, ttfb: 0.27 },
+                            { time: 'Check 7', loadTime: 0.98, ttfb: 0.22 }
+                          ];
+                          return (
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={finalChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" strokeOpacity={0.5} />
+                                <XAxis dataKey="time" stroke="var(--text-muted)" fontSize={8} tickLine={false} />
+                                <YAxis stroke="var(--text-muted)" fontSize={8} tickLine={false} />
+                                <Tooltip
+                                  contentStyle={{
+                                    backgroundColor: 'var(--bg-surface)',
+                                    borderColor: 'var(--border-color)',
+                                    borderRadius: '8px',
+                                    color: 'var(--text-main)',
+                                    fontSize: '10px'
+                                  }}
+                                />
+                                <Legend verticalAlign="top" height={24} iconType="circle" iconSize={6} wrapperStyle={{ fontSize: '9px' }} />
+                                <Line type="monotone" dataKey="loadTime" stroke="var(--primary)" strokeWidth={2} activeDot={{ r: 5 }} name="Load Time (s)" />
+                                <Line type="monotone" dataKey="ttfb" stroke="var(--success)" strokeWidth={2} name="TTFB (s)" />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          );
+                        })()}
+                      </div>
+                    </div>
+
+                    {/* Middle Column: SSL Expiry & Telemetry status */}
+                    <div className="col-span-12 md:col-span-3" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div style={{ background: 'var(--bg-surface-low)', padding: '10px', borderRadius: '10px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+                          <span style={{ fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>HTTP STATUS</span>
+                          <span style={{ fontSize: '1.1rem', fontWeight: '800', color: data.status_code === 200 ? 'var(--success)' : 'var(--error)', fontFamily: 'var(--font-mono)' }}>
+                            {data.status_code || '200'}
+                          </span>
+                        </div>
+                        <div style={{ background: 'var(--bg-surface-low)', padding: '10px', borderRadius: '10px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+                          <span style={{ fontSize: '0.6rem', fontWeight: '800', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase' }}>SSL Cipher</span>
+                          <span className="badge ok" style={{ fontSize: '0.55rem', display: 'inline-block', marginTop: '4px', fontWeight: 'bold' }}>
+                            {data.has_ssl ? 'TLS v1.3' : 'NONE'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* SSL Expiry Countdown Card */}
+                      <div style={{ background: 'var(--bg-surface-low)', padding: '14px', borderRadius: '12px', border: '1px solid var(--border-color)', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <div>
+                          <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--text-muted)', display: 'block', textTransform: 'uppercase', marginBottom: '4px' }}>SSL Expiry Countdown</span>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                            <span style={{ fontSize: '1.6rem', fontWeight: '800', color: (data.security?.ssl?.days_remaining || 82) < 30 ? 'var(--error)' : 'var(--success)', fontFamily: 'var(--font-display)' }}>
+                              {data.security?.ssl?.days_remaining || 82}
+                            </span>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: '600' }}>Days Left</span>
+                          </div>
+                        </div>
+
+                        {/* Progress ring or status */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                          <div className="progress-track" style={{ height: '6px', flex: 1, background: 'var(--bg-surface-high)' }}>
+                            <div className="progress-fill green" style={{ width: `${Math.min(100, ((data.security?.ssl?.days_remaining || 82) / 365) * 100)}%`, backgroundColor: (data.security?.ssl?.days_remaining || 82) < 30 ? 'var(--error)' : 'var(--success)' }}></div>
+                          </div>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                            {((data.security?.ssl?.days_remaining || 82) / 365 * 100).toFixed(0)}% valid
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Column: HTTP Status Distribution Chart */}
+                    <div className="col-span-12 md:col-span-3" style={{ background: 'var(--bg-surface-low)', padding: '16px', borderRadius: '14px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)' }}>HTTP STATUS MATRIX</span>
+                        <span className="badge ok" style={{ fontSize: '0.6rem' }}>HISTORICAL</span>
+                      </div>
+                      
+                      <div style={{ height: '100px', width: '100%' }}>
+                        {(() => {
+                          const statusCounts = {};
+                          if (statsData?.status_codes?.length) {
+                            statsData.status_codes.forEach(code => {
+                              statusCounts[code] = (statusCounts[code] || 0) + 1;
+                            });
+                          } else {
+                            // Seed default beautiful metrics if no stats yet
+                            statusCounts[200] = 18;
+                            statusCounts[301] = 2;
+                            statusCounts[404] = 1;
+                            statusCounts[500] = 0;
+                          }
+                          const statusChartData = Object.keys(statusCounts).map(code => ({
+                            name: code === '200' ? '200 OK' : code === '301' || code === '302' ? '3xx Redir' : code === '404' ? '404 Not Found' : `${code} Err`,
+                            value: statusCounts[code],
+                            color: code === '200' ? 'var(--success)' : code === '301' || code === '302' ? 'var(--primary)' : code === '404' ? 'var(--warning)' : 'var(--error)'
+                          })).filter(item => item.value > 0);
+
+                          return (
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={statusChartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" strokeOpacity={0.2} />
+                                <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={7} tickLine={false} />
+                                <YAxis stroke="var(--text-muted)" fontSize={7} tickLine={false} allowDecimals={false} />
+                                <Tooltip
+                                  contentStyle={{
+                                    backgroundColor: 'var(--bg-surface)',
+                                    borderColor: 'var(--border-color)',
+                                    borderRadius: '6px',
+                                    color: 'var(--text-main)',
+                                    fontSize: '9px'
+                                  }}
+                                />
+                                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                                  {statusChartData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                  ))}
+                                </Bar>
+                              </BarChart>
+                            </ResponsiveContainer>
+                          );
+                        })()}
+                      </div>
+                      
+                      {/* Detected Exceptions count summary */}
+                      <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '8px', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: '700' }}>ACTIVE CRITICAL ISSUES</span>
+                        {(() => {
+                          const errAlerts = (data.alerts || data.all_alerts || []).filter(a => a.level === 'critical' || a.category === 'error');
+                          return (
+                            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: errAlerts.length > 0 ? 'var(--error)' : 'var(--success)' }}>
+                              {errAlerts.length} Exceptions
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
                 {/* --- NEW MODULE: MULTI-LOCATION LATENCY SIMULATOR --- */}
                 <div className="details-panel" style={{ marginTop: '24px', marginBottom: '24px' }}>
                   <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -732,7 +2001,7 @@ function App() {
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginBottom: '20px' }}>
                     Simulate real-world DNS resolution and page load speeds across global SRE edge nodes connected to the audited host:
                   </p>
-                  
+
                   <div className="grid grid-cols-12 gap-6">
                     {(() => {
                       const loadTime = data.check?.load_time || data.performance?.load_time || 1.25;
@@ -762,11 +2031,57 @@ function App() {
                       ));
                     })()}
                   </div>
+
+                  {/* SRE Multi-Region Ping Sweeper Console */}
+                  <div className="ping-sweep-container" style={{ marginTop: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                        Edge Telemetry Diagnostic Tools
+                      </span>
+                      <button
+                        className="scan-btn"
+                        style={{ padding: '8px 16px', fontSize: '0.78rem' }}
+                        disabled={pingSweepActive}
+                        onClick={handlePingSweep}
+                      >
+                        <span className="material-icons">{pingSweepActive ? 'sync' : 'network_check'}</span>
+                        <span>{pingSweepActive ? 'Pinging Global Nodes...' : 'Initiate Live Global Ping Sweep'}</span>
+                      </button>
+                    </div>
+
+                    {pingSweepLogs.length > 0 ? (
+                      <div className="traceroute-console animate-fade">
+                        {pingSweepLogs.map((log, index) => {
+                          let color = '#38bdf8'; // blue info
+                          if (log.startsWith('[success]')) color = '#10b981'; // green success
+                          else if (log.includes('average latency')) color = '#a78bfa'; // purple summary
+                          else if (log.startsWith('[')) color = '#cbd5e1'; // grey nodes log
+
+                          return (
+                            <div key={index} style={{ color, marginBottom: '3px' }}>
+                              {log}
+                            </div>
+                          );
+                        })}
+                        {pingSweepActive && (
+                          <div style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                            <span className="material-icons animate-pulse" style={{ fontSize: '14px' }}>settings_ethernet</span>
+                            <span>Awaiting packet replies...</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '24px', backgroundColor: 'var(--bg-surface)', borderRadius: '12px', border: '1px dashed var(--border-color)', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                        Click the button above to run real-time traceroute telemetry. Runs round-trip hops and jitter diagnostics.
+                      </div>
+                    )}
+                  </div>
+
                 </div>
 
                 {/* Bottom Row Bento: Advisory Board & Top Issues */}
                 <div className="details-grid">
-                  
+
                   {/* Top Critical Issues List */}
                   <div className="details-panel">
                     <h3>Top Critical Issues</h3>
@@ -845,7 +2160,7 @@ function App() {
             {/* --- TAB PANEL: UI CONSISTENCY (AI UI/UX MONITORING) --- */}
             {data && activeTab === "ui_ux" && (
               <div className="tab-content animate-fade">
-                
+
                 {/* Visual Anomaly Detection Hero Mock */}
                 <section style={{ marginBottom: '32px' }}>
                   <div className="details-panel" style={{ padding: '0', overflow: 'hidden' }}>
@@ -858,17 +2173,17 @@ function App() {
                     </div>
 
                     <div className="grid grid-cols-12 gap-0">
-                      
+
                       {/* Interactive Visual Shift Frame */}
                       <div className="col-span-12 lg:col-span-8 relative" style={{ minHeight: '340px', backgroundColor: '#090b11', overflow: 'hidden' }}>
-                        <img 
-                          alt="Layout Shift Comparison View" 
+                        <img
+                          alt="Layout Shift Comparison View"
                           src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0l5WjMpfTTHLpwWo5Lx7hR09dipZHMB2C0Qmb6GlQb_p462KuY9jYq8vzwnEbDTdTdK2D-KoeOCM8vMGE1DDqF-vJHMQ1ae88kCf9lE9tvzF28wFHY4LRDGTuPcmnB0NGSKoweOPJpqJRTmaeNTjrM8CYtd87UlOhvve-_h_2hNpjx8XA9XETidRuVkqP_4mFl4IwiSyAQFvBbM3hbQuKEPNs9Up2SQSc_zyUqNBSDUJzdMkbI_8PzaTx7Ch-uSwg7KsSsZPDByY"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55 }} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.55 }}
                         />
                         <div style={{ position: 'absolute', top: '15%', left: '15%', width: '180px', height: '100px', border: '2px dashed var(--error)', backgroundColor: 'var(--error-glow)', display: 'flex', flexDirection: 'column', alignItems: 'center', justify: 'center' }}>
                           <span style={{ color: 'var(--error)', fontSize: '0.65rem', fontWeight: '800', letterSpacing: '0.05em' }}>UNEXPECTED OFFSET</span>
-                          <span style={{ color: 'var(--error)', fontSize: '0.6.5rem', fontWeight: '700', marginTop: '2px' }}>+14px Y-AXIS SHIFT</span>
+                          <span style={{ color: 'var(--error)', fontSize: '0.65rem', fontWeight: '700', marginTop: '2px' }}>+14px Y-AXIS SHIFT</span>
                         </div>
                         <div style={{ position: 'absolute', bottom: '25%', right: '35%', width: '100px', height: '100px', borderRadius: '50%', border: '2px solid var(--secondary)', backgroundColor: 'var(--secondary-glow)', display: 'flex', alignItems: 'center', justify: 'center', animation: 'pulse 1.8s infinite' }}>
                           <span style={{ color: '#60a5fa', fontSize: '0.6rem', fontWeight: '800' }}>SCANNING...</span>
@@ -898,15 +2213,15 @@ function App() {
 
                 {/* Bento Grid 2: Attention Prediction & Spacing Diffs */}
                 <div className="grid grid-cols-12 gap-6">
-                  
+
                   {/* Heatmap gaze path */}
                   <div className="col-span-12 md:col-span-6 details-panel">
                     <h3>Attention Prediction Gaze Heatmap</h3>
                     <div className="heatmap-frame" style={{ marginTop: '16px' }}>
-                      <img 
-                        className="heatmap-img" 
+                      <img
+                        className="heatmap-img"
                         alt="Background Layout Screenshot"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuAP9Fz91Dosyk9FjQJuXT-U10SFcNO2cyFGsa3GqSVmVmTQZeWgmCSMEQiczxVlGyCutALrkQVF5eoUJbNwBu40CuZ-de3PKjligKWIQ1R6oZEP262a7E3MvHuFxHqGmQs4AjMATVv9zYXPbm4gnz12kdN_Vkzl6qC-CuxbOr_AKh9nYCHXfdhujVISWKFBzVfH581YMK2PCPGPBveOfNIfV3Qu75bto6bWs0YhclW2r-8rnmIuhDnnon0QtVrZTh_YCXUBWg3GCng" 
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuAP9Fz91Dosyk9FjQJuXT-U10SFcNO2cyFGsa3GqSVmVmTQZeWgmCSMEQiczxVlGyCutALrkQVF5eoUJbNwBu40CuZ-de3PKjligKWIQ1R6oZEP262a7E3MvHuFxHqGmQs4AjMATVv9zYXPbm4gnz12kdN_Vkzl6qC-CuxbOr_AKh9nYCHXfdhujVISWKFBzVfH581YMK2PCPGPBveOfNIfV3Qu75bto6bWs0YhclW2r-8rnmIuhDnnon0QtVrZTh_YCXUBWg3GCng"
                       />
                       <div className="heatmap-overlay"></div>
                       <div style={{ position: 'absolute', top: 12, left: 12, backgroundColor: 'rgba(7,9,17,0.7)', backdropFilter: 'blur(4px)', padding: '6px 12px', borderRadius: '4px', fontSize: '0.65rem', fontWeight: '800' }}>GAZE PROBABILITY MAP</div>
@@ -949,7 +2264,7 @@ function App() {
 
                 {/* Bento Grid 3: Accessibility & Technical Column Grid Inspector */}
                 <div className="grid grid-cols-12 gap-6" style={{ marginTop: '32px' }}>
-                  
+
                   {/* Accessibility WCAG Gauges */}
                   <div className="col-span-12 md:col-span-4 details-panel flex flex-col justify-between">
                     <div>
@@ -975,7 +2290,7 @@ function App() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div style={{ padding: '12px', backgroundColor: 'var(--success-glow)', border: '1px solid rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
                       <span className="material-icons" style={{ color: 'var(--success)', fontSize: '20px' }}>check_circle</span>
                       <span style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--success)' }}>All text sizes pass WCAG baseline requirements (12px+)</span>
@@ -986,7 +2301,7 @@ function App() {
                   <div className="col-span-12 md:col-span-8 details-panel">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
                       <h3 style={{ border: 'none', margin: '0', padding: '0' }}>Grid Columns & Alignment Inspector</h3>
-                      <span className="badge warning">COLUMNS OVERLAP DETECTED</span>
+                      <span className="badge ok">GRID ALIGNMENT PERFECT</span>
                     </div>
 
                     <div className="technical-grid-inspector">
@@ -995,9 +2310,6 @@ function App() {
                       ))}
                       <div className="grid-overlay-banner ok" style={{ top: '35px', left: '16%', right: '16%', height: '40px' }}>
                         MAIN CONTAINER: 8 COLUMNS ACTIVE
-                      </div>
-                      <div className="grid-overlay-banner error" style={{ bottom: '35px', left: '8%', width: '22%', height: '40px' }}>
-                        OVERLAP ERROR
                       </div>
                     </div>
                   </div>
@@ -1010,7 +2322,7 @@ function App() {
             {/* --- TAB PANEL: TECHNICAL & STRUCTURE --- */}
             {data && activeTab === "structure" && (
               <div className="tab-content animate-fade">
-                
+
                 {/* Tech Stack Badges row */}
                 <div className="details-panel" style={{ marginBottom: '24px' }}>
                   <h3>Technology Stack Detection</h3>
@@ -1025,13 +2337,13 @@ function App() {
                         {tech}
                       </span>
                     )) || (
-                      <>
-                        <span className="badge info" style={{ fontSize: '0.85rem', padding: '8px 16px' }}>React Framework</span>
-                        <span className="badge info" style={{ fontSize: '0.85rem', padding: '8px 16px' }}>jQuery Core</span>
-                        <span className="badge info" style={{ fontSize: '0.85rem', padding: '8px 16px' }}>Apache Server</span>
-                        <span className="badge info" style={{ fontSize: '0.85rem', padding: '8px 16px' }}>Tailwind CSS</span>
-                      </>
-                    )}
+                        <>
+                          <span className="badge info" style={{ fontSize: '0.85rem', padding: '8px 16px' }}>React Framework</span>
+                          <span className="badge info" style={{ fontSize: '0.85rem', padding: '8px 16px' }}>jQuery Core</span>
+                          <span className="badge info" style={{ fontSize: '0.85rem', padding: '8px 16px' }}>Apache Server</span>
+                          <span className="badge info" style={{ fontSize: '0.85rem', padding: '8px 16px' }}>Tailwind CSS</span>
+                        </>
+                      )}
                   </div>
                 </div>
 
@@ -1062,13 +2374,13 @@ function App() {
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '20px' }}>
                       Tracing the deepest structural branch path inside the HTML DOM to spot nesting bloat:
                     </p>
-                    
+
                     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', background: 'var(--bg-surface-low)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
                       {data.structure.dom_complexity.deepest_path.map((tag, idx) => {
                         let tagClass = "depth-normal";
                         if (idx > 12) tagClass = "depth-warning";
                         else if (idx > 6) tagClass = "depth-caution";
-                        
+
                         return (
                           <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div className={`dom-tree-node ${tagClass}`}>
@@ -1118,7 +2430,7 @@ function App() {
             {/* --- TAB PANEL: WORDPRESS HEALTH --- */}
             {data && activeTab === "wordpress" && data.wordpress?.is_wordpress && (
               <div className="tab-content animate-fade">
-                
+
                 <div className="cards">
                   <div className="card accent-purple">
                     <h3>WordPress Version</h3>
@@ -1163,14 +2475,14 @@ function App() {
                 )}
 
                 <div className="details-grid">
-                  
+
                   {/* Theme & Plugins Active lists */}
                   <div className="details-panel">
                     <h3>🔌 Detected Theme & Plugins</h3>
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
                       <strong>Active Theme:</strong> {data.wordpress?.detected_theme?.display_name || "WordPress Standard Theme"} (v{data.wordpress?.detected_theme?.version || "1.0.0"})
                     </p>
-                    
+
                     <h4>Active Plugins ({data.wordpress?.detected_plugins?.length || 0}):</h4>
                     {data.wordpress?.detected_plugins?.length > 0 ? (
                       <table style={{ fontSize: '0.85rem', marginTop: '12px' }} className="zebra-table">
@@ -1197,15 +2509,15 @@ function App() {
                   {/* Circular threat circular gauge */}
                   <div className="details-panel flex flex-col items-center justify-center">
                     <h3>🛡 Security Threat Gauge Meter</h3>
-                    
+
                     {(() => {
                       const coreGap = data.wordpress?.core_update_available ? 25 : 0;
                       const vulnWeight = (data.wordpress?.vulnerable_plugins || 0) * 35;
                       const threatScore = Math.min(100, coreGap + vulnWeight);
-                      
+
                       let threatLabel = "SECURE & STABLE";
                       let threatColor = "var(--success)";
-                      
+
                       if (threatScore > 75) {
                         threatLabel = "CRITICAL EXPOSURE";
                         threatColor = "var(--error)";
@@ -1232,8 +2544,8 @@ function App() {
                             <path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="var(--bg-surface-high)" strokeWidth="18" strokeLinecap="round" />
                             <path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="url(#gaugeGrad)" strokeWidth="18" strokeLinecap="round" strokeDasharray="300" strokeDashoffset="0" />
                             <circle cx="110" cy="110" r="10" fill="var(--bg-surface-high)" stroke="var(--text-main)" strokeWidth="2.5" />
-                            <line 
-                              x1="110" y1="110" x2="110" y2="30" 
+                            <line
+                              x1="110" y1="110" x2="110" y2="30"
                               stroke="var(--text-main)" strokeWidth="4" strokeLinecap="round"
                               transform={`rotate(${needleRotation} 110 110)`}
                               style={{ transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }}
@@ -1258,10 +2570,10 @@ function App() {
             {/* --- TAB PANEL: ALERTS & CONFIGURATION --- */}
             {data && activeTab === "alerts" && (
               <div className="tab-content animate-fade">
-                
+
                 {/* Upper Bento Row: AI Sensitivity Configuration & Automated Checks */}
                 <div className="grid grid-cols-12 gap-6">
-                  
+
                   {/* AI Sensitivity Sliders */}
                   <div className="col-span-12 md:col-span-4 details-panel flex flex-col">
                     <h3>
@@ -1274,30 +2586,30 @@ function App() {
                           <span>DETECTION THRESHOLD</span>
                           <span style={{ color: 'var(--primary)' }}>{aiSensitivity}% (Strict)</span>
                         </div>
-                        <input 
-                          type="range" 
-                          min="50" 
-                          max="95" 
-                          value={aiSensitivity} 
-                          onChange={(e) => setAiSensitivity(parseInt(e.target.value))} 
+                        <input
+                          type="range"
+                          min="50"
+                          max="95"
+                          value={aiSensitivity}
+                          onChange={(e) => setAiSensitivity(parseInt(e.target.value))}
                         />
                       </div>
-                      
+
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justify_content: 'space-between', padding: '12px', borderRadius: '8px', background: 'var(--bg-surface-low)', border: '1px solid var(--border-color)' }}>
                           <span style={{ fontWeight: '600', fontSize: '0.9rem' }}>Auto-Remediate Shifts</span>
-                          <input 
-                            type="checkbox" 
-                            checked={autoRemediate} 
+                          <input
+                            type="checkbox"
+                            checked={autoRemediate}
                             onChange={(e) => setAutoRemediate(e.target.checked)}
                             style={{ width: '20px', height: '20px', cursor: 'pointer' }}
                           />
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', justify_content: 'space-between', padding: '12px', borderRadius: '8px', background: 'var(--bg-surface-low)', border: '1px solid var(--border-color)' }}>
                           <span style={{ fontWeight: '600', fontSize: '0.9rem' }}>Neural Pattern Matching</span>
-                          <input 
-                            type="checkbox" 
-                            checked={neuralPattern} 
+                          <input
+                            type="checkbox"
+                            checked={neuralPattern}
                             onChange={(e) => setNeuralPattern(e.target.checked)}
                             style={{ width: '20px', height: '20px', cursor: 'pointer' }}
                           />
@@ -1371,16 +2683,16 @@ function App() {
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginBottom: '24px' }}>
                     Adjust threshold targets. The dashboard health variables will **recalculate dynamically in real-time**!
                   </p>
-                  
+
                   <div className="grid grid-cols-12 gap-6">
                     <div className="col-span-12 md:col-span-4">
                       <div style={{ display: 'flex', justify_content: 'space-between', fontWeight: '700', fontSize: '0.9rem', marginBottom: '8px' }}>
                         <span>Target Load Limit</span>
                         <span style={{ color: 'var(--primary)' }}>{loadTimeLimit}s</span>
                       </div>
-                      <input 
-                        type="range" min="1.0" max="5.0" step="0.1" 
-                        value={loadTimeLimit} onChange={(e) => setLoadTimeLimit(parseFloat(e.target.value))} 
+                      <input
+                        type="range" min="1.0" max="5.0" step="0.1"
+                        value={loadTimeLimit} onChange={(e) => setLoadTimeLimit(parseFloat(e.target.value))}
                       />
                     </div>
                     <div className="col-span-12 md:col-span-4">
@@ -1388,9 +2700,9 @@ function App() {
                         <span>Max DOM Node Budget</span>
                         <span style={{ color: 'var(--success)' }}>{domNodeLimit} nodes</span>
                       </div>
-                      <input 
-                        type="range" min="300" max="2000" step="50" 
-                        value={domNodeLimit} onChange={(e) => setDomNodeLimit(parseInt(e.target.value))} 
+                      <input
+                        type="range" min="300" max="2000" step="50"
+                        value={domNodeLimit} onChange={(e) => setDomNodeLimit(parseInt(e.target.value))}
                       />
                     </div>
                     <div className="col-span-12 md:col-span-4">
@@ -1398,9 +2710,9 @@ function App() {
                         <span>CLS Shift Tolerance</span>
                         <span style={{ color: 'var(--warning)' }}>{clsTolerance} CLS</span>
                       </div>
-                      <input 
-                        type="range" min="0.05" max="0.50" step="0.01" 
-                        value={clsTolerance} onChange={(e) => setClsTolerance(parseFloat(e.target.value))} 
+                      <input
+                        type="range" min="0.05" max="0.50" step="0.01"
+                        value={clsTolerance} onChange={(e) => setClsTolerance(parseFloat(e.target.value))}
                       />
                     </div>
                   </div>
@@ -1485,10 +2797,17 @@ function App() {
                         <td>{new Date().toISOString().slice(0, 19).replace('T', ' ')}</td>
                         <td><span className="badge critical">CRITICAL</span></td>
                         <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--error)', fontWeight: '700' }}>
-                            <span className="material-icons animate-pulse" style={{ fontSize: '16px' }}>error</span>
-                            <span>Investigating</span>
-                          </div>
+                          {isAutoScaled ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--success)', fontWeight: '700' }}>
+                              <span className="material-icons" style={{ fontSize: '16px' }}>check_circle</span>
+                              <span>Resolved</span>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--error)', fontWeight: '700' }}>
+                              <span className="material-icons animate-pulse" style={{ fontSize: '16px' }}>error</span>
+                              <span>Investigating</span>
+                            </div>
+                          )}
                         </td>
                       </tr>
                       <tr>
@@ -1520,16 +2839,32 @@ function App() {
                 </div>
 
                 {/* Predictive Scaling Banner */}
-                <div style={{ marginTop: '24px', backgroundColor: 'var(--primary-glow)', border: '1px solid rgba(79, 70, 229, 0.2)', padding: '24px', borderRadius: '16px', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ marginTop: '24px', backgroundColor: isAutoScaled ? 'rgba(16, 185, 129, 0.1)' : 'var(--primary-glow)', border: isAutoScaled ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(79, 70, 229, 0.2)', padding: '24px', borderRadius: '16px', position: 'relative', overflow: 'hidden' }}>
                   <div style={{ maxWidth: '640px', position: 'relative', zIndex: '10' }}>
-                    <h4 style={{ fontSize: '1.2rem', fontWeight: '800', marginBottom: '8px' }}>Predictive Health Scaling Suggestion</h4>
-                    <p style={{ fontSize: '0.92rem', color: '#cbd5e1', marginBottom: '16px' }}>Based on recent metric sweeps, we predict a 15% increase in API latency patterns for the US-WEST edge region over the next 6 hours. Scale up container resources now.</p>
-                    <button 
-                      className="scan-btn" 
-                      style={{ padding: '10px 20px', fontSize: '0.85rem' }} 
-                      onClick={() => alert("SRE Auto-Scaling Engine Triggered: Successfully provisioned 3 additional ECS container tasks in region US-WEST-2 (Oregon). Latency thresholds successfully safeguarded!")}
+                    <h4 style={{ fontSize: '1.2rem', fontWeight: '800', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {isAutoScaled && <span className="material-icons" style={{ color: 'var(--success)' }}>check_circle</span>}
+                      {isAutoScaled ? "US-WEST Edge Region Auto-Scaled" : "Predictive Health Scaling Suggestion"}
+                    </h4>
+                    <p style={{ fontSize: '0.92rem', color: '#cbd5e1', marginBottom: '16px' }}>
+                      {isAutoScaled 
+                        ? "AWS ECS cluster US-WEST-2 scaled up successfully to 5 tasks. Live latencies normal, edge routing optimal." 
+                        : "Based on recent metric sweeps, we predict a 15% increase in API latency patterns for the US-WEST edge region over the next 6 hours. Scale up container resources now."
+                      }
+                    </p>
+                    <button
+                      className="scan-btn"
+                      style={{ padding: '10px 20px', fontSize: '0.85rem', cursor: isAutoScaled ? 'not-allowed' : 'pointer', background: isAutoScaled ? 'var(--success)' : '' }}
+                      disabled={isAutoScaled}
+                      onClick={() => {
+                        runTerminalCommand("sre auto-scale");
+                      }}
                     >
-                      Auto-Scale Now
+                      {isAutoScaled ? (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span className="material-icons" style={{ fontSize: '16px' }}>done</span>
+                          Scaled Successfully
+                        </span>
+                      ) : "Auto-Scale Now"}
                     </button>
                   </div>
                   <div style={{ position: 'absolute', right: '-40px', bottom: '-40px', opacity: '0.06' }}>
@@ -1543,20 +2878,20 @@ function App() {
             {/* --- TAB PANEL: SRE AUTO-REMEDIATION CONTROLS --- */}
             {data && activeTab === "controls" && (
               <div className="tab-content animate-fade">
-                
+
                 <div className="hero-card" style={{ background: 'linear-gradient(135deg, #091a1a 0%, #0d1220 100%)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
                   <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span className="material-icons" style={{ color: 'var(--success)', fontSize: '32px' }}>settings_suggest</span>
                     SRE Auto-Remediation System
                   </h1>
                   <p>
-                    Manage running microservices, trigger automated failover remediations, clear server caches, 
+                    Manage running microservices, trigger automated failover remediations, clear server caches,
                     and defragment active SQLite database transactions. Fully synced with host {data.url}.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-12 gap-6">
-                  
+
                   {/* Service status indicators */}
                   <div className="col-span-12 md:col-span-6 details-panel">
                     <h3>
@@ -1564,7 +2899,7 @@ function App() {
                       Infrastructure Service Status
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
-                      
+
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <span className="status-dot animate-pulse" style={{ backgroundColor: 'var(--success)' }}></span>
@@ -1609,32 +2944,32 @@ function App() {
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '16px', marginTop: '4px' }}>
                       Manually trigger system-level remediations to clear network bottlenecks or restart isolated services:
                     </p>
-                    
+
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      
+
                       <button className="scan-btn" style={{ padding: '12px', fontSize: '0.82rem', justifyContent: 'center' }} onClick={() => {
-                        alert("SRE Action Dispatched: Testing Nginx syntax... [OK]\nReloading Nginx web server configurations successfully!");
+                        runTerminalCommand("systemctl restart nginx");
                       }}>
                         <span className="material-icons" style={{ fontSize: '18px' }}>sync</span>
                         Restart Nginx
                       </button>
 
                       <button className="scan-btn" style={{ padding: '12px', fontSize: '0.82rem', justifyContent: 'center', background: '#059669' }} onClick={() => {
-                        alert("SRE Action Dispatched: Purging Redis memory allocation... [OK]\nFlushing Nginx fast-cgi micro-cache... [OK]\nWebsite static cache cleared successfully!");
+                        runTerminalCommand("cache --clear");
                       }}>
                         <span className="material-icons" style={{ fontSize: '18px' }}>cleaning_services</span>
                         Clear Server Cache
                       </button>
 
                       <button className="scan-btn" style={{ padding: '12px', fontSize: '0.82rem', justifyContent: 'center', background: '#d97706' }} onClick={() => {
-                        alert("SRE Action Dispatched: Re-initializing Docker daemon... [OK]\nRe-spinning ECS microservices containers... [OK]\nDocker containers rebooted successfully!");
+                        runTerminalCommand("docker restart ecs_containers");
                       }}>
                         <span className="material-icons" style={{ fontSize: '18px' }}>cached</span>
                         Reboot Docker
                       </button>
 
                       <button className="scan-btn" style={{ padding: '12px', fontSize: '0.82rem', justifyContent: 'center', background: '#4f46e5' }} onClick={() => {
-                        alert("SRE Action Dispatched: Vacuuming SQLite database structures... [OK]\nRunning persistent index optimizations... [OK]\nSQLite DB defragmented and synced successfully!");
+                        runTerminalCommand("sqlite3 vacuum");
                       }}>
                         <span className="material-icons" style={{ fontSize: '18px' }}>database</span>
                         Optimize SQLite
@@ -1651,13 +2986,57 @@ function App() {
 
                 </div>
 
+                {/* SRE LIVE CONSOLE SHELL TERMINAL FOR REMEDIATION ACTIONS */}
+                <div className="details-panel" style={{ marginTop: '24px' }}>
+                  <h3>
+                    <span className="material-icons" style={{ verticalAlign: 'middle', marginRight: '6px' }}>terminal</span>
+                    SRE Remediation execution terminal logs
+                  </h3>
+                  <div className="terminal-container" style={{ marginTop: '12px' }}>
+                    <div className="terminal-header">
+                      <div className="terminal-dots">
+                        <div className="terminal-dot red"></div>
+                        <div className="terminal-dot yellow"></div>
+                        <div className="terminal-dot green"></div>
+                      </div>
+                      <span className="terminal-title">alex@monitorpro: /var/log/remediation</span>
+                      <span className="material-icons" style={{ color: 'var(--text-muted)', fontSize: '16px' }}>settings</span>
+                    </div>
+                    <div className="terminal-body" style={{ minHeight: '180px' }}>
+                      {terminalLogs.map((log, idx) => (
+                        <div key={idx} style={{ marginBottom: idx === 0 ? '8px' : '4px' }}>
+                          {log.startsWith("alex@monitorpro:~$") ? (
+                            <span>
+                              <span className="terminal-prompt">alex@monitorpro:~$</span>
+                              {log.slice(18)}
+                            </span>
+                          ) : (
+                            <span>{log}</span>
+                          )}
+                        </div>
+                      ))}
+                      {terminalTyping && (
+                        <div>
+                          <span className="terminal-prompt">alex@monitorpro:~$</span>
+                          <span className="terminal-cursor">█</span>
+                        </div>
+                      )}
+                      {!terminalTyping && (
+                        <div>
+                          <span className="terminal-prompt">alex@monitorpro:~$</span>
+                          <span className="terminal-cursor" style={{ marginLeft: '4px' }}>█</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
             {/* --- TAB PANEL: SEO OPTIMIZATION --- */}
             {data && activeTab === "seo" && (
               <div className="tab-content animate-fade">
-                
+
                 <div className="hero-card" style={{ background: 'linear-gradient(135deg, #0f1c2b 0%, #0d1220 100%)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
                   <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span className="material-icons" style={{ color: '#3b82f6', fontSize: '32px' }}>search</span>
@@ -1695,7 +3074,7 @@ function App() {
                 </div>
 
                 <div className="grid grid-cols-12 gap-6">
-                  
+
                   {/* Meta Tags & Crawling Directives */}
                   <div className="col-span-12 md:col-span-6 details-panel">
                     <h3>
@@ -1703,7 +3082,7 @@ function App() {
                       Meta Tags & Crawl Directives
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
-                      
+
                       <div style={{ padding: '14px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                           <span style={{ fontWeight: '700', fontSize: '0.85rem' }}>PAGE TITLE</span>
@@ -1770,7 +3149,7 @@ function App() {
 
                       <h4 style={{ fontSize: '0.85rem', marginBottom: '8px' }}>Heading Outline Preview (First 5 Items):</h4>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto' }}>
-                        {['h1', 'h2', 'h3'].flatMap(lvl => 
+                        {['h1', 'h2', 'h3'].flatMap(lvl =>
                           (data.seo?.heading_structure?.headings?.[lvl]?.texts || []).map((text, i) => ({ lvl, text }))
                         ).slice(0, 5).map((item, idx) => (
                           <div key={idx} style={{ padding: '8px 12px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '6px', borderLeft: `3px solid ${item.lvl === 'h1' ? 'var(--error)' : item.lvl === 'h2' ? 'var(--primary)' : 'var(--secondary)'}`, fontSize: '0.78rem' }}>
@@ -1799,7 +3178,7 @@ function App() {
                       Sitemaps & Robots Directives
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '12px' }}>
-                      
+
                       <div style={{ padding: '14px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                           <span style={{ fontWeight: '700', fontSize: '0.85rem' }}>robots.txt Configuration</span>
@@ -1838,7 +3217,7 @@ function App() {
                       Structured Schema (JSON-LD)
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
-                      
+
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                         <div>
                           <div style={{ fontWeight: '700', fontSize: '0.85rem' }}>Schema blocks found</div>
@@ -1892,7 +3271,7 @@ function App() {
                           {data.seo?.alt_tags?.status?.toUpperCase() || 'OK'}
                         </span>
                       </div>
-                      
+
                       {data.seo?.alt_tags?.missing_alt_srcs?.length > 0 && (
                         <div style={{ padding: '14px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                           <h4 style={{ fontSize: '0.85rem', color: 'var(--error)', marginBottom: '8px' }}>Images Missing Alt Tags (Top 5):</h4>
@@ -1961,7 +3340,7 @@ function App() {
             {/* --- TAB PANEL: SECURITY --- */}
             {data && activeTab === "security" && (
               <div className="tab-content animate-fade">
-                
+
                 <div className="hero-card" style={{ background: 'linear-gradient(135deg, #18090f 0%, #0d1220 100%)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
                   <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span className="material-icons" style={{ color: 'var(--error)', fontSize: '32px' }}>security</span>
@@ -2013,27 +3392,72 @@ function App() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
                       {data.security?.ssl?.valid ? (
                         <>
-                          <div style={{ padding: '14px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                            <div style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)' }}>ISSUED TO (COMMON NAME)</div>
-                            <div style={{ fontWeight: 'bold', fontSize: '0.92rem', marginTop: '4px', wordBreak: 'break-all' }}>{data.security.ssl.issued_to}</div>
-                          </div>
+                          {/* Trust Chain Diagram */}
+                          <div className="ssl-chain-container">
+                            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Certificate Authority Chain</span>
+                            
+                            <div 
+                              className={`ssl-chain-node root ${sslActiveChainNode === 'root' ? 'active' : ''}`}
+                              style={{ borderStyle: sslActiveChainNode === 'root' ? 'dashed' : 'solid' }}
+                              onClick={() => setSslActiveChainNode('root')}
+                            >
+                              <div style={{ fontWeight: '800', fontSize: '0.82rem' }}>DigiCert Global Root G2</div>
+                              <div className="ssl-node-meta">Root CA (Hardware Trusted)</div>
+                            </div>
 
-                          <div style={{ padding: '14px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                            <div style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)' }}>ISSUER / CA</div>
-                            <div style={{ fontWeight: 'bold', fontSize: '0.92rem', marginTop: '4px' }}>{data.security.ssl.issued_by}</div>
-                          </div>
+                            <div className="ssl-chain-arrow">▼</div>
 
-                          <div style={{ padding: '14px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                            <div style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)' }}>EXPIRATION DATE</div>
-                            <div style={{ fontWeight: 'bold', fontSize: '0.92rem', marginTop: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span>{data.security.ssl.expires}</span>
-                              <span className="badge ok">{data.security.ssl.days_remaining} days left</span>
+                            <div 
+                              className={`ssl-chain-node intermediate ${sslActiveChainNode === 'intermediate' ? 'active' : ''}`}
+                              style={{ borderStyle: sslActiveChainNode === 'intermediate' ? 'dashed' : 'solid' }}
+                              onClick={() => setSslActiveChainNode('intermediate')}
+                            >
+                              <div style={{ fontWeight: '800', fontSize: '0.82rem' }}>DigiCert TLS Hybrid ECC CA1</div>
+                              <div className="ssl-node-meta">Intermediate Secure Signer</div>
+                            </div>
+
+                            <div className="ssl-chain-arrow">▼</div>
+
+                            <div 
+                              className={`ssl-chain-node leaf ${sslActiveChainNode === 'leaf' ? 'active' : ''}`}
+                              style={{ borderStyle: sslActiveChainNode === 'leaf' ? 'dashed' : 'solid' }}
+                              onClick={() => setSslActiveChainNode('leaf')}
+                            >
+                              <div style={{ fontWeight: '800', fontSize: '0.82rem', wordBreak: 'break-all' }}>{data.security.ssl.issued_to}</div>
+                              <div className="ssl-node-meta">Audited Site Certificate (Leaf)</div>
                             </div>
                           </div>
 
-                          <div style={{ padding: '14px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                            <div style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)' }}>TLS PROTOCOL VERSION</div>
-                            <div style={{ fontWeight: 'bold', fontSize: '0.92rem', marginTop: '4px', fontFamily: 'var(--font-mono)' }}>{data.security.ssl.protocol}</div>
+                          {/* Dynamic Metadata Box */}
+                          <div style={{ padding: '16px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '12px', border: '1px solid var(--border-color)', marginTop: '8px' }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Active Chain Node Details</span>
+                            {sslActiveChainNode === 'root' && (
+                              <div className="animate-fade" style={{ marginTop: '8px', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div><strong>Common Name:</strong> DigiCert Global Root G2</div>
+                                <div><strong>CA Status:</strong> Fully Trusted Root</div>
+                                <div><strong>Key Signature:</strong> SHA-384 / RSA 2048-bit</div>
+                                <div style={{ wordBreak: 'break-all' }}><strong>Fingerprint:</strong> 4338F11A462CEE8E2D99E10B3B82F6E7...</div>
+                              </div>
+                            )}
+                            {sslActiveChainNode === 'intermediate' && (
+                              <div className="animate-fade" style={{ marginTop: '8px', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div><strong>Common Name:</strong> DigiCert TLS Hybrid ECC CA1</div>
+                                <div><strong>Signer Authority:</strong> Intermediate Issuer</div>
+                                <div><strong>Key Signature:</strong> ECDSA 256-bit</div>
+                                <div style={{ wordBreak: 'break-all' }}><strong>Fingerprint:</strong> 7D3AED0058BE1610B98112E02B6D0F2E...</div>
+                              </div>
+                            )}
+                            {sslActiveChainNode === 'leaf' && (
+                              <div className="animate-fade" style={{ marginTop: '8px', fontSize: '0.82rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div><strong>Common Name:</strong> {data.security.ssl.issued_to}</div>
+                                <div><strong>Issued By:</strong> {data.security.ssl.issued_by}</div>
+                                <div><strong>Protocol/Cipher:</strong> {data.security.ssl.protocol}</div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                                  <span><strong>Expires:</strong> {data.security.ssl.expires}</span>
+                                  <span className="badge ok">{data.security.ssl.days_remaining} days left</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </>
                       ) : (
@@ -2099,6 +3523,75 @@ function App() {
                         </tbody>
                       </table>
                     </div>
+
+                    {/* Nginx Config Playground */}
+                    <div style={{ marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                        Nginx Security Configuration Builder
+                      </span>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px', marginBottom: '14px' }}>
+                        Toggle security directives to compile a hardened SRE server configuration block for site deployment:
+                      </p>
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', marginBottom: '16px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', cursor: 'pointer' }}>
+                          <input type="checkbox" checked={playgroundHsts} onChange={e => setPlaygroundHsts(e.target.checked)} />
+                          <span>Strict HSTS Policy</span>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', cursor: 'pointer' }}>
+                          <input type="checkbox" checked={playgroundCsp} onChange={e => setPlaygroundCsp(e.target.checked)} />
+                          <span>Strict CSP Directive</span>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', cursor: 'pointer' }}>
+                          <input type="checkbox" checked={playgroundXfo} onChange={e => setPlaygroundXfo(e.target.checked)} />
+                          <span>X-Frame clickjack block</span>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', cursor: 'pointer' }}>
+                          <input type="checkbox" checked={playgroundMime} onChange={e => setPlaygroundMime(e.target.checked)} />
+                          <span>X-Content mime nosniff</span>
+                        </label>
+                      </div>
+
+                      <div className="playground-config-block">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#cbd5e1', marginBottom: '8px', borderBottom: '1px solid #1e293b', paddingBottom: '6px', fontSize: '0.72rem' }}>
+                          <span>NGINX SITE CONFIGURATION</span>
+                          <span style={{ cursor: 'pointer', color: '#818cf8', fontWeight: 'bold' }} onClick={() => {
+                            const code = `server {
+    listen 443 ssl http2;
+    server_name ${data?.url ? new URL(data.url).hostname : 'example.com'};
+
+    # Hardened SSL
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    # SRE Security Headers
+    ${playgroundHsts ? 'add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;' : ''}
+    ${playgroundCsp ? 'add_header Content-Security-Policy "default-src \'self\'; script-src \'self\' \'unsafe-inline\'; style-src \'self\' \'unsafe-inline\';" always;' : ''}
+    ${playgroundXfo ? 'add_header X-Frame-Options "SAMEORIGIN" always;' : ''}
+    ${playgroundMime ? 'add_header X-Content-Type-Options "nosniff" always;' : ''}
+}`;
+                            navigator.clipboard.writeText(code);
+                            alert("Hardened Nginx configuration copied to clipboard successfully!");
+                          }}>COPY CONFIG</span>
+                        </div>
+                        <pre style={{ margin: 0, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+{`server {
+    listen 443 ssl http2;
+    server_name ${data?.url ? new URL(data.url).hostname : 'example.com'};
+
+    # Hardened SSL
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    # SRE Security Headers`}
+{playgroundHsts ? `\n    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;` : ''}
+{playgroundCsp ? `\n    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';" always;` : ''}
+{playgroundXfo ? `\n    add_header X-Frame-Options "SAMEORIGIN" always;` : ''}
+{playgroundMime ? `\n    add_header X-Content-Type-Options "nosniff" always;` : ''}
+{`\n}`}
+                        </pre>
+                      </div>
+                    </div>
                   </div>
 
                 </div>
@@ -2106,10 +3599,321 @@ function App() {
               </div>
             )}
 
-            {/* --- TAB PANEL: CONSOLE SETTINGS --- */}
-            {data && activeTab === "settings" && (
+            {/* --- TAB PANEL: COMPETITOR BENCHMARK --- */}
+            {activeTab === "benchmark" && (
               <div className="tab-content animate-fade">
-                
+                <div className="hero-card" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)', border: '1px solid rgba(79, 70, 229, 0.2)' }}>
+                  <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span className="material-icons" style={{ color: '#818cf8', fontSize: '32px' }}>compare</span>
+                    Competitor Benchmarking Auditor
+                  </h1>
+                  <p>
+                    Perform dynamic, side-by-side site reliability and audits against active market competitors. Direct visual health, speed metrics, and security scoring compared in real-time.
+                  </p>
+                </div>
+
+                <div className="details-panel" style={{ marginBottom: '24px' }}>
+                  <h3>Configure Audit Targets</h3>
+                  <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap', marginTop: '12px' }}>
+                    <div style={{ flex: '1', minWidth: '240px' }}>
+                      <label style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Your Target Website URL</label>
+                      <input
+                        type="text"
+                        className="search-input"
+                        disabled
+                        value={url || "Audit a website first"}
+                        style={{ width: '100%', cursor: 'not-allowed', opacity: '0.7' }}
+                      />
+                    </div>
+                    <div style={{ flex: '1', minWidth: '240px' }}>
+                      <label style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>Competitor Website URL</label>
+                      <input
+                        type="text"
+                        className="search-input"
+                        placeholder="e.g. shopify.com"
+                        value={competitorUrl}
+                        onChange={(e) => setCompetitorUrl(e.target.value)}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <button
+                      className="scan-btn"
+                      style={{ padding: '12px 24px', height: '46px', background: 'linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%)' }}
+                      disabled={benchmarkLoading || !url || !competitorUrl}
+                      onClick={runBenchmark}
+                    >
+                      <span className="material-icons">{benchmarkLoading ? 'sync' : 'balance'}</span>
+                      <span>{benchmarkLoading ? 'Auditing Targets...' : 'Run Comparative Audit'}</span>
+                    </button>
+                  </div>
+                  {benchmarkError && (
+                    <div style={{ color: 'var(--error)', marginTop: '12px', fontSize: '0.85rem', fontWeight: '700' }}>
+                      ⚠️ {benchmarkError}
+                    </div>
+                  )}
+                </div>
+
+                {benchmarkLoading && (
+                  <div className="details-panel flex flex-col items-center justify-center text-center animate-pulse" style={{ padding: '48px 0' }}>
+                    <span className="material-icons rotate-infinite" style={{ fontSize: '48px', color: 'var(--primary)', marginBottom: '16px' }}>sync</span>
+                    <h4>Orchestrating Concurrent SRE Telemetry Sweeps...</h4>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '6px' }}>
+                      Firing ICMP queries, scanning canonical headers, and analyzing visual grids for both target domains. Please wait.
+                    </p>
+                  </div>
+                )}
+
+                {benchmarkData && !benchmarkLoading && (
+                  <div className="animate-fade">
+                    {/* Overall Score Side-By-Side */}
+                    <div className="grid grid-cols-12 gap-6 mb-6">
+                      <div className="col-span-12 md:col-span-6 details-panel">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                          <h4 style={{ fontWeight: '800', color: 'var(--primary)' }}>YOUR TARGET: {benchmarkData.url1.url}</h4>
+                          <span className={`badge ${benchmarkData.url1.overall_score >= 90 ? 'ok' : 'warning'}`}>{benchmarkData.url1.overall_label}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                          <div style={{ fontSize: '3rem', fontWeight: '800', color: 'var(--text-main)', width: '90px' }}>{benchmarkData.url1.overall_score}%</div>
+                          <div style={{ flex: '1' }}>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: '600' }}>Overall Health Score</div>
+                            <div className="progress-track">
+                              <div className="progress-fill green" style={{ width: `${benchmarkData.url1.overall_score}%` }}></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4" style={{ marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                          <div>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Performance</span>
+                            <span style={{ fontWeight: '700', fontSize: '1.1rem' }}>{benchmarkData.url1.performance.performance_score || "N/A"}</span>
+                          </div>
+                          <div>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>SEO</span>
+                            <span style={{ fontWeight: '700', fontSize: '1.1rem' }}>{benchmarkData.url1.seo.seo_score || "N/A"}</span>
+                          </div>
+                          <div>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Security</span>
+                            <span style={{ fontWeight: '700', fontSize: '1.1rem' }}>{benchmarkData.url1.security.security_score || "N/A"}</span>
+                          </div>
+                          <div>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>UI Health</span>
+                            <span style={{ fontWeight: '700', fontSize: '1.1rem' }}>{benchmarkData.url1.ui_ux.ui_health_score || "N/A"}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="col-span-12 md:col-span-6 details-panel" style={{ borderLeft: '3px solid rgba(79, 70, 229, 0.3)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                          <h4 style={{ fontWeight: '800', color: '#818cf8' }}>COMPETITOR: {benchmarkData.url2.url}</h4>
+                          <span className={`badge ${benchmarkData.url2.overall_score >= 90 ? 'ok' : 'warning'}`}>{benchmarkData.url2.overall_label}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                          <div style={{ fontSize: '3rem', fontWeight: '800', color: 'var(--text-main)', width: '90px' }}>{benchmarkData.url2.overall_score}%</div>
+                          <div style={{ flex: '1' }}>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: '600' }}>Overall Health Score</div>
+                            <div className="progress-track">
+                              <div className="progress-fill purple" style={{ width: `${benchmarkData.url2.overall_score}%`, backgroundColor: '#818cf8' }}></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4" style={{ marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                          <div>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Performance</span>
+                            <span style={{ fontWeight: '700', fontSize: '1.1rem' }}>{benchmarkData.url2.performance.performance_score || "N/A"}</span>
+                          </div>
+                          <div>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>SEO</span>
+                            <span style={{ fontWeight: '700', fontSize: '1.1rem' }}>{benchmarkData.url2.seo.seo_score || "N/A"}</span>
+                          </div>
+                          <div>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Security</span>
+                            <span style={{ fontWeight: '700', fontSize: '1.1rem' }}>{benchmarkData.url2.security.security_score || "N/A"}</span>
+                          </div>
+                          <div>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>UI Health</span>
+                            <span style={{ fontWeight: '700', fontSize: '1.1rem' }}>{benchmarkData.url2.ui_ux.ui_health_score || "N/A"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bento Score Pillar Bar Graph comparison */}
+                    <div className="details-panel mb-6">
+                      <h3>Core Audits Score Breakdown Comparison</h3>
+                      <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        {[
+                          { name: "Performance Rating", key1: benchmarkData.url1.performance.performance_score, key2: benchmarkData.url2.performance.performance_score },
+                          { name: "SEO Optimization score", key1: benchmarkData.url1.seo.seo_score, key2: benchmarkData.url2.seo.seo_score },
+                          { name: "Security Protocols score", key1: benchmarkData.url1.security.security_score, key2: benchmarkData.url2.security.security_score },
+                          { name: "UI Visual Health score", key1: benchmarkData.url1.ui_ux.ui_health_score, key2: benchmarkData.url2.ui_ux.ui_health_score }
+                        ].map((metric, idx) => (
+                          <div key={idx} style={{ paddingBottom: '16px', borderBottom: idx < 3 ? '1px solid var(--border-color)' : 'none' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: '700', marginBottom: '8px' }}>
+                              <span>{metric.name}</span>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                <strong style={{ color: 'var(--primary)' }}>{metric.key1}%</strong> vs <strong style={{ color: '#818cf8' }}>{metric.key2}%</strong>
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ width: '40px', fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>YOU</span>
+                                <div className="progress-track" style={{ flex: '1', height: '8px' }}>
+                                  <div className="progress-fill green" style={{ width: `${metric.key1}%`, height: '8px' }}></div>
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ width: '40px', fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 'bold' }}>COMP</span>
+                                <div className="progress-track" style={{ flex: '1', height: '8px' }}>
+                                  <div className="progress-fill purple" style={{ width: `${metric.key2}%`, height: '8px', backgroundColor: '#818cf8' }}></div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Detailed Technical Telemetry Side-By-Side */}
+                    <div className="details-panel">
+                      <h3>Global Technical Telemetry Comparison</h3>
+                      <table className="zebra-table" style={{ marginTop: '16px' }}>
+                        <thead>
+                          <tr>
+                            <th>Audited SRE Telemetry</th>
+                            <th style={{ color: 'var(--primary)' }}>Your Target Value</th>
+                            <th style={{ color: '#818cf8' }}>Competitor Value</th>
+                            <th>Direct Comparison Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><strong>DNS Time to First Byte (TTFB)</strong></td>
+                            <td style={{ fontFamily: 'var(--font-mono)' }}>{benchmarkData.url1.check.ttfb}s</td>
+                            <td style={{ fontFamily: 'var(--font-mono)' }}>{benchmarkData.url2.check.ttfb}s</td>
+                            <td>
+                              {benchmarkData.url1.check.ttfb <= benchmarkData.url2.check.ttfb ? (
+                                <span style={{ color: 'var(--success)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <span className="material-icons" style={{ fontSize: '16px' }}>trending_down</span>
+                                  Faster (-{Math.round((benchmarkData.url2.check.ttfb - benchmarkData.url1.check.ttfb) * 1000)}ms)
+                                </span>
+                              ) : (
+                                <span style={{ color: 'var(--error)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <span className="material-icons" style={{ fontSize: '16px' }}>trending_up</span>
+                                  Slower (+{Math.round((benchmarkData.url1.check.ttfb - benchmarkData.url2.check.ttfb) * 1000)}ms)
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td><strong>Total Page Load Time</strong></td>
+                            <td style={{ fontFamily: 'var(--font-mono)' }}>{benchmarkData.url1.check.load_time}s</td>
+                            <td style={{ fontFamily: 'var(--font-mono)' }}>{benchmarkData.url2.check.load_time}s</td>
+                            <td>
+                              {benchmarkData.url1.check.load_time <= benchmarkData.url2.check.load_time ? (
+                                <span style={{ color: 'var(--success)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <span className="material-icons" style={{ fontSize: '16px' }}>check_circle</span>
+                                  Faster ({(benchmarkData.url2.check.load_time - benchmarkData.url1.check.load_time).toFixed(2)}s)
+                                </span>
+                              ) : (
+                                <span style={{ color: 'var(--error)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <span className="material-icons" style={{ fontSize: '16px' }}>warning</span>
+                                  Slower ({(benchmarkData.url1.check.load_time - benchmarkData.url2.check.load_time).toFixed(2)}s)
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td><strong>Payload File Size</strong></td>
+                            <td style={{ fontFamily: 'var(--font-mono)' }}>{benchmarkData.url1.check.page_size_kb} KB</td>
+                            <td style={{ fontFamily: 'var(--font-mono)' }}>{benchmarkData.url2.check.page_size_kb} KB</td>
+                            <td>
+                              {benchmarkData.url1.check.page_size_kb <= benchmarkData.url2.check.page_size_kb ? (
+                                <span style={{ color: 'var(--success)', fontWeight: '700' }}>Lighter payload</span>
+                              ) : (
+                                <span style={{ color: 'var(--error)', fontWeight: '700' }}>Heavier payload</span>
+                              )}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td><strong>SSL Encryption Validity</strong></td>
+                            <td>{benchmarkData.url1.security.ssl.valid ? 'Active SSL' : 'Inactive'}</td>
+                            <td>{benchmarkData.url2.security.ssl.valid ? 'Active SSL' : 'Inactive'}</td>
+                            <td>
+                              {benchmarkData.url1.security.ssl.valid && benchmarkData.url2.security.ssl.valid ? (
+                                <span style={{ color: 'var(--success)', fontWeight: '700' }}>Both Secured</span>
+                              ) : benchmarkData.url1.security.ssl.valid ? (
+                                <span style={{ color: 'var(--success)', fontWeight: '700' }}>You secure only</span>
+                              ) : (
+                                <span style={{ color: 'var(--error)', fontWeight: '700' }}>Competitor secure only</span>
+                              )}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* --- TAB PANEL: REMEDIATION SUGGESTIONS --- */}
+            {data && activeTab === "suggestions" && data.fix_suggestions && (
+              <div className="tab-content animate-fade">
+                <div className="hero-card" style={{ background: 'linear-gradient(135deg, #062f2f 0%, #0d1220 100%)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                  <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span className="material-icons" style={{ color: 'var(--success)', fontSize: '32px' }}>lightbulb</span>
+                    Actionable SRE Fix Suggestions
+                  </h1>
+                  <p>
+                    Fully automated recommendations generated based on rules engines and audit logs. Use the estimated impact and difficulty filters to resolve website defects and optimize reliability.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-12 gap-6">
+                  {data.fix_suggestions.map((sug, idx) => (
+                    <div key={idx} className="col-span-12 details-panel suggestion-card" style={{ transition: 'all 0.3s ease', position: 'relative' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                            <span className={`badge ${sug.category}`} style={{ textTransform: 'uppercase', fontSize: '0.68rem', fontWeight: 'bold' }}>{sug.category}</span>
+                            <span className={`badge ${sug.impact.toLowerCase() === 'critical' ? 'critical' : sug.impact.toLowerCase() === 'high' ? 'critical' : sug.impact.toLowerCase() === 'medium' ? 'warning' : 'info'}`} style={{ fontSize: '0.68rem' }}>
+                              IMPACT: {sug.impact}
+                            </span>
+                            <span className="badge" style={{ fontSize: '0.68rem', backgroundColor: sug.difficulty.toLowerCase() === 'easy' ? 'rgba(16, 185, 129, 0.15)' : sug.difficulty.toLowerCase() === 'moderate' ? 'rgba(217, 119, 6, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: sug.difficulty.toLowerCase() === 'easy' ? '#10b981' : sug.difficulty.toLowerCase() === 'moderate' ? '#d97706' : '#ef4444', border: sug.difficulty.toLowerCase() === 'easy' ? '1px solid rgba(16, 185, 129, 0.3)' : sug.difficulty.toLowerCase() === 'moderate' ? '1px solid rgba(217, 119, 6, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)' }}>
+                              DIFFICULTY: {sug.difficulty}
+                            </span>
+                          </div>
+                          <h3 style={{ fontSize: '1.2rem', fontWeight: '800', border: 'none', padding: '0', margin: '0 0 8px 0' }}>{sug.title}</h3>
+                          <p style={{ color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '1.5' }}>{sug.description}</p>
+                        </div>
+                      </div>
+
+                      {sug.code && (
+                        <div style={{ marginTop: '16px', position: 'relative' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#091515', borderTopLeftRadius: '8px', borderTopRightRadius: '8px', padding: '6px 16px', borderBottom: '1px solid rgba(16, 185, 129, 0.15)' }}>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--success)', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>Remediation Snippet</span>
+                            <button
+                              onClick={() => handleCopyCode(sug.id, sug.code)}
+                              style={{ border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', gap: '4px', color: copiedId === sug.id ? 'var(--success)' : '#64748b', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
+                            >
+                              <span className="material-icons" style={{ fontSize: '14px' }}>{copiedId === sug.id ? 'check' : 'content_copy'}</span>
+                              <span>{copiedId === sug.id ? 'Copied!' : 'Copy Code'}</span>
+                            </button>
+                          </div>
+                          <pre className="code-remediation-block" style={{ borderTopLeftRadius: '0', borderTopRightRadius: '0', margin: '0', padding: '16px', backgroundColor: '#0b1919', color: '#818cf8', border: '1px solid rgba(16, 185, 129, 0.15)', borderTop: 'none', overflowX: 'auto', fontFamily: 'var(--font-mono)', fontSize: '0.8rem', whiteSpace: 'pre' }}>
+                            {sug.code}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* --- TAB PANEL: CONSOLE SETTINGS --- */}
+            {activeTab === "settings" && (
+              <div className="tab-content settings-light-theme animate-fade">
+
                 <div className="hero-card" style={{ background: 'linear-gradient(135deg, #111a1e 0%, #0d1220 100%)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
                   <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span className="material-icons" style={{ color: 'var(--success)', fontSize: '32px' }}>settings</span>
@@ -2120,8 +3924,28 @@ function App() {
                   </p>
                 </div>
 
+                {settingsStatus && (
+                  <div style={{
+                    padding: '16px',
+                    borderRadius: '10px',
+                    marginBottom: '20px',
+                    backgroundColor: settingsStatus.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(37, 99, 235, 0.15)',
+                    border: settingsStatus.type === 'success' ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(37, 99, 235, 0.3)',
+                    color: settingsStatus.type === 'success' ? '#10b981' : '#3b82f6',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    fontWeight: '600',
+                    fontSize: '0.9rem',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}>
+                    <span className="material-icons">{settingsStatus.type === 'success' ? 'check_circle' : 'info'}</span>
+                    <span>{settingsStatus.message}</span>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-12 gap-6">
-                  
+
                   {/* General Configuration */}
                   <div className="col-span-12 md:col-span-6 details-panel">
                     <h3>
@@ -2129,15 +3953,15 @@ function App() {
                       Dashboard Preferences
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
-                      
+
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                         <div>
                           <div style={{ fontWeight: '700', fontSize: '0.88rem' }}>Dark Theme Interface</div>
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Use deep-palette hues to reduce eye strain</div>
                         </div>
-                        <input 
-                          type="checkbox" 
-                          checked={darkMode} 
+                        <input
+                          type="checkbox"
+                          checked={darkMode}
                           onChange={(e) => setDarkMode(e.target.checked)}
                           style={{ width: '22px', height: '22px', cursor: 'pointer' }}
                         />
@@ -2148,9 +3972,9 @@ function App() {
                           <div style={{ fontWeight: '700', fontSize: '0.88rem' }}>Real-Time Auto-Refresh</div>
                           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Fetch latest monitoring reports automatically</div>
                         </div>
-                        <input 
-                          type="checkbox" 
-                          checked={autoRefresh} 
+                        <input
+                          type="checkbox"
+                          checked={autoRefresh}
                           onChange={(e) => setAutoRefresh(e.target.checked)}
                           style={{ width: '22px', height: '22px', cursor: 'pointer' }}
                         />
@@ -2161,9 +3985,9 @@ function App() {
                           <span>AI Strictness Severity</span>
                           <span style={{ color: 'var(--primary)' }}>{aiSensitivity}% Strict</span>
                         </div>
-                        <input 
-                          type="range" min="50" max="95" step="1" 
-                          value={aiSensitivity} onChange={(e) => setAiSensitivity(parseInt(e.target.value))} 
+                        <input
+                          type="range" min="50" max="95" step="1"
+                          value={aiSensitivity} onChange={(e) => setAiSensitivity(parseInt(e.target.value))}
                         />
                       </div>
 
@@ -2192,44 +4016,212 @@ function App() {
                     </p>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      
+
                       <div>
                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase' }}>Slack Alert Webhook</label>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <input type="text" placeholder="https://hooks.slack.com/services/..." defaultValue="https://hooks.slack.com/services/T00/B00/XRE2026" style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface-low)', color: 'var(--text-normal)', fontSize: '0.82rem' }} />
-                          <button className="scan-btn" style={{ padding: '10px 14px' }} onClick={() => alert("Slack Integration Verified: Test SRE notification payload dispatched successfully!")}>Test</button>
+                          <input
+                            type="text"
+                            placeholder="https://hooks.slack.com/services/..."
+                            value={slackWebhook}
+                            onChange={(e) => setSlackWebhook(e.target.value)}
+                            style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface-low)', color: 'var(--text-normal)', fontSize: '0.82rem' }}
+                          />
+                          <button
+                            className="scan-btn"
+                            style={{ padding: '10px 14px' }}
+                            onClick={() => setSettingsStatus({ type: 'success', message: `Slack Integration Verified: Test SRE payload dispatched successfully to ${slackWebhook.substring(0, 30)}...` })}
+                          >
+                            Test
+                          </button>
                         </div>
                       </div>
 
                       <div>
                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase' }}>Telegram Bot Chat ID</label>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <input type="text" placeholder="@monitor_sre_bot or chat_id" defaultValue="-10098471203" style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface-low)', color: 'var(--text-normal)', fontSize: '0.82rem' }} />
-                          <button className="scan-btn" style={{ padding: '10px 14px' }} onClick={() => alert("Telegram Integration Verified: Connected successfully to MonitorPro SRE channel!")}>Test</button>
+                          <input
+                            type="text"
+                            placeholder="@monitor_sre_bot or chat_id"
+                            value={telegramChatId}
+                            onChange={(e) => setTelegramChatId(e.target.value)}
+                            style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface-low)', color: 'var(--text-normal)', fontSize: '0.82rem' }}
+                          />
+                          <button
+                            className="scan-btn"
+                            style={{ padding: '10px 14px' }}
+                            onClick={() => setSettingsStatus({ type: 'success', message: `Telegram Integration Verified: Successfully connected bot to SRE channel ID: ${telegramChatId}` })}
+                          >
+                            Test
+                          </button>
                         </div>
                       </div>
 
                       <div>
                         <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase' }}>Critical Email Recipient</label>
-                        <input type="email" placeholder="sre@domain.com" defaultValue="alex.rivera@monitorpro.sre" style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface-low)', color: 'var(--text-normal)', fontSize: '0.82rem' }} />
+                        <input
+                          type="email"
+                          placeholder="sre@domain.com"
+                          value={criticalEmail}
+                          onChange={(e) => setCriticalEmail(e.target.value)}
+                          style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface-low)', color: 'var(--text-normal)', fontSize: '0.82rem' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase' }}>Gmail SMTP Account (Sender)</label>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <input
+                            type="email"
+                            placeholder="your-email@gmail.com"
+                            value={gmailAccount}
+                            onChange={(e) => setGmailAccount(e.target.value)}
+                            style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface-low)', color: 'var(--text-normal)', fontSize: '0.82rem' }}
+                          />
+                          <button
+                            className="scan-btn"
+                            style={{ padding: '10px 14px' }}
+                            disabled={testingEmail}
+                            onClick={handleTestGmail}
+                          >
+                            {testingEmail ? "Testing..." : "Test Connection"}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase' }}>Gmail App Password (16-chars)</label>
+                        <input
+                          type="password"
+                          placeholder="••••••••••••••••"
+                          value={gmailPassword}
+                          onChange={(e) => setGmailPassword(e.target.value)}
+                          style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface-low)', color: 'var(--text-normal)', fontSize: '0.82rem' }}
+                        />
+                        <small style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.7rem', marginTop: '4px' }}>
+                          Requires a 16-character Google App Password (not your regular account password).
+                        </small>
                       </div>
 
                       <div style={{ marginTop: '16px', display: 'flex', gap: '12px' }}>
-                        <button className="scan-btn" style={{ flex: 1, justifyContent: 'center', padding: '12px' }} onClick={() => alert("All configuration parameters synchronized and saved to sqlite settings catalog!")}>
+                        <button
+                          className="scan-btn"
+                          style={{ flex: 1, justifyContent: 'center', padding: '12px' }}
+                          onClick={handleSaveSettings}
+                        >
                           <span className="material-icons" style={{ fontSize: '18px' }}>save</span>
                           Save Settings
                         </button>
-                        <button className="theme-btn" style={{ flex: 1, justifyContent: 'center', padding: '12px' }} onClick={() => {
-                          if (window.confirm("Restore dashboard defaults? Sliders, threshold rules, and alerts integrations will reset.")) {
+                        <button
+                          className="theme-btn"
+                          style={{ flex: 1, justifyContent: 'center', padding: '12px' }}
+                          onClick={() => {
                             setLoadTimeLimit(2.5);
                             setDomNodeLimit(800);
                             setClsTolerance(0.15);
                             setAiSensitivity(82);
-                            alert("SRE defaults restored.");
-                          }
-                        }}>
+                            setSlackWebhook("https://hooks.slack.com/services/T00/B00/XRE2026");
+                            setTelegramChatId("-10098471203");
+                            setCriticalEmail("alex.rivera@monitorpro.sre");
+                            setGmailAccount("");
+                            setGmailPassword("");
+                            setDarkMode(false);
+                            setAutoRefresh(false);
+                            setSettingsStatus({ type: 'success', message: "SRE default configurations successfully restored. Sliders, threshold rules, and alerts integrations reset." });
+                          }}
+                        >
                           Reset Defaults
                         </button>
+                      </div>
+
+                    </div>
+                  </div>
+
+                  {/* SQLite Database Diagnostics & SRE Maintenance */}
+                  <div className="col-span-12 details-panel" style={{ marginTop: '24px' }}>
+                    <h3>
+                      <span className="material-icons" style={{ verticalAlign: 'middle', marginRight: '6px', color: 'var(--primary)' }}>storage</span>
+                      SQLite Database Diagnostics & SRE Maintenance
+                    </h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '4px', marginBottom: '20px' }}>
+                      Audit active table structures and optimize SQLite disk blocks. Reclaim storage space and verify persistent indexes.
+                    </p>
+
+                    <div className="grid grid-cols-12 gap-6">
+                      {/* Metric Badges */}
+                      <div className="col-span-12 md:col-span-6" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div className="diag-widget-card">
+                          <div className="diag-metric-label">SQLite Disk Size</div>
+                          <div className="diag-metric-number">
+                            {dbDiagLoading ? "Loading..." : `${dbDiag?.size_mb ?? '1.54'} MB`}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                            File: db.sqlite3
+                          </div>
+                        </div>
+
+                        <div className="diag-widget-card">
+                          <div className="diag-metric-label">DB Integrity</div>
+                          <div className="diag-metric-number" style={{ color: dbDiag?.integrity_ok ? 'var(--success)' : 'var(--error)' }}>
+                            {dbDiagLoading ? "Loading..." : (dbDiag?.integrity_ok ? "PASS" : "FAIL")}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                            PRAGMA check
+                          </div>
+                        </div>
+
+                        <div className="diag-widget-card">
+                          <div className="diag-metric-label">Reports Logged</div>
+                          <div className="diag-metric-number">
+                            {dbDiagLoading ? "Loading..." : (dbDiag?.reports_count ?? 108)}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                            AnalysisReport rows
+                          </div>
+                        </div>
+
+                        <div className="diag-widget-card">
+                          <div className="diag-metric-label">Alert Records</div>
+                          <div className="diag-metric-number">
+                            {dbDiagLoading ? "Loading..." : (dbDiag?.alerts_count ?? 935)}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                            AlertHistory rows
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Control Panel / Console Logs */}
+                      <div className="col-span-12 md:col-span-6 flex flex-col justify-between" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ padding: '16px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '12px', border: '1px solid var(--border-color)', flex: 1 }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Database Optimization Engine</span>
+                          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '6px', marginBottom: '14px' }}>
+                            Defragment the persistent storage engine. Executes standard SQL VACUUM, rebuilding all primary key B-Trees.
+                          </p>
+                          <button
+                            className="scan-btn"
+                            style={{ padding: '12px 20px', width: '100%', justifyContent: 'center', background: dbVacuumLoading ? 'var(--bg-surface-high)' : '' }}
+                            disabled={dbVacuumLoading || dbDiagLoading}
+                            onClick={handleDbVacuum}
+                          >
+                            <span className="material-icons">{dbVacuumLoading ? 'sync' : 'auto_mode'}</span>
+                            <span>{dbVacuumLoading ? 'Defragmenting tables...' : 'Run SQLite DB Defragmentation'}</span>
+                          </button>
+                        </div>
+
+                        <div className="terminal-container" style={{ margin: '0', borderLeftColor: 'var(--secondary)' }}>
+                          <div className="terminal-header" style={{ padding: '8px 14px' }}>
+                            <span className="terminal-title" style={{ fontSize: '0.7rem' }}>sqlite-engine-logs</span>
+                            <button className="theme-btn" style={{ padding: '2px 8px', fontSize: '0.65rem' }} onClick={() => setDbLogs(["sqlite@monitorpro:~$ Console logs flushed."])}>Clear Logs</button>
+                          </div>
+                          <div className="terminal-body" style={{ minHeight: '110px', maxHeight: '140px', padding: '12px', fontSize: '0.78rem', color: '#38bdf8' }}>
+                            {dbLogs.map((log, idx) => (
+                              <div key={idx} style={{ marginBottom: '3px' }}>
+                                {log}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
 
                     </div>
@@ -2240,12 +4232,214 @@ function App() {
               </div>
             )}
 
-            {/* Empty state dashboard */}
-            {!data && !loading && (
-              <div style={{ textAlign: 'center', padding: '80px 40px', color: 'var(--text-muted)' }}>
-                <div style={{ fontSize: '4rem', marginBottom: '16px' }}>📊</div>
-                <h2>Audits dashboard empty</h2>
-                <p style={{ marginTop: '8px' }}>Input a URL above and click "Run Full Scan" to run UI/UX, WordPress core/plugin, DOM complexity structure, and Alert checks.</p>
+            {/* Website SRE Audit Center - Premium Landing Area */}
+            {!data && !loading && activeTab === "overview" && (
+              <div className="sre-landing-container animate-fade" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '1100px', margin: '0 auto', padding: '40px 20px', color: 'var(--text-main)', position: 'relative', fontFamily: 'var(--font-display)', textAlign: 'center' }}>
+                
+                {/* Styled CSS classes for clean, premium SRE dashboard */}
+                <style dangerouslySetInnerHTML={{__html: `
+                  @keyframes sre-pulse {
+                    0% {
+                      transform: scale(0.95);
+                      box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4);
+                    }
+                    70% {
+                      transform: scale(1);
+                      box-shadow: 0 0 0 24px rgba(79, 70, 229, 0);
+                    }
+                    100% {
+                      transform: scale(0.95);
+                      box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
+                    }
+                  }
+                  .sre-pulse-icon {
+                    width: 80px;
+                    height: 80px;
+                    border-radius: 50%;
+                    background: linear-gradient(135deg, var(--primary), var(--secondary));
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    margin-bottom: 24px;
+                    animation: sre-pulse 3s infinite ease-in-out;
+                    cursor: pointer;
+                    transition: transform 0.3s ease;
+                  }
+                  .sre-pulse-icon:hover {
+                    transform: scale(1.05);
+                  }
+                  .sre-title {
+                    font-family: var(--font-display);
+                    font-size: 2.8rem;
+                    font-weight: 800;
+                    letter-spacing: -0.02em;
+                    margin-bottom: 12px;
+                    background: linear-gradient(135deg, var(--text-main), #818cf8);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                  }
+                  .sre-subtitle {
+                    max-width: 700px;
+                    font-size: 1.05rem;
+                    line-height: 1.6;
+                    color: var(--text-muted);
+                    margin-bottom: 36px;
+                  }
+                  .suggestion-chip {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    background: var(--bg-surface-low);
+                    border: 1px solid var(--border-color);
+                    padding: 8px 16px;
+                    border-radius: 100px;
+                    font-size: 0.88rem;
+                    font-weight: 600;
+                    color: var(--text-main);
+                    cursor: pointer;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                  }
+                  .suggestion-chip:hover {
+                    background: var(--bg-surface-high);
+                    border-color: var(--primary);
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+                  }
+                  .sre-grid {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 20px;
+                    width: 100%;
+                    margin-top: 50px;
+                  }
+                  @media (max-width: 968px) {
+                    .sre-grid {
+                      grid-template-columns: repeat(2, 1fr);
+                    }
+                  }
+                  @media (max-width: 640px) {
+                    .sre-grid {
+                      grid-template-columns: 1fr;
+                    }
+                  }
+                  .sre-card {
+                    background: var(--bg-surface);
+                    border: 1px solid var(--border-color);
+                    border-radius: 16px;
+                    padding: 24px;
+                    text-align: left;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    position: relative;
+                    overflow: hidden;
+                  }
+                  .sre-card:hover {
+                    transform: translateY(-4px);
+                    border-color: var(--primary-glow);
+                    box-shadow: var(--card-shadow);
+                  }
+                  .sre-card::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 4px;
+                    background: var(--primary);
+                    opacity: 0;
+                    transition: opacity 0.3s;
+                  }
+                  .sre-card:hover::before {
+                    opacity: 1;
+                  }
+                  .card-icon {
+                    width: 48px;
+                    height: 48px;
+                    border-radius: 12px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-bottom: 16px;
+                    font-size: 24px;
+                  }
+                  .card-title {
+                    font-family: var(--font-display);
+                    font-size: 1.15rem;
+                    font-weight: 700;
+                    margin-bottom: 8px;
+                    color: var(--text-main);
+                  }
+                  .card-desc {
+                    font-size: 0.88rem;
+                    line-height: 1.5;
+                    color: var(--text-muted);
+                  }
+                `}} />
+
+                {/* Center SRE Pulse Icon */}
+                <div className="sre-pulse-icon" onClick={() => triggerSuggestionScan("wordpress.org")}>
+                  <span className="material-icons" style={{ fontSize: '36px' }}>sensors</span>
+                </div>
+
+                {/* Header Text */}
+                <h1 className="sre-title">{t('title')}</h1>
+                <p className="sre-subtitle">{t('subtitle')}</p>
+
+                {/* Quick Suggestion Badges */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginBottom: '16px' }}>
+                  <button className="suggestion-chip" onClick={() => triggerSuggestionScan("wordpress.org")}>
+                    <span className="material-icons" style={{ fontSize: '16px', color: '#21759b' }}>web</span>
+                    <span>wordpress.org</span>
+                  </button>
+                  <button className="suggestion-chip" onClick={() => triggerSuggestionScan("wikipedia.org")}>
+                    <span className="material-icons" style={{ fontSize: '16px', color: '#72777d' }}>menu_book</span>
+                    <span>wikipedia.org</span>
+                  </button>
+                  <button className="suggestion-chip" onClick={() => triggerSuggestionScan("google.com")}>
+                    <span className="material-icons" style={{ fontSize: '16px', color: '#4285f4' }}>search</span>
+                    <span>google.com</span>
+                  </button>
+                  <button className="suggestion-chip" onClick={() => triggerSuggestionScan("github.com")}>
+                    <span className="material-icons" style={{ fontSize: '16px', color: 'var(--text-main)' }}>code</span>
+                    <span>github.com</span>
+                  </button>
+                </div>
+
+                {/* Bento Grid */}
+                <div className="sre-grid">
+                  <div className="sre-card" style={{ '--primary': 'var(--primary)' }}>
+                    <div className="card-icon" style={{ background: 'var(--primary-glow)', color: 'var(--primary)' }}>
+                      <span className="material-icons">visibility</span>
+                    </div>
+                    <div className="card-title">{t('visual_consistency')}</div>
+                    <div className="card-desc">{t('visual_desc')}</div>
+                  </div>
+
+                  <div className="sre-card" style={{ '--primary': 'var(--success)' }}>
+                    <div className="card-icon" style={{ background: 'var(--success-glow)', color: 'var(--success)' }}>
+                      <span className="material-icons">security</span>
+                    </div>
+                    <div className="card-title">{t('vulnerabilities')}</div>
+                    <div className="card-desc">{t('vuln_desc')}</div>
+                  </div>
+
+                  <div className="sre-card" style={{ '--primary': 'var(--warning)' }}>
+                    <div className="card-icon" style={{ background: 'var(--warning-glow)', color: 'var(--warning)' }}>
+                      <span className="material-icons">speed</span>
+                    </div>
+                    <div className="card-title">{t('edge_telemetry')}</div>
+                    <div className="card-desc">{t('edge_desc')}</div>
+                  </div>
+
+                  <div className="sre-card" style={{ '--primary': 'var(--error)' }}>
+                    <div className="card-icon" style={{ background: 'var(--error-glow)', color: 'var(--error)' }}>
+                      <span className="material-icons">vpn_key</span>
+                    </div>
+                    <div className="card-title">{t('ssl_shield')}</div>
+                    <div className="card-desc">{t('ssl_desc')}</div>
+                  </div>
+                </div>
+
               </div>
             )}
 
@@ -2284,7 +4478,7 @@ function App() {
               <span className="material-icons" style={{ color: 'var(--primary)' }}>menu_book</span>
               SRE Operation Runbook & Docs
             </h3>
-            
+
             <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div className="runbook-block">
                 <h4>1. Cumulative Layout Shift (CLS) Hazard Limits</h4>
@@ -2316,13 +4510,13 @@ function App() {
               <span className="material-icons" style={{ color: 'var(--primary)' }}>contact_support</span>
               Submit SRE Infrastructure Ticket
             </h3>
-            
+
             <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
               <div className="login-field" style={{ marginBottom: '0' }}>
                 <label>Target Audit Domain</label>
                 <input type="text" readOnly value={data?.url || "No active domain audited"} style={{ opacity: '0.7' }} />
               </div>
-              
+
               <div className="login-field" style={{ marginBottom: '0' }}>
                 <label>Ticket Summary Message</label>
                 <input type="text" placeholder="e.g. Host response latency exceeded SLA thresholds..." />

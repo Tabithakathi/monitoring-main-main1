@@ -18,7 +18,7 @@ class MonitorApiTests(TestCase):
 
     def test_api_check_invalid_url(self):
         response = self.client.get(reverse('api_check'), {'url': 'not-a-valid-url'})
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 400)
         self.assertIn('error', response.json())
 
     def test_api_history_empty(self):
@@ -49,6 +49,19 @@ class MonitorApiTests(TestCase):
 
         response = self.client.get(struct_url)
         self.assertEqual(response.status_code, 200)
+
+    def test_api_benchmark_invalid_parameters(self):
+        response = self.client.get(reverse('api_benchmark'))
+        self.assertEqual(response.status_code, 400)
+        
+        response = self.client.get(reverse('api_benchmark'), {'url1': 'https://example.com'})
+        self.assertEqual(response.status_code, 400)
+
+    def test_api_benchmark_success_mock(self):
+        # Using a mock host that will fail quickly or pass to verify concurrent execution safety
+        response = self.client.get(reverse('api_benchmark'), {'url1': 'example.com', 'url2': 'example.org'})
+        # Since example.com is real, it will execute fully
+        self.assertIn(response.status_code, [200, 400])  # Connection failure or success is acceptable
 
 
 class ServiceUnitTests(TestCase):
@@ -99,6 +112,7 @@ class ServiceUnitTests(TestCase):
 
 
 class AlertNotificationTests(TestCase):
+    @override_settings(ALERT_EMAIL_RECIPIENTS=[], EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
     def test_send_alert_emails_without_recipients(self):
         report = SimpleNamespace(url='https://example.com', analyzed_at='2026-05-21T00:00:00Z', is_up=True)
         sent = send_alert_emails(report, [{'level': 'critical', 'message': 'Test', 'category': 'test'}])

@@ -7,7 +7,7 @@ echo ==========================================================
 :: Check Node.js
 where node >nul 2>nul
 if %errorlevel% neq 0 (
-    echo ❌ Error: Node.js not detected in PATH. Install Node.js (v14+) first.
+    echo ❌ Error: Node.js not detected in PATH. Install Node.js v14+ first.
     pause
     exit /b 1
 )
@@ -43,12 +43,11 @@ if not exist "frontend\node_modules" (
 
 echo ==========================================================
 echo ✨ Setup complete. Booting servers...
-echo 🔌 Backend API: http://127.0.0.1:8000
 echo 🖥️ Frontend UI: http://localhost:3000
 echo ==========================================================
 
-:: Run backend in a separate terminal process window
-start "Django SRE Backend API" cmd /k "call venv\Scripts\activate && python manage.py runserver"
+:: Run backend silently in the background of the current console
+start /b cmd /c "call venv\Scripts\activate && python manage.py runserver 8000"
 
 :: Run frontend in the current console
 cd frontend

@@ -124,29 +124,52 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    BASE_DIR / 'frontend' / 'build' / 'static',
+]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOW_ALL_ORIGINS = True
 
 
-# --- Email / alert defaults -------------------------------------------------
-# Configure `ALERT_EMAIL_RECIPIENTS` in your environment or local settings to enable.
-# Provide a comma-separated list via `ALERT_EMAIL_RECIPIENTS="a@x.com,b@y.com"`
-raw_recipients = os.environ.get("ALERT_EMAIL_RECIPIENTS", "")
-ALERT_EMAIL_RECIPIENTS = [r.strip() for r in raw_recipients.split(",") if r.strip()]
 
-EMAIL_FROM = os.environ.get("EMAIL_FROM", "monitor@example.com")
+# --- Email / alert defaults -------------------------------------------------
+# Load persistent SRE settings if configured via the UI
+import json
+sre_settings_path = BASE_DIR / 'sre_settings.json'
+sre_config = {}
+if sre_settings_path.exists():
+    try:
+        with open(sre_settings_path, 'r', encoding='utf-8') as f:
+            sre_config = json.load(f)
+    except Exception:
+        pass
+
+# Configure `ALERT_EMAIL_RECIPIENTS` in your environment or local settings to enable.
+raw_recipients = sre_config.get("alert_email_recipients") or os.environ.get("ALERT_EMAIL_RECIPIENTS", "")
+if isinstance(raw_recipients, list):
+    ALERT_EMAIL_RECIPIENTS = [r.strip() for r in raw_recipients if r.strip()]
+else:
+    ALERT_EMAIL_RECIPIENTS = [r.strip() for r in raw_recipients.split(",") if r.strip()]
+
+EMAIL_HOST_USER = sre_config.get("email_host_user") or os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = sre_config.get("email_host_password") or os.environ.get("EMAIL_HOST_PASSWORD", "")
+
+EMAIL_FROM = EMAIL_HOST_USER if EMAIL_HOST_USER else os.environ.get("EMAIL_FROM", "monitor@example.com")
 DEFAULT_FROM_EMAIL = EMAIL_FROM
 
-# Allow overriding backend via env; default to console backend in DEBUG
-EMAIL_BACKEND = os.environ.get(
-    "EMAIL_BACKEND",
-    "django.core.mail.backends.console.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend",
-)
+# Automatically switch to SMTP backend if real SMTP credentials are provided
+if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+else:
+    EMAIL_BACKEND = os.environ.get(
+        "EMAIL_BACKEND",
+        "django.core.mail.backends.console.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend",
+    )
 
-# Optional SMTP overrides (used when EMAIL_BACKEND points to SMTP)
-EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
-EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "0")) if os.environ.get("EMAIL_PORT") else None
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
-EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "").lower() in ("1", "true", "yes")
+# SRE Proactive auto-configuration helper for real Gmail accounts
+is_gmail = "@gmail.com" in EMAIL_HOST_USER.lower()
+
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com" if is_gmail else "")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587" if is_gmail else "0")) if os.environ.get("EMAIL_PORT") or is_gmail else None
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True" if is_gmail else "False").lower() in ("1", "true", "yes")

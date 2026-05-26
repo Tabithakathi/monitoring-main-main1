@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
 import { 
   Activity, ShieldCheck, ShieldAlert, Wifi, Globe, Database, FileText, 
   AlertTriangle, Download, Printer, CheckCircle2, XCircle, Clock, 
@@ -555,7 +555,11 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                       <Tooltip
                         contentStyle={{ backgroundColor: '#0b0e17', borderColor: '#1f2937', borderRadius: '8px', color: '#cbd5e1', fontSize: '11px' }}
                       />
+                      <Legend verticalAlign="top" height={32} iconType="circle" iconSize={6} wrapperStyle={{ fontSize: '10px' }} />
                       <Area type="monotone" dataKey="overall" stroke="#4f46e5" strokeWidth={2.5} fillOpacity={1} fill="url(#trendOverallSreGrad)" name="Overall SRE Score" />
+                      <Area type="monotone" dataKey="perf" stroke="#10b981" strokeWidth={1.5} fill="none" name="Performance Score" />
+                      <Area type="monotone" dataKey="security" stroke="#0ea5e9" strokeWidth={1.5} fill="none" name="Security Score" />
+                      <Area type="monotone" dataKey="seo" stroke="#f59e0b" strokeWidth={1.5} fill="none" name="SEO Score" />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (

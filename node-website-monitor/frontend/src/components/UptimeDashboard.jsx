@@ -240,14 +240,14 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                   <div class="status-badge">${isUpLabel}</div>
               </div>
           </div>
-
+ 
           <div class="meta-grid">
               <div class="meta-item"><strong>Target URL:</strong> ${h.url}</div>
               <div class="meta-item"><strong>Scan Date:</strong> ${new Date(h.checkedAt).toLocaleString()}</div>
               <div class="meta-item"><strong>Report Reference ID:</strong> MP-NODE-${h._id}</div>
               <div class="meta-item"><strong>Server Status:</strong> HTTP ${h.statusCode || 200} (Load Time: ${h.isUp ? `${(h.loadTimeMs/1000).toFixed(2)}s` : '—'})</div>
           </div>
-
+ 
           <div class="score-container">
               <div class="score-card featured">
                   <h3>Overall SRE</h3>
@@ -270,7 +270,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                   <div class="val">${uiVal}</div>
               </div>
           </div>
-
+ 
           <div class="section-title">Telemetry Scans Summary</div>
           <table>
               <thead>
@@ -298,14 +298,14 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                   </tr>
               </tbody>
           </table>
-
+ 
           <div class="section-title">SRE Diagnostics Alert Stream</div>
           ${alertsHtml || '<div style="color: #6b7280; font-size: 12px; padding: 12px; border: 1px dashed #e5e7eb; border-radius: 8px; text-align: center;">No critical system anomalies detected in this run.</div>'}
-
+ 
           <div class="footer">
               MonitorPro Enterprise SRE Diagnostics Portal • Confirmed By SRE Node Gateway
           </div>
-
+ 
           <script>
               window.onload = function() {
                   setTimeout(function() {
@@ -324,10 +324,10 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
     <div className="space-y-6">
       
       {/* 1. Real-time Uptime Indicators */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-fade-in-up">
         
         {/* Status Indicator */}
-        <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-xl">
+        <div className="glass-card p-6 flex flex-col justify-between">
           <div className="flex justify-between items-center">
             <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Gateway Status</span>
             <div className="flex items-center gap-2">
@@ -337,34 +337,34 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                 </span>
               )}
               <span className="flex h-2.5 w-2.5 relative">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isUp ? 'bg-emerald-400' : 'bg-rose-400'} opacity-75`}></span>
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isUp ? 'bg-emerald-450' : 'bg-rose-450'} opacity-75`}></span>
                 <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isUp ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
               </span>
             </div>
           </div>
           <div className="mt-4">
-            <h2 className="text-3xl font-extrabold tracking-tight">{isUp ? 'ONLINE' : 'DOWN'}</h2>
-            <p className="text-slate-500 text-[10px] mt-1 flex items-center gap-1.5 font-medium">
-              <span className={`h-1.5 w-1.5 rounded-full ${isSocketConnected ? 'bg-indigo-400' : 'bg-slate-500'}`}></span>
-              {isSocketConnected ? 'WebSocket live telemetry' : 'Static checks active'}
+            <h2 className="text-3xl font-black tracking-tight">{isUp ? 'ONLINE' : 'DOWN'}</h2>
+            <p className="text-slate-500 text-[10px] mt-1 flex items-center gap-1.5 font-bold uppercase tracking-wide">
+              <span className={`h-1.5 w-1.5 rounded-full ${isSocketConnected ? 'bg-indigo-450' : 'bg-slate-500'}`}></span>
+              {isSocketConnected ? 'WebSocket live portal' : 'Standard Polls active'}
             </p>
           </div>
         </div>
 
         {/* Uptime Percent */}
-        <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-xl">
+        <div className="glass-card p-6 flex flex-col justify-between">
           <div className="flex justify-between items-center">
             <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Uptime (24h)</span>
             <Activity className="text-violet-400 h-5 w-5" />
           </div>
           <div className="mt-4">
-            <h2 className="text-3xl font-extrabold tracking-tight text-violet-400">{uptimePercentage}%</h2>
+            <h2 className="text-3xl font-black tracking-tight text-violet-400">{uptimePercentage}%</h2>
             <p className="text-slate-500 text-xs mt-1">SRE Target: &gt;99.9%</p>
           </div>
         </div>
 
         {/* SSL Shield Validity */}
-        <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-xl">
+        <div className="glass-card p-6 flex flex-col justify-between">
           <div className="flex justify-between items-center">
             <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">SSL Security</span>
             {ssl?.valid ? (
@@ -374,23 +374,23 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
             )}
           </div>
           <div className="mt-4">
-            <h2 className="text-2xl font-extrabold tracking-tight">
+            <h2 className="text-2xl font-black tracking-tight">
               {ssl?.valid ? `${ssl.daysRemaining} Days` : 'EXPIRED'}
             </h2>
-            <p className="text-slate-500 text-xs mt-1">
+            <p className="text-slate-500 text-xs mt-1 truncate">
               {ssl?.valid ? `Issued by ${ssl.issuer.split(' ')[0]}` : 'Immediate renewal required'}
             </p>
           </div>
         </div>
 
         {/* DNS Speed */}
-        <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-xl">
+        <div className="glass-card p-6 flex flex-col justify-between">
           <div className="flex justify-between items-center">
             <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">DNS Latency</span>
             <Globe className="text-sky-400 h-5 w-5" />
           </div>
           <div className="mt-4">
-            <h2 className="text-3xl font-extrabold tracking-tight text-sky-400">
+            <h2 className="text-3xl font-black tracking-tight text-sky-400">
               {latestStatus ? latestStatus.dnsResolutionTimeMs : 0}ms
             </h2>
             <p className="text-slate-500 text-xs mt-1">DNS Hops: Operational</p>
@@ -411,7 +411,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
           <button
             key={sub.id}
             onClick={() => setActiveSubTab(sub.id)}
-            className={`pb-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all ${
+            className={`pb-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
               activeSubTab === sub.id
                 ? 'border-indigo-500 text-indigo-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -428,7 +428,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
         {/* Core Web Vitals Tab */}
         {activeSubTab === 'performance' && (
           <div className="space-y-6">
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <div className="glass-card p-6">
               <div className="flex justify-between items-center border-b border-slate-800 pb-4 mb-6">
                 <div>
                   <h3 className="text-slate-200 font-extrabold text-lg flex items-center gap-2">
@@ -464,7 +464,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                   }
                   
                   return (
-                    <div key={v.key} className="bg-dark-900/60 border border-slate-800 p-5 rounded-xl flex flex-col justify-between">
+                    <div key={v.key} className="bg-dark-800/40 border border-slate-800/60 p-5 rounded-xl flex flex-col justify-between hover:border-indigo-500/25 transition-all">
                       <div>
                         <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">{v.name}</span>
                         <h4 className={`text-2xl font-black mt-2 ${color}`}>
@@ -482,17 +482,17 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
 
               {/* Infrastructure Weight details */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 pt-6 border-t border-slate-800/40 text-xs">
-                <div className="flex justify-between items-center p-3 bg-dark-900/40 rounded-lg">
+                <div className="flex justify-between items-center p-3 bg-dark-800/35 rounded-lg border border-slate-800/40">
                   <span className="text-slate-500 font-medium">Total DOM Nodes Count:</span>
-                  <span className="font-bold text-slate-300">{perf?.totalNodes || 240}</span>
+                  <span className="font-bold text-slate-350">{perf?.totalNodes || 240}</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-dark-900/40 rounded-lg">
+                <div className="flex justify-between items-center p-3 bg-dark-800/35 rounded-lg border border-slate-800/40">
                   <span className="text-slate-500 font-medium">Page Transfer Weight:</span>
-                  <span className="font-bold text-slate-300">{perf?.pageSizeKb || 85} KB</span>
+                  <span className="font-bold text-slate-350">{perf?.pageSizeKb || 85} KB</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-dark-900/40 rounded-lg">
-                  <span className="text-slate-500 font-medium">Unminified blocking assets:</span>
-                  <span className="font-bold text-slate-300">{perf?.unminifiedCount || 0} scripts</span>
+                <div className="flex justify-between items-center p-3 bg-dark-800/35 rounded-lg border border-slate-800/40">
+                  <span className="text-slate-500 font-medium">Unminified Blocking Assets:</span>
+                  <span className="font-bold text-slate-350">{perf?.unminifiedCount || 0} scripts</span>
                 </div>
               </div>
             </div>
@@ -519,7 +519,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
           <div className="space-y-6">
             
             {/* Top Recharts chronological trends */}
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <div className="glass-card p-6">
               <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-6">
                 <div>
                   <h3 className="text-slate-200 font-extrabold text-base flex items-center gap-2">
@@ -532,7 +532,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                 {/* Download CSV button */}
                 <button 
                   onClick={downloadCsv}
-                  className="px-4 py-2 bg-dark-800 border border-slate-700 hover:bg-dark-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+                  className="px-4 py-2 bg-indigo-600 border-none hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-lg shadow-indigo-600/15 cursor-pointer"
                 >
                   <Download className="h-3.5 w-3.5" />
                   <span>Export CSV History</span>
@@ -549,11 +549,11 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                           <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" strokeOpacity={0.5} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" strokeOpacity={0.3} />
                       <XAxis dataKey="time" stroke="#64748b" fontSize={9} tickLine={false} />
                       <YAxis stroke="#64748b" fontSize={9} tickLine={false} domain={[0, 100]} />
                       <Tooltip
-                        contentStyle={{ backgroundColor: '#0b0e17', borderColor: '#1f2937', borderRadius: '8px', color: '#cbd5e1', fontSize: '11px' }}
+                        contentStyle={{ backgroundColor: '#090d16', borderColor: 'rgba(255,255,255,0.06)', borderRadius: '12px', color: '#cbd5e1', fontSize: '11px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}
                       />
                       <Legend verticalAlign="top" height={32} iconType="circle" iconSize={6} wrapperStyle={{ fontSize: '10px' }} />
                       <Area type="monotone" dataKey="overall" stroke="#4f46e5" strokeWidth={2.5} fillOpacity={1} fill="url(#trendOverallSreGrad)" name="Overall SRE Score" />
@@ -563,7 +563,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-xs text-slate-600 border border-dashed border-slate-800 rounded-xl">
+                  <div className="h-full flex items-center justify-center text-xs text-slate-600 border border-dashed border-slate-800 rounded-xl bg-dark-900/20">
                     Awaiting scan ticks to populate history trend lines...
                   </div>
                 )}
@@ -571,10 +571,10 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
             </div>
 
             {/* Scans tables and print buttons */}
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <div className="glass-card p-6">
               <h3 className="text-slate-200 font-extrabold text-base border-b border-slate-800 pb-3 mb-4 flex justify-between items-center">
                 <span>Auditing History Logs</span>
-                <span className="text-xs text-slate-500">{historyLog.length} scan records in memory</span>
+                <span className="text-xs text-slate-500 font-bold bg-slate-800/60 px-2.5 py-0.5 rounded-full">{historyLog.length} scan records</span>
               </h3>
               
               <div className="overflow-x-auto max-h-80 overflow-y-auto">
@@ -602,12 +602,12 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                       );
                       
                       return (
-                        <tr key={log._id} className="border-b border-slate-800/40 hover:bg-dark-900/40">
+                        <tr key={log._id} className="border-b border-slate-800/40 hover:bg-dark-900/20 transition-colors">
                           <td className="py-3 px-3 text-slate-500 font-mono">
                             {new Date(log.checkedAt).toLocaleString()}
                           </td>
                           <td className="py-3 px-3">
-                            <span className={`inline-block px-2 py-0.5 rounded-full font-bold text-[10px] ${log.isUp ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                            <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-[9px] ${log.isUp ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
                               {log.isUp ? 'UP' : 'DOWN'}
                             </span>
                           </td>
@@ -617,14 +617,14 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                           <td className="py-3 px-3 font-semibold text-violet-400">{log.seo?.seoScore || 85}</td>
                           <td className="py-3 px-3 font-semibold text-sky-400">{log.security?.securityScore || 90}</td>
                           <td className="py-3 px-3">
-                            <span className="font-extrabold bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded">
+                            <span className="font-extrabold bg-indigo-500/15 border border-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded">
                               {overall}
                             </span>
                           </td>
                           <td className="py-3 px-3 text-right">
                             <button 
                               onClick={() => printPdf(log)}
-                              className="p-1.5 bg-dark-900 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 transition-all"
+                              className="p-1.5 bg-dark-900/60 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 border border-slate-800 transition-all cursor-pointer"
                               title="Print high-fidelity PDF report"
                             >
                               <Printer className="h-4 w-4" />

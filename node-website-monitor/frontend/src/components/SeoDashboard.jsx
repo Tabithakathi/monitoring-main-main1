@@ -9,8 +9,10 @@ export default function SeoDashboard({ seoData }) {
 
   if (!seoData) {
     return (
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 text-center text-slate-500">
-        No SEO audit metrics available. Run a scan to see real-time Technical SEO audits.
+      <div className="glass-card p-10 text-center text-slate-500 max-w-2xl mx-auto my-6 animate-fade-in-up">
+        <Globe className="h-10 w-10 text-slate-600 mx-auto mb-4 animate-bounce" />
+        <h4 className="font-extrabold text-slate-400">No SEO Audit Metrics Available</h4>
+        <p className="text-xs text-slate-500 mt-2">Run a scan above to see real-time Technical SEO audits, tags, and link integrity indices.</p>
       </div>
     );
   }
@@ -33,9 +35,15 @@ export default function SeoDashboard({ seoData }) {
   } = seoData;
 
   const getScoreColor = (score) => {
-    if (score >= 90) return 'text-emerald-400 border-emerald-500/20';
-    if (score >= 75) return 'text-amber-400 border-amber-500/20';
-    return 'text-rose-400 border-rose-500/20';
+    if (score >= 90) return 'text-emerald-400';
+    if (score >= 75) return 'text-amber-400';
+    return 'text-rose-400';
+  };
+
+  const getGradientId = (score) => {
+    if (score >= 90) return 'url(#seoEmeraldGrad)';
+    if (score >= 75) return 'url(#seoAmberGrad)';
+    return 'url(#seoRoseGrad)';
   };
 
   const filteredAltSrcs = (imageAnalysis?.missingAltSrcs || []).filter(src => 
@@ -43,90 +51,105 @@ export default function SeoDashboard({ seoData }) {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
       
       {/* Overview SEO Score Card */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         
         {/* SEO Circular Score */}
-        <div className="col-span-12 md:col-span-4 bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-6 flex flex-col items-center justify-center text-center shadow-xl">
-          <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wider w-full text-left mb-4 flex items-center gap-1.5">
-            <Sparkles className="h-3.5 w-3.5 text-indigo-400" />
+        <div className="col-span-12 md:col-span-4 glass-card p-6 flex flex-col items-center justify-center text-center">
+          <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wider w-full text-left mb-4 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-indigo-400" />
             SEO Performance Rating
           </h3>
           
           <div className="relative w-36 h-36 flex items-center justify-center">
             <svg className="w-full h-full transform -rotate-90">
-              <circle cx="72" cy="72" r="62" fill="transparent" stroke="#1f2937" strokeWidth="8"></circle>
+              <defs>
+                <linearGradient id="seoEmeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#10b981" />
+                  <stop offset="100%" stopColor="#059669" />
+                </linearGradient>
+                <linearGradient id="seoAmberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#fbbf24" />
+                  <stop offset="100%" stopColor="#d97706" />
+                </linearGradient>
+                <linearGradient id="seoRoseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#f87171" />
+                  <stop offset="100%" stopColor="#dc2626" />
+                </linearGradient>
+              </defs>
+              <circle cx="72" cy="72" r="62" fill="transparent" stroke="rgba(255,255,255,0.03)" strokeWidth="8"></circle>
               <circle
                 cx="72"
                 cy="72"
                 r="62"
                 fill="transparent"
-                stroke={seoScore >= 90 ? '#10b981' : seoScore >= 75 ? '#f59e0b' : '#ef4444'}
+                stroke={getGradientId(seoScore)}
                 strokeWidth="8"
                 strokeDasharray={389.5}
                 strokeDashoffset={389.5 - (389.5 * seoScore) / 100}
+                strokeLinecap="round"
                 className="transition-all duration-1000 ease-in-out"
               ></circle>
             </svg>
             <div className="absolute flex flex-col items-center">
-              <span className={`text-4xl font-extrabold tracking-tight ${getScoreColor(seoScore)}`}>{seoScore}</span>
+              <span className={`text-4xl font-black tracking-tight ${getScoreColor(seoScore)}`}>{seoScore}</span>
               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">SEO Score</span>
             </div>
           </div>
         </div>
 
         {/* Search Engine Indexability Probes */}
-        <div className="col-span-12 md:col-span-8 bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-xl">
+        <div className="col-span-12 md:col-span-8 glass-card p-6 flex flex-col justify-between">
           <div>
-            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 mb-4">
-              <Globe className="h-3.5 w-3.5 text-indigo-400" />
+            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2 mb-4">
+              <Globe className="h-4 w-4 text-indigo-400" />
               Indexability & Crawler Probes
             </span>
             
-            <div className="space-y-3.5 mt-2">
-              <div className="flex justify-between items-center text-xs py-1 border-b border-slate-800/40">
-                <span className="text-slate-400">Search Engine Indexable</span>
+            <div className="space-y-3.5 mt-2 text-xs">
+              <div className="flex justify-between items-center py-1.5 border-b border-slate-800/40">
+                <span className="text-slate-400">Search Engine Indexable:</span>
                 {indexability?.isIndexable ? (
-                  <span className="text-emerald-400 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Yes (Noindex Absent)
+                  <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4" /> Yes (Noindex Absent)
                   </span>
                 ) : (
-                  <span className="text-rose-400 font-bold flex items-center gap-1">
-                    <XCircle className="h-3.5 w-3.5" /> Blocked (Meta Noindex)
+                  <span className="text-rose-400 font-bold flex items-center gap-1.5">
+                    <XCircle className="h-4 w-4" /> Blocked (Meta Noindex)
                   </span>
                 )}
               </div>
               
-              <div className="flex justify-between items-center text-xs py-1 border-b border-slate-800/40">
-                <span className="text-slate-400">Mobile Viewport Configured</span>
+              <div className="flex justify-between items-center py-1.5 border-b border-slate-800/40">
+                <span className="text-slate-400">Mobile Viewport Configured:</span>
                 {mobileFriendliness?.viewportConfigured ? (
-                  <span className="text-emerald-400 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Fully Responsive
+                  <span className="text-emerald-400 font-bold flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4" /> Fully Responsive
                   </span>
                 ) : (
-                  <span className="text-rose-400 font-bold flex items-center gap-1">
-                    <XCircle className="h-3.5 w-3.5" /> Suboptimal (Missing)
+                  <span className="text-rose-400 font-bold flex items-center gap-1.5">
+                    <XCircle className="h-4 w-4" /> Suboptimal (Missing)
                   </span>
                 )}
               </div>
 
-              <div className="flex justify-between items-center text-xs py-1">
-                <span className="text-slate-400">Canonical Tag Configured</span>
+              <div className="flex justify-between items-center py-1.5">
+                <span className="text-slate-400">Canonical Tag Configured:</span>
                 {canonical?.text ? (
-                  <span className="text-emerald-400 font-bold flex items-center gap-1 truncate max-w-[200px]" title={canonical.text}>
-                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Configured
+                  <span className="text-emerald-400 font-bold flex items-center gap-1.5 truncate max-w-[240px]" title={canonical.text}>
+                    <CheckCircle2 className="h-4 w-4 shrink-0" /> Configured
                   </span>
                 ) : (
-                  <span className="text-amber-400 font-bold flex items-center gap-1">
-                    <AlertTriangle className="h-3.5 w-3.5" /> Missing
+                  <span className="text-amber-400 font-bold flex items-center gap-1.5">
+                    <AlertTriangle className="h-4 w-4" /> Missing
                   </span>
                 )}
               </div>
             </div>
           </div>
-          <p className="text-[10px] text-slate-500 italic mt-4">
+          <p className="text-[10px] text-slate-500 italic mt-4 border-t border-slate-800/40 pt-3">
             * All variables crawled directly from live response body.
           </p>
         </div>
@@ -137,43 +160,43 @@ export default function SeoDashboard({ seoData }) {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         
         {/* Meta elements */}
-        <div className="col-span-12 md:col-span-6 bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-          <h3 className="text-slate-200 font-extrabold text-sm flex items-center gap-2 border-b border-slate-800 pb-3">
+        <div className="col-span-12 md:col-span-6 glass-card p-6 space-y-4">
+          <h3 className="text-slate-200 font-extrabold text-sm flex items-center gap-2 border-b border-slate-800/80 pb-3">
             <FileText className="text-indigo-400 h-4.5 w-4.5" />
             HTML Header Metadata
           </h3>
           
-          <div className="space-y-3.5 text-xs">
+          <div className="space-y-4 text-xs">
             <div>
-              <span className="text-slate-500 font-bold uppercase tracking-wider block text-[10px] mb-1.5">Meta Title Tag</span>
-              <div className="p-3 bg-slate-950/40 rounded-xl border border-slate-800 text-slate-300 font-medium font-mono break-all leading-normal">
+              <span className="text-slate-500 font-bold uppercase tracking-wider block text-[10px] mb-2">Meta Title Tag</span>
+              <div className="p-3 bg-dark-800/30 rounded-xl border border-slate-800/60 text-slate-300 font-medium font-mono break-all leading-normal">
                 {title?.text || '—'}
               </div>
-              <span className="text-[10px] text-slate-500 mt-1.5 block">{title?.message}</span>
+              <span className="text-[10px] text-slate-500 mt-2 block">{title?.message}</span>
             </div>
 
             <div>
-              <span className="text-slate-500 font-bold uppercase tracking-wider block text-[10px] mb-1.5">Meta Description</span>
-              <div className="p-3 bg-slate-950/40 rounded-xl border border-slate-800 text-slate-300 font-medium leading-relaxed">
+              <span className="text-slate-500 font-bold uppercase tracking-wider block text-[10px] mb-2">Meta Description</span>
+              <div className="p-3 bg-dark-800/30 rounded-xl border border-slate-800/60 text-slate-300 font-medium leading-relaxed">
                 {metaDescription?.text || '—'}
               </div>
-              <span className="text-[10px] text-slate-500 mt-1.5 block">{metaDescription?.message}</span>
+              <span className="text-[10px] text-slate-500 mt-2 block">{metaDescription?.message}</span>
             </div>
           </div>
         </div>
 
         {/* Crawlability Files Validation */}
-        <div className="col-span-12 md:col-span-6 bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-          <h3 className="text-slate-200 font-extrabold text-sm flex items-center gap-2 border-b border-slate-800 pb-3">
+        <div className="col-span-12 md:col-span-6 glass-card p-6 space-y-4">
+          <h3 className="text-slate-200 font-extrabold text-sm flex items-center gap-2 border-b border-slate-800/80 pb-3">
             <Globe className="text-indigo-400 h-4.5 w-4.5" />
             Crawlability & File Validations
           </h3>
           
           <div className="space-y-4 text-xs">
             <div>
-              <span className="text-slate-500 font-bold uppercase tracking-wider block text-[10px] mb-1.5">robots.txt Validation</span>
-              <div className={`p-3.5 rounded-xl border text-slate-300 font-medium ${robotsTxt?.exists ? 'bg-emerald-950/20 border-emerald-900/30 text-emerald-300' : 'bg-rose-950/20 border-rose-900/30 text-rose-300'}`}>
-                <div className="flex justify-between items-center mb-1">
+              <span className="text-slate-500 font-bold uppercase tracking-wider block text-[10px] mb-2">robots.txt Validation</span>
+              <div className={`p-3.5 rounded-xl border text-slate-300 font-medium ${robotsTxt?.exists ? 'bg-emerald-950/15 border-emerald-900/25 text-emerald-300' : 'bg-rose-950/15 border-rose-900/25 text-rose-300'}`}>
+                <div className="flex justify-between items-center mb-1.5">
                   <span className="font-bold">{robotsTxt?.exists ? 'Found & Active' : 'Missing File'}</span>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${robotsTxt?.exists ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
                     {robotsTxt?.status?.toUpperCase()}
@@ -184,9 +207,9 @@ export default function SeoDashboard({ seoData }) {
             </div>
 
             <div>
-              <span className="text-slate-500 font-bold uppercase tracking-wider block text-[10px] mb-1.5">sitemap.xml Validation</span>
-              <div className={`p-3.5 rounded-xl border text-slate-300 font-medium ${sitemap?.exists ? 'bg-emerald-950/20 border-emerald-900/30 text-emerald-300' : 'bg-rose-950/20 border-rose-900/30 text-rose-300'}`}>
-                <div className="flex justify-between items-center mb-1">
+              <span className="text-slate-500 font-bold uppercase tracking-wider block text-[10px] mb-2">sitemap.xml Validation</span>
+              <div className={`p-3.5 rounded-xl border text-slate-300 font-medium ${sitemap?.exists ? 'bg-emerald-950/15 border-emerald-900/25 text-emerald-300' : 'bg-rose-950/15 border-rose-900/25 text-rose-300'}`}>
+                <div className="flex justify-between items-center mb-1.5">
                   <span className="font-bold">{sitemap?.exists ? 'Found & Parsed' : 'Missing Index'}</span>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${sitemap?.exists ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
                     {sitemap?.status?.toUpperCase()}
@@ -204,7 +227,7 @@ export default function SeoDashboard({ seoData }) {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
 
         {/* Hierarchy and keywords density map */}
-        <div className="col-span-12 md:col-span-6 bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+        <div className="col-span-12 md:col-span-6 glass-card p-6 space-y-6">
           <div>
             <h3 className="text-slate-200 font-extrabold text-sm border-b border-slate-800 pb-3 mb-4 flex items-center gap-2">
               <Layers className="text-indigo-400 h-4.5 w-4.5" />
@@ -218,8 +241,8 @@ export default function SeoDashboard({ seoData }) {
                 </div>
               ) : (
                 headings.h1.map((h, i) => (
-                  <div key={i} className="text-xs p-2.5 bg-indigo-950/20 border border-indigo-900/30 text-indigo-300 rounded-lg font-semibold flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 shrink-0"></span>
+                  <div key={i} className="text-xs p-2.5 bg-indigo-950/15 border border-indigo-900/25 text-indigo-350 rounded-lg font-semibold flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 shrink-0 animate-pulse"></span>
                     {h}
                   </div>
                 ))
@@ -237,7 +260,7 @@ export default function SeoDashboard({ seoData }) {
                 <div className="text-slate-500 text-xs italic py-2">No frequency keyword analysis performed.</div>
               ) : (
                 keywordAnalysis.topKeywords.map((k, idx) => (
-                  <div key={idx} className="px-3.5 py-2 bg-slate-950/40 border border-slate-800 rounded-xl text-xs flex items-center gap-2.5 transition-all hover:border-indigo-500/30">
+                  <div key={idx} className="px-3.5 py-2 bg-dark-800/40 border border-slate-800 rounded-xl text-xs flex items-center gap-2.5 transition-all hover:border-indigo-500/30">
                     <span className="text-indigo-400 font-bold">{k.keyword}</span>
                     <span className="text-slate-500 font-mono text-[10px] bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-800">{k.count} times</span>
                   </div>
@@ -248,32 +271,32 @@ export default function SeoDashboard({ seoData }) {
         </div>
 
         {/* Image Alt tags analysis */}
-        <div className="col-span-12 md:col-span-6 bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <div className="col-span-12 md:col-span-6 glass-card p-6 space-y-4">
           <h3 className="text-slate-200 font-extrabold text-sm border-b border-slate-800 pb-3 flex justify-between items-center">
             <span className="flex items-center gap-2">
               <Image className="text-indigo-400 h-4.5 w-4.5" />
               Image Alt Tag Compliance
             </span>
             {imageAnalysis?.totalImages > 0 && (
-              <span className="text-xs font-semibold px-2 py-0.5 bg-slate-800 text-slate-400 rounded-md">
+              <span className="text-xs font-semibold px-2 py-0.5 bg-slate-800/60 text-slate-400 rounded-md">
                 Compliance: {imageAnalysis.withAlt} / {imageAnalysis.totalImages}
               </span>
             )}
           </h3>
           
-          <div className="space-y-3.5 text-xs">
+          <div className="space-y-4 text-xs">
             <div className="grid grid-cols-3 gap-3.5 text-center">
-              <div className="p-3 bg-slate-950/30 rounded-xl border border-slate-800">
+              <div className="p-3 bg-dark-800/30 rounded-xl border border-slate-800/60">
                 <span className="text-slate-500 text-[10px] font-bold block uppercase mb-1">Total Images</span>
-                <span className="text-lg font-black text-slate-300">{imageAnalysis?.totalImages || 0}</span>
+                <span className="text-lg font-black text-slate-350">{imageAnalysis?.totalImages || 0}</span>
               </div>
-              <div className="p-3 bg-slate-950/30 rounded-xl border border-slate-800">
+              <div className="p-3 bg-dark-800/30 rounded-xl border border-slate-800/60">
                 <span className="text-slate-500 text-[10px] font-bold block uppercase mb-1">Valid ALT</span>
                 <span className="text-lg font-black text-emerald-400">{imageAnalysis?.withAlt || 0}</span>
               </div>
-              <div className="p-3 bg-slate-950/30 rounded-xl border border-slate-800">
+              <div className="p-3 bg-dark-800/30 rounded-xl border border-slate-800/60">
                 <span className="text-slate-500 text-[10px] font-bold block uppercase mb-1">Missing ALT</span>
-                <span className="text-lg font-black text-rose-400">
+                <span className="text-lg font-black text-rose-455">
                   {(imageAnalysis?.missingAlt || 0) + (imageAnalysis?.emptyAlt || 0)}
                 </span>
               </div>
@@ -289,7 +312,7 @@ export default function SeoDashboard({ seoData }) {
                     <input 
                       type="text" 
                       placeholder="Filter by src..." 
-                      className="w-full bg-slate-950/60 border border-slate-800 rounded px-1.5 py-0.5 text-[9px] pl-6 font-medium text-slate-300 placeholder-slate-600 outline-none"
+                      className="w-full bg-slate-950/60 border border-slate-800 rounded px-2 py-0.5 text-[9px] pl-6 font-medium text-slate-300 placeholder-slate-600 outline-none focus:border-indigo-500"
                       value={altSearch}
                       onChange={e => setAltSearch(e.target.value)}
                     />
@@ -314,34 +337,34 @@ export default function SeoDashboard({ seoData }) {
       </div>
 
       {/* Crawled Links index */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl">
+      <div className="glass-card p-6">
         <h3 className="text-slate-200 font-extrabold text-sm border-b border-slate-800 pb-3 mb-4 flex justify-between items-center">
           <span className="flex items-center gap-2">
             <Link className="text-indigo-400 h-4.5 w-4.5" />
             Crawled Links Integrity Audit
           </span>
-          <span className="text-xs font-semibold px-2 py-0.5 bg-slate-800 text-slate-400 rounded-md">
+          <span className="text-xs font-semibold px-2 py-0.5 bg-slate-850/60 text-slate-400 rounded-md">
             Internal: {links?.internalCount || 0} • External: {links?.externalCount || 0}
           </span>
         </h3>
         
         <div className="space-y-3">
           {links?.brokenCount === 0 ? (
-            <div className="py-8 text-center text-slate-500 text-xs italic flex flex-col items-center justify-center gap-2">
-              <CheckCircle2 className="h-7 w-7 text-emerald-400" />
+            <div className="py-8 text-center text-slate-500 text-xs italic flex flex-col items-center justify-center gap-2 bg-dark-900/20 border border-dashed border-slate-800 rounded-xl">
+              <CheckCircle2 className="h-6 w-6 text-emerald-400" />
               All internal and external links are structurally verified and operational (zero broken links).
             </div>
           ) : (
-            <div className="space-y-2">
-              <span className="text-rose-400 font-bold uppercase tracking-wider block text-[9px] mb-2">Detected Broken Link Anomalies</span>
+            <div className="space-y-2.5">
+              <span className="text-rose-455 font-bold uppercase tracking-wider block text-[9px] mb-2">Detected Broken Link Anomalies</span>
               <div className="space-y-2">
                 {links.brokenLinks.map((bl, idx) => (
                   <div key={idx} className="p-3 bg-rose-950/10 border border-rose-900/20 rounded-xl flex justify-between items-center text-xs">
                     <div className="truncate max-w-[80%] pr-4">
                       <span className="font-extrabold text-rose-400 uppercase tracking-widest text-[9px] block mb-0.5">{bl.type} URL Broken</span>
-                      <span className="font-mono text-slate-300 break-all truncate block" title={bl.url}>{bl.url}</span>
+                      <span className="font-mono text-slate-350 break-all truncate block" title={bl.url}>{bl.url}</span>
                     </div>
-                    <span className="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-400 font-bold tracking-wide uppercase text-[9px] shrink-0 border border-rose-500/20">
+                    <span className="px-2 py-0.5 rounded-md bg-rose-500/20 text-rose-455 font-bold tracking-wide uppercase text-[9px] shrink-0 border border-rose-500/20">
                       {bl.reason}
                     </span>
                   </div>

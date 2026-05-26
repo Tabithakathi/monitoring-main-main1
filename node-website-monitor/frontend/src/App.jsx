@@ -171,15 +171,19 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen text-slate-100 font-sans pb-12 relative">
+    <div className="min-h-screen text-slate-100 font-sans pb-12 relative overflow-hidden">
+
+      {/* Premium Ambient Background Glows */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[55%] rounded-full bg-indigo-600/8 blur-[130px] pointer-events-none pulse-glow-indigo"></div>
+      <div className="absolute bottom-[-5%] right-[-5%] w-[45%] h-[50%] rounded-full bg-purple-600/8 blur-[130px] pointer-events-none pulse-glow-indigo" style={{ animationDelay: '-2s' }}></div>
 
       {/* Sleek Dark SRE Navigation Header */}
-      <header className="bg-dark-800/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
+      <header className="bg-dark-800/80 backdrop-blur-md border-b border-slate-800/60 sticky top-0 z-50 shadow-md">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center font-black text-white shadow-lg shadow-indigo-600/30">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-indigo-650 to-indigo-500 flex items-center justify-center font-black text-white shadow-lg shadow-indigo-600/25">
                 M
               </div>
               <div>
@@ -189,7 +193,7 @@ export default function App() {
             </div>
             <button
               onClick={() => setIsDark(!isDark)}
-              className="p-2 rounded-xl border border-slate-800 hover:bg-slate-800/60 transition-all text-slate-400 hover:text-slate-200 cursor-pointer"
+              className="p-2 rounded-xl border border-slate-800 hover:bg-slate-800/60 transition-all text-slate-400 hover:text-slate-200 cursor-pointer shadow-sm hover:scale-105 duration-200"
               title={isDark ? "Switch to Light Theme" : "Switch to Dark Theme"}
             >
               {isDark ? <Sun className="h-4 w-4 text-amber-400 animate-pulse" /> : <Moon className="h-4 w-4 text-indigo-500" />}
@@ -198,7 +202,7 @@ export default function App() {
 
           {/* SRE Domain search filter bar */}
           <div className="flex-1 max-w-xl flex gap-2">
-            <div className="flex-1 bg-dark-900 border border-slate-800 rounded-xl px-3 flex items-center gap-2 focus-within:border-indigo-500 transition-all">
+            <div className="flex-1 bg-dark-900 border border-slate-800/80 rounded-xl px-3.5 flex items-center gap-2 focus-within:border-indigo-500/70 transition-all shadow-inner">
               <Search className="text-slate-500 h-4 w-4" />
               <input
                 type="text"
@@ -213,7 +217,7 @@ export default function App() {
             <button
               onClick={() => fetchStats()}
               disabled={loading || auditLoading}
-              className="px-4 py-2 bg-dark-800 border border-slate-700 hover:bg-dark-700/60 rounded-xl text-xs font-bold transition-all"
+              className="px-4 py-2 bg-dark-800 border border-slate-700/80 hover:bg-dark-700/60 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
             >
               Filter
             </button>
@@ -228,9 +232,9 @@ export default function App() {
                   'info'
                 );
               }}
-              className={`px-4 py-2 border rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${autoRefresh
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
-                  : 'bg-dark-800 border-slate-700 hover:bg-dark-700/60'
+              className={`px-4 py-2 border rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${autoRefresh
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                  : 'bg-dark-800 border-slate-700/80 hover:bg-dark-700/60'
                 }`}
             >
               <span>{autoRefresh ? 'Stop Monitor' : 'Auto-Monitor'}</span>
@@ -239,10 +243,10 @@ export default function App() {
             <button
               onClick={handleRunAudit}
               disabled={loading || auditLoading}
-              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/20 flex items-center gap-1.5 transition-all"
+              className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-550 hover:to-indigo-450 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/15 flex items-center gap-1.5 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${auditLoading ? 'rotate-infinite' : ''}`} />
-              <span>{auditLoading ? 'Audit Now' : 'Audit Now'}</span>
+              <span>{auditLoading ? 'Auditing...' : 'Audit Now'}</span>
             </button>
           </div>
 
@@ -250,35 +254,35 @@ export default function App() {
       </header>
 
       {/* Central workspace contents wrapper */}
-      <main className="max-w-7xl mx-auto px-6 mt-8">
+      <main className="max-w-7xl mx-auto px-6 mt-8 relative z-10">
 
         {error && (
-          <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-2xl flex items-center gap-3 text-sm">
+          <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-2xl flex items-center gap-3 text-sm animate-fade-in-up">
             <AlertCircle className="h-5 w-5 shrink-0" />
             <div>
-              <strong>Error:</strong> {error}
+              <strong>System Error:</strong> {error}
             </div>
           </div>
         )}
 
         {/* Audit Target Status Header */}
         {stats && (
-          <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-dark-800/40 p-6 rounded-2xl border border-slate-800">
+          <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 glass-card p-6 rounded-2xl animate-fade-in-up">
             <div>
               <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block mb-1">AUDIT TARGET SOURCE</span>
               <h2 className="text-xl font-extrabold text-slate-200 tracking-tight">{stats.url}</h2>
             </div>
 
-            <div className="flex gap-4">
+            <div className="flex gap-6">
               <div className="text-right">
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">Core status</span>
-                <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-[10px] mt-1 ${stats.latestStatus?.isUp ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">Core Status</span>
+                <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-[9px] mt-1.5 tracking-wider ${stats.latestStatus?.isUp ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25' : 'bg-rose-500/10 text-rose-400 border border-rose-500/25'}`}>
                   {stats.latestStatus?.isUp ? 'ACTIVE' : 'DOWN'}
                 </span>
               </div>
               <div className="text-right">
                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">WordPress Core</span>
-                <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-[10px] mt-1 ${stats.wordpress ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-400 border border-slate-800'}`}>
+                <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-[9px] mt-1.5 tracking-wider ${stats.wordpress ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25' : 'bg-slate-800 text-slate-400 border border-slate-750'}`}>
                   {stats.wordpress ? 'DETECTED' : 'NONE'}
                 </span>
               </div>
@@ -287,12 +291,12 @@ export default function App() {
         )}
 
         {/* Tab Module Switcher */}
-        <div className="flex border-b border-slate-800 mb-6">
+        <div className="flex border-b border-slate-800/80 mb-6 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
           <button
             onClick={() => setActiveTab('uptime')}
-            className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all ${activeTab === 'uptime'
+            className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'uptime'
                 ? 'border-indigo-500 text-indigo-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                : 'border-transparent text-slate-400 hover:text-slate-250'
               }`}
           >
             Uptime & Error Logs
@@ -300,9 +304,9 @@ export default function App() {
 
           <button
             onClick={() => setActiveTab('wordpress')}
-            className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all ${activeTab === 'wordpress'
+            className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'wordpress'
                 ? 'border-indigo-500 text-indigo-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                : 'border-transparent text-slate-400 hover:text-slate-250'
               }`}
           >
             WordPress CMS Diagnostics
@@ -311,7 +315,7 @@ export default function App() {
 
         {/* Loading Spinner */}
         {loading && !stats ? (
-          <div className="py-24 text-center">
+          <div className="py-24 text-center animate-fade-in-up">
             <RefreshCw className="h-8 w-8 text-indigo-500 rotate-infinite mx-auto mb-4" />
             <h4 className="font-extrabold text-slate-300">Synchronizing SRE monitoring telemetry...</h4>
             <p className="text-xs text-slate-500 mt-1">Fetching local histories and alert logs from MongoDB</p>
@@ -334,10 +338,10 @@ export default function App() {
             />
           </div>
         ) : (
-          <div className="py-24 text-center bg-dark-800/20 border border-dashed border-slate-800 rounded-3xl">
-            <Activity className="h-10 w-10 text-slate-600 mx-auto mb-4" />
+          <div className="py-24 text-center glass-card border-dashed border-slate-800 rounded-3xl max-w-3xl mx-auto my-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+            <Activity className="h-10 w-10 text-slate-650 mx-auto mb-4 animate-pulse" />
             <h4 className="font-extrabold text-slate-400">Auditer state is empty</h4>
-            <p className="text-xs text-slate-500 mt-1">Please enter a valid website URL in the topbar above to launch crawls.</p>
+            <p className="text-xs text-slate-500 mt-2 max-w-md mx-auto">Please enter a valid website URL in the topbar above and click <strong className="text-indigo-455">Audit Now</strong> to launch crawler passes.</p>
           </div>
         )}
 

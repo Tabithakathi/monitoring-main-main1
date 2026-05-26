@@ -3,8 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import History from './History';
 import { ResponsiveContainer, AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend, PieChart, Pie, Cell } from 'recharts';
 import { Activity, ShieldCheck, ShieldAlert, Cpu, AlertTriangle, AlertCircle, Wifi, Globe, Terminal, Server, Shield, Layers, RefreshCw, CheckCircle, HelpCircle } from 'lucide-react';
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+const API_BASE_URL = "https://monitoring-main-main1.onrender.com";
 
 const translations = {
   "English": {
@@ -347,7 +346,7 @@ function App() {
         try {
           const body = await resp.json();
           msg = body.error || msg;
-        } catch {}
+        } catch { }
         throw new Error(msg);
       }
       const result = await resp.json();
@@ -365,14 +364,14 @@ function App() {
   const [dbDiagLoading, setDbDiagLoading] = useState(false);
   const [dbVacuumLoading, setDbVacuumLoading] = useState(false);
   const [dbLogs, setDbLogs] = useState(["sqlite@monitorpro:~$ Initializing diagnostic monitoring tools..."]);
-  
+
   // Ping traceroute state
   const [pingSweepActive, setPingSweepActive] = useState(false);
   const [pingSweepLogs, setPingSweepLogs] = useState([]);
-  
+
   // SSL Trust-Chain selected node state
   const [sslActiveChainNode, setSslActiveChainNode] = useState("leaf");
-  
+
   // Nginx playground states
   const [playgroundHsts, setPlaygroundHsts] = useState(true);
   const [playgroundCsp, setPlaygroundCsp] = useState(true);
@@ -393,7 +392,7 @@ function App() {
     if (saved) {
       try {
         return JSON.parse(saved);
-      } catch (e) {}
+      } catch (e) { }
     }
     return [
       { email: "mca111724039151@gmail.com", name: "Tabitha Rivera" },
@@ -705,7 +704,7 @@ function App() {
           try {
             const text = await response.text();
             errMsg = text || errMsg;
-          } catch {}
+          } catch { }
         }
         throw new Error(errMsg);
       }
@@ -728,7 +727,7 @@ function App() {
     setError(null);
     setData(null);
     setStatsData(null);
-    
+
     setTimeout(async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/api/analyze/?url=${encodeURIComponent(targetUrl)}&lang=${encodeURIComponent(selectedLanguage)}`);
@@ -737,7 +736,7 @@ function App() {
           try {
             const body = await response.json();
             errMsg = body.error || errMsg;
-          } catch {}
+          } catch { }
           throw new Error(errMsg);
         }
         const result = await response.json();
@@ -775,7 +774,7 @@ function App() {
           try {
             const text = await response.text();
             errMsg = text || errMsg;
-          } catch {}
+          } catch { }
         }
         throw new Error(errMsg);
       }
@@ -1214,16 +1213,16 @@ function App() {
             <span>{t('new_audit')}</span>
           </button>
         </div>
-          <div className="sidebar-profile">
-            <img
-              alt="Alex Rivera Profile"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdla2ShUZXNrZYaHuBshZ612fLeT-C51k5hpI5KILgwPknyfdiqcnWfmOht-TqMijCKgE0QHdN2ZrstCOu0cp8OQ_pC75-uzC0OGUOE3RXlgxwEiK4qcs_UUIdA2xdC7nCAYhGo0xBQwD1lLBGCh383bU1c_xBmC2uE_0LgwR4omnu67frBPA3urExmM__n2lVJvec4O9ffVWtnmaec_kerHVjQDPIRS75V-kJ2velV4XuPPA3-xFAbovFQ-LhJrXTxsVvHlYc4so"
-            />
-            <div className="profile-info">
-              <span className="profile-name">Alex Rivera</span>
-              <span className="profile-role">Enterprise SRE</span>
-            </div>
+        <div className="sidebar-profile">
+          <img
+            alt="Alex Rivera Profile"
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdla2ShUZXNrZYaHuBshZ612fLeT-C51k5hpI5KILgwPknyfdiqcnWfmOht-TqMijCKgE0QHdN2ZrstCOu0cp8OQ_pC75-uzC0OGUOE3RXlgxwEiK4qcs_UUIdA2xdC7nCAYhGo0xBQwD1lLBGCh383bU1c_xBmC2uE_0LgwR4omnu67frBPA3urExmM__n2lVJvec4O9ffVWtnmaec_kerHVjQDPIRS75V-kJ2velV4XuPPA3-xFAbovFQ-LhJrXTxsVvHlYc4so"
+          />
+          <div className="profile-info">
+            <span className="profile-name">Alex Rivera</span>
+            <span className="profile-role">Enterprise SRE</span>
           </div>
+        </div>
       </aside>
 
       {/* Main Content Workspace */}
@@ -1285,7 +1284,7 @@ function App() {
 
             {/* Language picker */}
             <div style={{ position: 'relative' }}>
-              <div 
+              <div
                 onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
                 style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.82rem', fontWeight: '500', color: 'var(--text-main)', cursor: 'pointer', padding: '6px 8px', borderRadius: '4px' }}
                 onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface-high)'}
@@ -1298,7 +1297,7 @@ function App() {
 
               {/* Language Selection Dropdown Menu */}
               {showLanguageDropdown && (
-                <div 
+                <div
                   className="animate-fade"
                   style={{
                     position: 'absolute',
@@ -1324,7 +1323,7 @@ function App() {
                     "తెలుగు",
                     "हिन्दी"
                   ].map((lang) => (
-                    <div 
+                    <div
                       key={lang}
                       onClick={() => {
                         setSelectedLanguage(lang);
@@ -1371,28 +1370,28 @@ function App() {
               cursor: 'pointer',
               color: 'var(--text-main)',
             }}
-            onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface-high)'}
-            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-surface-high)'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
               <span className="material-icons" style={{ fontSize: '20px' }}>more_vert</span>
             </div>
 
             {/* Circular Avatar T indicator */}
             <div style={{ position: 'relative' }}>
-              <div 
+              <div
                 onClick={() => setShowAccountDropdown(!showAccountDropdown)}
                 title="Google Developer Program"
-                style={{ 
-                  width: '32px', 
-                  height: '32px', 
-                  borderRadius: '50%', 
-                  backgroundColor: accountsList[0]?.email === 'tabithakathi@gmail.com' ? '#1a73e8' : '#4e342e', 
-                  color: 'white', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  fontWeight: 'bold', 
-                  fontSize: '0.88rem', 
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  backgroundColor: accountsList[0]?.email === 'tabithakathi@gmail.com' ? '#1a73e8' : '#4e342e',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 'bold',
+                  fontSize: '0.88rem',
                   cursor: 'pointer',
                   boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
                   transition: 'transform 0.15s ease'
@@ -1405,7 +1404,7 @@ function App() {
 
               {/* Google Account Switcher popover card dropdown overlay */}
               {showAccountDropdown && (
-                <div 
+                <div
                   className="animate-fade"
                   style={{
                     position: 'absolute',
@@ -1431,7 +1430,7 @@ function App() {
                     <div style={{ fontSize: '0.88rem', fontWeight: '500', color: '#444746', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '280px' }}>
                       {accountsList[0]?.email}
                     </div>
-                    <div 
+                    <div
                       onClick={() => setShowAccountDropdown(false)}
                       style={{ cursor: 'pointer', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#444746' }}
                       onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.06)'}
@@ -1480,7 +1479,7 @@ function App() {
                     Hi, {accountsList[0]?.name?.split(' ')[0]}!
                   </div>
 
-                  <button 
+                  <button
                     style={{
                       backgroundColor: 'white',
                       border: '1px solid #747775',
@@ -1506,7 +1505,7 @@ function App() {
 
                   {/* Foldout Panel: Hide more accounts */}
                   <div style={{ width: '100%', backgroundColor: 'white', borderRadius: '24px', padding: '12px 0px', display: 'flex', flexDirection: 'column' }}>
-                    <div 
+                    <div
                       onClick={() => setHideMoreAccounts(!hideMoreAccounts)}
                       style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 20px', cursor: 'pointer', borderBottom: hideMoreAccounts ? 'none' : '1px solid #e0e0e0' }}
                     >
@@ -1522,8 +1521,8 @@ function App() {
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         {/* Secondary Accounts List */}
                         {accountsList.slice(1).map((acc, idx) => (
-                          <div 
-                            key={acc.email} 
+                          <div
+                            key={acc.email}
                             onClick={() => {
                               const selected = acc;
                               const remaining = accountsList.filter((_, i) => i !== (idx + 1));
@@ -1534,8 +1533,8 @@ function App() {
                               setTerminalLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] SRE SESSION: Switched operator context to ${selected.name} (${selected.email}).`]);
                               setShowAccountDropdown(false);
                             }}
-                            style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', cursor: 'pointer' }} 
-                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'} 
+                            style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', cursor: 'pointer' }}
+                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
                             onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                           >
                             <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: acc.email === 'tabithakathi@gmail.com' ? '#1a73e8' : '#4e342e', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.85rem' }}>
@@ -1549,10 +1548,10 @@ function App() {
                         ))}
 
                         {/* Add another account option */}
-                        <div 
+                        <div
                           onClick={() => setShowAddAccountInput(!showAddAccountInput)}
-                          style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', cursor: 'pointer', borderTop: '1px solid #f0f0f0' }} 
-                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'} 
+                          style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', cursor: 'pointer', borderTop: '1px solid #f0f0f0' }}
+                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
                           onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                         >
                           <div style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0b57d0' }}>
@@ -1564,22 +1563,22 @@ function App() {
                         {/* Inline Form to Add Account */}
                         {showAddAccountInput && (
                           <div style={{ padding: '12px 20px', borderTop: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#f8fafc' }}>
-                            <input 
-                              type="text" 
-                              placeholder="Operator Name (e.g. Alex Rivera)" 
+                            <input
+                              type="text"
+                              placeholder="Operator Name (e.g. Alex Rivera)"
                               value={newAccountName}
                               onChange={(e) => setNewAccountName(e.target.value)}
                               style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', outline: 'none', backgroundColor: 'white', color: '#1f1f1f' }}
                             />
-                            <input 
-                              type="email" 
-                              placeholder="Gmail Address (e.g. alex@gmail.com)" 
+                            <input
+                              type="email"
+                              placeholder="Gmail Address (e.g. alex@gmail.com)"
                               value={newAccountEmail}
                               onChange={(e) => setNewAccountEmail(e.target.value)}
                               style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.8rem', outline: 'none', backgroundColor: 'white', color: '#1f1f1f' }}
                             />
                             <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                              <button 
+                              <button
                                 onClick={() => {
                                   if (!newAccountEmail || !newAccountName) return;
                                   const exists = accountsList.some(acc => acc.email.toLowerCase() === newAccountEmail.toLowerCase());
@@ -1599,7 +1598,7 @@ function App() {
                               >
                                 Add & Sign In
                               </button>
-                              <button 
+                              <button
                                 onClick={() => setShowAddAccountInput(false)}
                                 style={{ backgroundColor: 'white', color: '#444746', border: '1px solid #747775', borderRadius: '100px', padding: '6px 12px', fontSize: '0.78rem', fontWeight: '600', cursor: 'pointer' }}
                               >
@@ -1612,7 +1611,7 @@ function App() {
                     )}
 
                     {/* Sign out of all accounts */}
-                    <div 
+                    <div
                       onClick={() => {
                         setIsLoggedIn(false);
                         setShowAccountDropdown(false);
@@ -1620,8 +1619,8 @@ function App() {
                         setLoginError(null);
                         setTerminalLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] SRE SESSION: Operator signed out of all sessions. Console locked.`]);
                       }}
-                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', cursor: 'pointer', borderTop: '1px solid #f0f0f0' }} 
-                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'} 
+                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', cursor: 'pointer', borderTop: '1px solid #f0f0f0' }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
                       onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <div style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1f1f1f' }}>
@@ -1832,14 +1831,14 @@ function App() {
                   </div>
 
                   <div className="grid grid-cols-12 gap-6">
-                    
+
                     {/* Live Latency & TTFB Speed Charts */}
                     <div className="col-span-12 md:col-span-6" style={{ background: 'var(--bg-surface-low)', padding: '16px', borderRadius: '14px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                         <span style={{ fontSize: '0.85rem', fontWeight: '800', color: 'var(--text-muted)' }}>SRE PING & TELEMETRY BUDGETS</span>
                         <span className="badge info" style={{ fontSize: '0.65rem' }}>LIVE STREAM</span>
                       </div>
-                      
+
                       <div style={{ height: '170px', width: '100%' }}>
                         {(() => {
                           const historyData = (statsData?.labels || []).map((label, idx) => ({
@@ -1928,7 +1927,7 @@ function App() {
                         <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)' }}>HTTP STATUS MATRIX</span>
                         <span className="badge ok" style={{ fontSize: '0.6rem' }}>HISTORICAL</span>
                       </div>
-                      
+
                       <div style={{ height: '100px', width: '100%' }}>
                         {(() => {
                           const statusCounts = {};
@@ -1974,7 +1973,7 @@ function App() {
                           );
                         })()}
                       </div>
-                      
+
                       {/* Detected Exceptions count summary */}
                       <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '8px', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: '700' }}>ACTIVE CRITICAL ISSUES</span>
@@ -2846,8 +2845,8 @@ function App() {
                       {isAutoScaled ? "US-WEST Edge Region Auto-Scaled" : "Predictive Health Scaling Suggestion"}
                     </h4>
                     <p style={{ fontSize: '0.92rem', color: '#cbd5e1', marginBottom: '16px' }}>
-                      {isAutoScaled 
-                        ? "AWS ECS cluster US-WEST-2 scaled up successfully to 5 tasks. Live latencies normal, edge routing optimal." 
+                      {isAutoScaled
+                        ? "AWS ECS cluster US-WEST-2 scaled up successfully to 5 tasks. Live latencies normal, edge routing optimal."
                         : "Based on recent metric sweeps, we predict a 15% increase in API latency patterns for the US-WEST edge region over the next 6 hours. Scale up container resources now."
                       }
                     </p>
@@ -3395,8 +3394,8 @@ function App() {
                           {/* Trust Chain Diagram */}
                           <div className="ssl-chain-container">
                             <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Certificate Authority Chain</span>
-                            
-                            <div 
+
+                            <div
                               className={`ssl-chain-node root ${sslActiveChainNode === 'root' ? 'active' : ''}`}
                               style={{ borderStyle: sslActiveChainNode === 'root' ? 'dashed' : 'solid' }}
                               onClick={() => setSslActiveChainNode('root')}
@@ -3407,7 +3406,7 @@ function App() {
 
                             <div className="ssl-chain-arrow">▼</div>
 
-                            <div 
+                            <div
                               className={`ssl-chain-node intermediate ${sslActiveChainNode === 'intermediate' ? 'active' : ''}`}
                               style={{ borderStyle: sslActiveChainNode === 'intermediate' ? 'dashed' : 'solid' }}
                               onClick={() => setSslActiveChainNode('intermediate')}
@@ -3418,7 +3417,7 @@ function App() {
 
                             <div className="ssl-chain-arrow">▼</div>
 
-                            <div 
+                            <div
                               className={`ssl-chain-node leaf ${sslActiveChainNode === 'leaf' ? 'active' : ''}`}
                               style={{ borderStyle: sslActiveChainNode === 'leaf' ? 'dashed' : 'solid' }}
                               onClick={() => setSslActiveChainNode('leaf')}
@@ -3575,7 +3574,7 @@ function App() {
                           }}>COPY CONFIG</span>
                         </div>
                         <pre style={{ margin: 0, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
-{`server {
+                          {`server {
     listen 443 ssl http2;
     server_name ${data?.url ? new URL(data.url).hostname : 'example.com'};
 
@@ -3584,11 +3583,11 @@ function App() {
     ssl_prefer_server_ciphers on;
 
     # SRE Security Headers`}
-{playgroundHsts ? `\n    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;` : ''}
-{playgroundCsp ? `\n    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';" always;` : ''}
-{playgroundXfo ? `\n    add_header X-Frame-Options "SAMEORIGIN" always;` : ''}
-{playgroundMime ? `\n    add_header X-Content-Type-Options "nosniff" always;` : ''}
-{`\n}`}
+                          {playgroundHsts ? `\n    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;` : ''}
+                          {playgroundCsp ? `\n    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';" always;` : ''}
+                          {playgroundXfo ? `\n    add_header X-Frame-Options "SAMEORIGIN" always;` : ''}
+                          {playgroundMime ? `\n    add_header X-Content-Type-Options "nosniff" always;` : ''}
+                          {`\n}`}
                         </pre>
                       </div>
                     </div>
@@ -4235,9 +4234,10 @@ function App() {
             {/* Website SRE Audit Center - Premium Landing Area */}
             {!data && !loading && activeTab === "overview" && (
               <div className="sre-landing-container animate-fade" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '1100px', margin: '0 auto', padding: '40px 20px', color: 'var(--text-main)', position: 'relative', fontFamily: 'var(--font-display)', textAlign: 'center' }}>
-                
+
                 {/* Styled CSS classes for clean, premium SRE dashboard */}
-                <style dangerouslySetInnerHTML={{__html: `
+                <style dangerouslySetInnerHTML={{
+                  __html: `
                   @keyframes sre-pulse {
                     0% {
                       transform: scale(0.95);

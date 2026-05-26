@@ -4,6 +4,9 @@ import { io } from 'socket.io-client';
 import { ShieldCheck, ShieldAlert, Activity, Cpu, Search, RefreshCw, AlertTriangle, AlertCircle, BellRing } from 'lucide-react';
 import UptimeDashboard from './components/UptimeDashboard';
 import WordPressDashboard from './components/WordPressDashboard';
+import SSLMonitor from './components/SSLMonitor';
+import SeoDashboard from './components/SeoDashboard';
+import AccessibilityAudit from './components/AccessibilityAudit';
 
 const API_BASE = 'https://monitoring-main-main1.onrender.com/api';
 
@@ -149,6 +152,14 @@ export default function App() {
     };
   }, []);
 
+  // Map/align backend schema variables to the custom props structure requested by user
+  if (stats) {
+    if (!stats.sslData) stats.sslData = stats.latestStatus?.ssl;
+    if (!stats.securityData) stats.securityData = stats.latestStatus?.security;
+    if (!stats.seoData) stats.seoData = stats.latestStatus?.seo;
+    if (!stats.uiUxData) stats.uiUxData = stats.latestStatus?.uiUx;
+  }
+
   return (
     <div className="min-h-screen text-slate-100 font-sans pb-12 relative">
 
@@ -287,12 +298,21 @@ export default function App() {
             <p className="text-xs text-slate-500 mt-1">Fetching local histories and alert logs from MongoDB</p>
           </div>
         ) : stats ? (
-          <div>
+          <div className="space-y-8">
             {activeTab === 'uptime' ? (
               <UptimeDashboard stats={stats} isSocketConnected={isSocketConnected} />
             ) : (
               <WordPressDashboard wordpressData={stats.wordpress} />
             )}
+
+            <SSLMonitor sslData={stats?.sslData} securityData={stats?.securityData} />
+
+            <SeoDashboard seoData={stats?.seoData} />
+
+            <AccessibilityAudit 
+              uiUxData={stats?.uiUxData}
+              mobileFriendliness={stats?.seoData?.mobileFriendliness}
+            />
           </div>
         ) : (
           <div className="py-24 text-center bg-dark-800/20 border border-dashed border-slate-800 rounded-3xl">

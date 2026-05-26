@@ -30,9 +30,32 @@ const sendAlertEmail = async (url, category, level, message) => {
   // Dispatch in non-blocking event loop cycle
   setTimeout(async () => {
     const time = new Date().toLocaleString();
-    const recipient = process.env.CRITICAL_EMAIL || 'alex.rivera@monitorpro.sre';
-    const hostUser = process.env.EMAIL_HOST_USER || '';
-    const hostPass = process.env.EMAIL_HOST_PASSWORD || '';
+    
+    let settings = {
+      critical_email: process.env.CRITICAL_EMAIL || 'alex.rivera@monitorpro.sre',
+      email_host_user: process.env.EMAIL_HOST_USER || '',
+      email_host_password: process.env.EMAIL_HOST_PASSWORD || '',
+      alerts_enabled: true
+    };
+
+    const settingsPath = path.join(__dirname, '../../../../sre_settings.json');
+    try {
+      if (fs.existsSync(settingsPath)) {
+        const data = fs.readFileSync(settingsPath, 'utf8');
+        settings = { ...settings, ...JSON.parse(data) };
+      }
+    } catch (err) {
+      console.error('⚠️ Failed to load SRE settings dynamically in emailService:', err.message);
+    }
+
+    if (settings.alerts_enabled === false) {
+      console.log('🔇 SMTP Alerts are globally disabled in settings. Skipping email dispatch.');
+      return;
+    }
+
+    const recipient = settings.critical_email;
+    const hostUser = settings.email_host_user;
+    const hostPass = settings.email_host_password;
     
     const subject = `[${level.toUpperCase()}] SRE Alert Triggered - ${url}`;
     

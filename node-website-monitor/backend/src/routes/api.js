@@ -7,6 +7,10 @@ const {
   getAlerts,
   resolveAlert
 } = require('../controllers/monitorController');
+const {
+  getSettings,
+  saveSettings
+} = require('../controllers/settingsController');
 
 // Immediate Site Audit Trigger
 router.post('/audit', triggerAudit);
@@ -22,5 +26,9 @@ router.get('/alerts', getAlerts);
 
 // Resolve active alerts
 router.post('/alerts/resolve', resolveAlert);
+
+// SRE Settings & Alert configurations
+router.get('/settings', getSettings);
+router.post('/settings', saveSettings);
 
 module.exports = router;

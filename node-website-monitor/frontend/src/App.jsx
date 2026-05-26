@@ -7,6 +7,7 @@ import WordPressDashboard from './components/WordPressDashboard';
 import SSLMonitor from './components/SSLMonitor';
 import SeoDashboard from './components/SeoDashboard';
 import AccessibilityAudit from './components/AccessibilityAudit';
+import SettingsPanel from './components/SettingsPanel';
 
 const API_BASE = 'https://monitoring-main-main1.onrender.com/api';
 
@@ -311,10 +312,22 @@ export default function App() {
           >
             WordPress CMS Diagnostics
           </button>
+
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'settings'
+                ? 'border-indigo-500 text-indigo-400'
+                : 'border-transparent text-slate-400 hover:text-slate-250'
+              }`}
+          >
+            Gmail Alerts & Credentials
+          </button>
         </div>
 
-        {/* Loading Spinner */}
-        {loading && !stats ? (
+        {/* Dynamic tabs render panel */}
+        {activeTab === 'settings' ? (
+          <SettingsPanel showToast={showToast} />
+        ) : loading && !stats ? (
           <div className="py-24 text-center animate-fade-in-up">
             <RefreshCw className="h-8 w-8 text-indigo-500 rotate-infinite mx-auto mb-4" />
             <h4 className="font-extrabold text-slate-300">Synchronizing SRE monitoring telemetry...</h4>

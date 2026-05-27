@@ -92,7 +92,7 @@ export default function App() {
       }
     } catch (err) {
       console.error(err);
-      setError('Failed to fetch dashboard metrics. Please confirm the Express server is running on port 5000.');
+      setError('Failed to fetch dashboard SRE metrics. Please check network connectivity or Vercel serverless function logs.');
     } finally {
       setLoading(false);
     }
@@ -118,8 +118,11 @@ export default function App() {
       const response = await axios.post(`${API_BASE}/audit`, { url: formattedUrl });
       if (response.data.success) {
         showToast('Site SRE audit scan completed successfully!', 'success');
-        // Refresh metrics and targets list
-        await fetchStats(formattedUrl);
+        // Synchronously update the React SRE state with fresh compiled stats
+        if (response.data.stats) {
+          setStats(response.data.stats);
+        }
+        // Refresh target quick-switcher list
         fetchTargets();
       }
     } catch (err) {

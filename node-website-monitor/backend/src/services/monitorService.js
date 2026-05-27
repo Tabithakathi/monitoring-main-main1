@@ -351,8 +351,22 @@ const checkWebsiteStatus = async (url) => {
 const compileStats = async (url) => {
   const { WordPressMonitor, Alert } = require('../models/Schemas');
   
-  const filter = { url };
-  const history = await MonitorHistory.find(filter).sort({ checkedAt: -1 }).limit(30);
+  // Normalize protocol for real-time consistency
+  const normalizedUrl = url.startsWith('http') ? url : `https://${url}`;
+  const filter = { url: normalizedUrl };
+  
+  let history = await MonitorHistory.find(filter).sort({ checkedAt: -1 }).limit(30);
+  
+  // If no history is stored for this target URL, execute a real-time SRE audit on-the-fly
+  if (history.length === 0) {
+    console.log(`🔍 [Real-Time Audit] No previous records found for ${normalizedUrl}. Launching SRE crawler...`);
+    try {
+      await checkWebsiteStatus(normalizedUrl);
+      history = await MonitorHistory.find(filter).sort({ checkedAt: -1 }).limit(30);
+    } catch (err) {
+      console.warn(`⚠️ [Real-Time Audit] On-the-fly live check failed: ${err.message}`);
+    }
+  }
   
   const allChecks = await MonitorHistory.find(filter);
   const totalChecks = allChecks.length;
@@ -360,7 +374,7 @@ const compileStats = async (url) => {
   const uptimePercentage = totalChecks > 0 ? parseFloat(((successfulChecks / totalChecks) * 100).toFixed(2)) : 100;
   
   const wordpress = await WordPressMonitor.findOne(filter);
-  const activeAlerts = await Alert.find({ url, resolved: false }).sort({ createdAt: -1 });
+  const activeAlerts = await Alert.find({ url: normalizedUrl, resolved: false }).sort({ createdAt: -1 });
 
   const parseJsonSafe = (str, fallback = {}) => {
     if (!str) return fallback;

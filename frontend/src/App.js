@@ -1369,48 +1369,124 @@ function App() {
             )}
           </div>
 
-          <div className="topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button
-              id="new-audit"
-              className="theme-btn"
-              onClick={() => {
-                setUrl("");
-                setData(null);
-                setShowDocs(false);
-                setShowSupport(false);
-                handleTabClick("overview");
-              }}
-              style={{
-                border: '1px dashed var(--primary)',
-                color: 'var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontWeight: '600'
-              }}
-            >
-              <span className="material-icons" style={{ fontSize: '18px' }}>add</span>
-              <span>New Audit</span>
-            </button>
-            <button id="runscan" className="scan-btn" onClick={runScan} disabled={loading}>
-              <span className="material-icons">bolt</span>
-              <span>{loading ? 'Scanning…' : 'Run Full Scan'}</span>
-            </button>
-            <button id="quicksan" className="theme-btn" onClick={runQuickScan} disabled={loading}>
-              <span className="material-icons">speed</span>
-              <span>Quick Scan</span>
-            </button>
-            <button
-              className="theme-btn"
-              onClick={() => setAutoRefresh(!autoRefresh)}
-            >
-              <span className="material-icons">{autoRefresh ? 'pause' : 'play_arrow'}</span>
-              <span>{autoRefresh ? 'Stop Monitor' : 'Auto-Monitor'}</span>
-            </button>
-            <button className="theme-btn" onClick={() => setDarkMode(!darkMode)}>
-              <span className="material-icons">{darkMode ? 'light_mode' : 'dark_mode'}</span>
-              <span>{darkMode ? 'Light' : 'Dark'}</span>
-            </button>
+          <div className="topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            id="new-audit"
+            className="theme-btn"
+            onClick={() => {
+              setUrl("");
+              setData(null);
+              setShowDocs(false);
+              setShowSupport(false);
+              handleTabClick("overview");
+            }}
+            style={{
+              border: '1.5px dashed var(--primary)',
+              color: 'var(--primary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 14px',
+              borderRadius: '10px',
+              fontWeight: '700',
+              fontSize: '0.78rem',
+              backgroundColor: 'transparent',
+              cursor: 'pointer'
+            }}
+          >
+            <span className="material-icons" style={{ fontSize: '18px' }}>add</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', lineHeight: '1.1' }}>
+              <span>New</span>
+              <span>Audit</span>
+            </div>
+          </button>
+
+          <button
+            id="runscan"
+            className="scan-btn"
+            onClick={runScan}
+            disabled={loading}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 14px',
+              borderRadius: '10px',
+              fontWeight: '700',
+              fontSize: '0.78rem',
+              cursor: 'pointer'
+            }}
+          >
+            <span className="material-icons" style={{ fontSize: '18px' }}>bolt</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', lineHeight: '1.1' }}>
+              <span>Run</span>
+              <span>{loading ? 'Scanning…' : 'Full Scan'}</span>
+            </div>
+          </button>
+
+          <button
+            id="quicksan"
+            className="theme-btn"
+            onClick={runQuickScan}
+            disabled={loading}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 14px',
+              borderRadius: '10px',
+              fontWeight: '700',
+              fontSize: '0.78rem',
+              cursor: 'pointer'
+            }}
+          >
+            <span className="material-icons" style={{ fontSize: '18px' }}>speed</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', lineHeight: '1.1' }}>
+              <span>Quick</span>
+              <span>Scan</span>
+            </div>
+          </button>
+
+          <button
+            className="theme-btn"
+            onClick={() => setAutoRefresh(!autoRefresh)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 14px',
+              borderRadius: '10px',
+              fontWeight: '700',
+              fontSize: '0.78rem',
+              cursor: 'pointer'
+            }}
+          >
+            <span className="material-icons" style={{ fontSize: '18px' }}>{autoRefresh ? 'pause' : 'play_arrow'}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', lineHeight: '1.1' }}>
+              <span>{autoRefresh ? 'Stop' : 'Auto-'}</span>
+              <span>Monitor</span>
+            </div>
+          </button>
+
+          <button
+            className="theme-btn"
+            onClick={() => setDarkMode(!darkMode)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 14px',
+              borderRadius: '10px',
+              fontWeight: '700',
+              fontSize: '0.78rem',
+              cursor: 'pointer'
+            }}
+          >
+            <span className="material-icons" style={{ fontSize: '18px' }}>{darkMode ? 'light_mode' : 'dark_mode'}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', lineHeight: '1.1' }}>
+              <span>Dark</span>
+            </div>
+          </button>
 
             <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-color)', margin: '0 8px' }}></div>
 
@@ -1517,7 +1593,7 @@ function App() {
                   width: '32px',
                   height: '32px',
                   borderRadius: '50%',
-                  backgroundColor: accountsList[0]?.email === 'tabithakathi@gmail.com' ? '#1a73e8' : '#4e342e',
+                  backgroundColor: '#1a73e8',
                   color: 'white',
                   display: 'flex',
                   alignItems: 'center',

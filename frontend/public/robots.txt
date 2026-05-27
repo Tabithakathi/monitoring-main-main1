@@ -1,3 +1,9 @@
-# https://www.robotstxt.org/robotstxt.html
+# Modern robots.txt for MonitorPro SRE Console
+# Optimized for search engine indexing and crawlability.
+
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: https://monitoring-main-main1.onrender.com/sitemap.xml

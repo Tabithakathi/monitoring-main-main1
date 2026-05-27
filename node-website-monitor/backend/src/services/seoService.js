@@ -1,6 +1,70 @@
 const axios = require('axios');
 
 /**
+ * Generates an intelligent, context-aware alt text suggestion from the image source URL.
+ * 
+ * @param {string} src - The image src attribute value.
+ * @returns {string} Suggested descriptive ALT tag.
+ */
+const generateSuggestedAlt = (src) => {
+  if (!src) return "";
+  
+  let decodedSrc = src;
+  try {
+    decodedSrc = decodeURIComponent(src);
+  } catch (e) {}
+
+  const parts = decodedSrc.split('?')[0].split('/');
+  let filename = parts.pop() || "";
+  let folder = parts.length > 0 ? parts[parts.length - 1] : "";
+  let subfolder = parts.length > 1 ? parts[parts.length - 2] : "";
+
+  let baseName = filename.replace(/\.[a-zA-Z0-9]+$/, '');
+
+  const isHashOrNum = /^[0-9a-fA-F-_]+$/.test(baseName) && (
+    /^\d+$/.test(baseName.replace(/[-_]/g, '')) || 
+    baseName.replace(/[-_]/g, '').length >= 8
+  );
+
+  let cleanName = baseName;
+  if (isHashOrNum && folder && !/^(uploads|images|assets|wp-content|media|static|img)$/i.test(folder)) {
+    cleanName = `${folder} image`;
+  } else if (isHashOrNum && subfolder && !/^(uploads|images|assets|wp-content|media|static|img)$/i.test(subfolder)) {
+    cleanName = `${subfolder} image`;
+  } else if (isHashOrNum) {
+    cleanName = "Content illustration";
+  }
+
+  if (!cleanName) {
+    return "Website image";
+  }
+
+  cleanName = cleanName.replace(/[-_]\d+x\d+/g, '');
+  cleanName = cleanName.replace(/[-_](scaled|thumb|thumbnail|medium|large|v\d+(\.\d+)*)/gi, '');
+  cleanName = cleanName.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z])([A-Z][a-z])/g, '$1 $2');
+  cleanName = cleanName.replace(/[-_+]/g, ' ');
+  cleanName = cleanName.replace(/\s+/g, ' ').trim();
+
+  const lower = cleanName.toLowerCase();
+  if (lower === 'logo') {
+    cleanName = "Brand logo";
+  } else if (lower === 'avatar') {
+    cleanName = "User avatar";
+  } else if (lower === 'banner') {
+    cleanName = "Hero banner";
+  } else if (lower === 'icon') {
+    cleanName = "Navigation icon";
+  }
+
+  if (cleanName.length > 0) {
+    cleanName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+  }
+
+  return cleanName;
+};
+
+/**
+
  * Audit meta elements, headings, robots rules, canonical redirects, Open Graph tags, 
  * viewport configs, word occurrences, and broken link indexes.
  * 
@@ -284,10 +348,22 @@ const analyzeSeo = async (url, htmlContent = '') => {
 
     if (!hasAltAttr) {
       missingAlt++;
-      if (src) missingAltSrcs.push(src.substring(0, 120));
+      if (src) {
+        const slicedSrc = src.substring(0, 120);
+        missingAltSrcs.push({
+          src: slicedSrc,
+          suggestedAlt: generateSuggestedAlt(slicedSrc)
+        });
+      }
     } else if (altMatch && altMatch[1].trim() === '') {
       emptyAlt++;
-      if (src) missingAltSrcs.push(src.substring(0, 120));
+      if (src) {
+        const slicedSrc = src.substring(0, 120);
+        missingAltSrcs.push({
+          src: slicedSrc,
+          suggestedAlt: generateSuggestedAlt(slicedSrc)
+        });
+      }
     } else {
       withAlt++;
     }

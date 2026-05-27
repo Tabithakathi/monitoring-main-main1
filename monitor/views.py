@@ -53,6 +53,8 @@ def serve_react_root_files(request, filename):
             ct = "image/png"
         elif filename.endswith(".txt"):
             ct = "text/plain"
+        elif filename.endswith(".xml"):
+            ct = "application/xml"
         else:
             ct = "application/octet-stream"
         with open(filepath, 'rb') as f:

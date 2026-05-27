@@ -72,6 +72,85 @@ def analyze_heading_structure(soup):
     }
 
 
+def _generate_suggested_alt(src):
+    """Generates an intelligent, context-aware alt text suggestion from the image source URL."""
+    if not src:
+        return ""
+    
+    import urllib.parse
+    # URL decode
+    try:
+        decoded_src = urllib.parse.unquote(src)
+    except Exception:
+        decoded_src = src
+
+    # Split to get filename and folder info
+    path_only = decoded_src.split('?')[0]
+    parts = [p for p in path_only.split('/') if p]
+    
+    filename = parts[-1] if parts else ""
+    folder = parts[-2] if len(parts) > 1 else ""
+    subfolder = parts[-3] if len(parts) > 2 else ""
+
+    # Strip extension
+    base_name = re.sub(r'\.[a-zA-Z0-9]+$', '', filename)
+
+    # Check if filename is purely numeric or hexadecimal / hash
+    is_hash_or_num = False
+    stripped_name = re.sub(r'[-_]', '', base_name)
+    if stripped_name:
+        is_num = stripped_name.isdigit()
+        is_hex_hash = len(stripped_name) >= 8 and all(c in '0123456789abcdefABCDEF' for c in stripped_name)
+        if is_num or is_hex_hash:
+            is_hash_or_num = True
+
+    clean_name = base_name
+    ignore_folders = {'uploads', 'images', 'assets', 'wp-content', 'media', 'static', 'img'}
+    
+    if is_hash_or_num and folder and folder.lower() not in ignore_folders:
+        clean_name = f"{folder} image"
+    elif is_hash_or_num and subfolder and subfolder.lower() not in ignore_folders:
+        clean_name = f"{subfolder} image"
+    elif is_hash_or_num:
+        clean_name = "Content illustration"
+
+    if not clean_name:
+        return "Website image"
+
+    # Clean sizes like 150x150, 800x600, etc.
+    clean_name = re.sub(r'[-_]\d+x\d+', '', clean_name)
+
+    # Clean common modifiers and version tags
+    clean_name = re.sub(r'[-_](scaled|thumb|thumbnail|medium|large|v\d+(\.\d+)*)', '', clean_name, flags=re.IGNORECASE)
+
+    # CamelCase split
+    clean_name = re.sub(r'([a-z])([A-Z])', r'\1 \2', clean_name)
+    clean_name = re.sub(r'([A-Z])([A-Z][a-z])', r'\1 \2', clean_name)
+
+    # Replace separators with spaces
+    clean_name = re.sub(r'[-_+]', ' ', clean_name)
+
+    # Clean extra spaces
+    clean_name = re.sub(r'\s+', ' ', clean_name).strip()
+
+    # Normalize generic names
+    lower = clean_name.lower()
+    if lower == 'logo':
+        clean_name = "Brand logo"
+    elif lower == 'avatar':
+        clean_name = "User avatar"
+    elif lower == 'banner':
+        clean_name = "Hero banner"
+    elif lower == 'icon':
+        clean_name = "Navigation icon"
+
+    # Capitalize first letter correctly
+    if clean_name:
+        clean_name = clean_name[0].upper() + clean_name[1:]
+
+    return clean_name
+
+
 def analyze_alt_tags(soup):
     """Check all images for ALT text."""
     images = soup.find_all("img")
@@ -84,9 +163,15 @@ def analyze_alt_tags(soup):
         src = img.get("src", "")[:80]
         alt = img.get("alt")
         if alt is None:
-            missing_alt.append(src)
+            missing_alt.append({
+                "src": src,
+                "suggested_alt": _generate_suggested_alt(src)
+            })
         elif alt.strip() == "":
-            empty_alt.append(src)
+            empty_alt.append({
+                "src": src,
+                "suggested_alt": _generate_suggested_alt(src)
+            })
         else:
             has_alt.append({"src": src, "alt": alt[:60]})
 
@@ -106,7 +191,7 @@ def analyze_alt_tags(soup):
         "with_alt": len(has_alt),
         "missing_alt": len(missing_alt),
         "empty_alt": len(empty_alt),
-        "missing_alt_srcs": missing_alt[:10],
+        "missing_alt_srcs": (missing_alt + empty_alt)[:10],
         "status": status,
         "message": (
             f"All {total} images have alt text." if missing_count == 0

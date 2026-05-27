@@ -36,6 +36,8 @@ urlpatterns = [
     path("favicon.ico", serve_react_root_files, {"filename": "favicon.ico"}),
     path("logo192.png", serve_react_root_files, {"filename": "logo192.png"}),
     path("robots.txt", serve_react_root_files, {"filename": "robots.txt"}),
+    path("sitemap.txt", serve_react_root_files, {"filename": "sitemap.txt"}),
+    path("sitemap.xml", serve_react_root_files, {"filename": "sitemap.xml"}),
 
     # Core APIs (existing)
 

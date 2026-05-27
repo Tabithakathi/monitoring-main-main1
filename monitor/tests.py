@@ -9,6 +9,7 @@ from .notifications import send_alert_emails
 from .services.ui_ux import check_responsiveness, check_layout_shifts, check_broken_elements
 from .services.wordpress import detect_wordpress_signatures, check_wp_core_updates
 from .services.structure import analyze_dom_complexity, check_js_css_optimization
+from .services.advanced_seo import analyze_alt_tags
 
 
 class MonitorApiTests(TestCase):
@@ -109,6 +110,39 @@ class ServiceUnitTests(TestCase):
         self.assertEqual(res["external_scripts_count"], 1)
         self.assertEqual(res["unminified_stylesheets_count"], 1)
         self.assertEqual(res["unminified_scripts_count"], 0)
+
+    def test_alt_tag_analysis_and_suggestions(self):
+        html = (
+            '<html><body>'
+            '<img src="/images/featured-summer-shoes-2026.png">'
+            '<img src="/images/main_hero-banner-v2.jpg" alt="">'
+            '<img src="/products/983749872.png">'
+            '<img src="/logo.svg" alt="Valid alt">'
+            '</body></html>'
+        )
+        soup = BeautifulSoup(html, "html.parser")
+        res = analyze_alt_tags(soup)
+        
+        self.assertEqual(res["total_images"], 4)
+        self.assertEqual(res["with_alt"], 1)
+        self.assertEqual(res["missing_alt"], 2) # first and third
+        self.assertEqual(res["empty_alt"], 1)   # second
+        
+        # Check suggestions
+        srcs = res["missing_alt_srcs"]
+        self.assertEqual(len(srcs), 3)
+        
+        # 1st image: /images/featured-summer-shoes-2026.png -> Featured summer shoes 2026
+        self.assertEqual(srcs[0]["src"], "/images/featured-summer-shoes-2026.png")
+        self.assertEqual(srcs[0]["suggested_alt"], "Featured summer shoes 2026")
+        
+        # 3rd image: /products/983749872.png -> Products image (folder fallback due to number hash)
+        self.assertEqual(srcs[1]["src"], "/products/983749872.png")
+        self.assertEqual(srcs[1]["suggested_alt"], "Products image")
+        
+        # 2nd image: /images/main_hero-banner-v2.jpg -> Main hero banner
+        self.assertEqual(srcs[2]["src"], "/images/main_hero-banner-v2.jpg")
+        self.assertEqual(srcs[2]["suggested_alt"], "Main hero banner")
 
 
 class AlertNotificationTests(TestCase):

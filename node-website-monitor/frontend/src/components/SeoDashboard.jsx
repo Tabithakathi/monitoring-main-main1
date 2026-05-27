@@ -46,9 +46,10 @@ export default function SeoDashboard({ seoData }) {
     return 'url(#seoRoseGrad)';
   };
 
-  const filteredAltSrcs = (imageAnalysis?.missingAltSrcs || []).filter(src => 
-    src.toLowerCase().includes(altSearch.toLowerCase())
-  );
+  const filteredAltSrcs = (imageAnalysis?.missingAltSrcs || []).filter(item => {
+    const srcStr = typeof item === 'string' ? item : (item?.src || '');
+    return srcStr.toLowerCase().includes(altSearch.toLowerCase());
+  });
 
   return (
     <div className="space-y-6 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
@@ -322,11 +323,24 @@ export default function SeoDashboard({ seoData }) {
                   {filteredAltSrcs.length === 0 ? (
                     <div className="text-[9px] text-slate-600 italic">No matching image sources.</div>
                   ) : (
-                    filteredAltSrcs.map((src, i) => (
-                      <div key={i} className="p-2 bg-rose-950/5 border border-rose-900/10 rounded-lg font-mono text-[9px] text-rose-300 truncate hover:text-rose-200 transition-colors" title={src}>
-                        {src}
-                      </div>
-                    ))
+                    filteredAltSrcs.map((item, i) => {
+                      const src = typeof item === 'string' ? item : (item?.src || '');
+                      const suggestedAlt = typeof item === 'string' ? null : (item?.suggestedAlt || item?.suggested_alt);
+                      
+                      return (
+                        <div key={i} className="p-2.5 bg-rose-950/10 border border-rose-900/15 rounded-xl space-y-1.5 transition-all hover:bg-rose-950/20">
+                          <div className="font-mono text-[9px] text-rose-300 truncate" title={src}>
+                            <span className="text-rose-500 font-bold">SRC:</span> {src}
+                          </div>
+                          {suggestedAlt && (
+                            <div className="flex items-center gap-1.5 text-[9.5px] bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-lg text-emerald-300 font-semibold w-fit">
+                              <Sparkles className="h-3 w-3 text-emerald-400 shrink-0 animate-pulse" />
+                              <span>Suggested ALT: <strong className="text-emerald-200 italic">"{suggestedAlt}"</strong></span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </div>

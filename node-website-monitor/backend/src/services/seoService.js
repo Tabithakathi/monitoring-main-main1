@@ -1,4 +1,6 @@
 const axios = require('axios');
+const https = require('https');
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 /**
  * Generates an intelligent, context-aware alt text suggestion from the image source URL.
@@ -76,7 +78,12 @@ const analyzeSeo = async (url, htmlContent = '') => {
   let html = htmlContent;
   if (!html) {
     try {
-      const resp = await axios.get(url, { timeout: 6000, headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) MonitorProSRE/1.0' }, validateStatus: () => true });
+      const resp = await axios.get(url, { 
+        timeout: 6000, 
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) MonitorProSRE/1.0' }, 
+        validateStatus: () => true,
+        httpsAgent
+      });
       html = resp.data || '';
     } catch (e) {
       return { seoScore: 50, error: e.message, alerts: [{ level: 'critical', message: `Crawl Failed: ${e.message}` }] };
@@ -191,7 +198,12 @@ const analyzeSeo = async (url, htmlContent = '') => {
     // Real robots.txt fetch in real-time
     const robotsUrl = `${hostUrl.origin}/robots.txt`;
     try {
-      const robotsResp = await axios.get(robotsUrl, { timeout: 3500, headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) MonitorProSRE/1.0' }, validateStatus: () => true });
+      const robotsResp = await axios.get(robotsUrl, { 
+        timeout: 3500, 
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) MonitorProSRE/1.0' }, 
+        validateStatus: () => true,
+        httpsAgent
+      });
       if (robotsResp.status === 200 && robotsResp.data) {
         reports.robotsTxt.exists = true;
         reports.robotsTxt.status = "ok";
@@ -214,7 +226,12 @@ const analyzeSeo = async (url, htmlContent = '') => {
     // Real sitemap.xml fetch in real-time
     const sitemapUrl = `${hostUrl.origin}/sitemap.xml`;
     try {
-      const sitemapResp = await axios.get(sitemapUrl, { timeout: 3500, headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) MonitorProSRE/1.0' }, validateStatus: () => true });
+      const sitemapResp = await axios.get(sitemapUrl, { 
+        timeout: 3500, 
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) MonitorProSRE/1.0' }, 
+        validateStatus: () => true,
+        httpsAgent
+      });
       if (sitemapResp.status === 200) {
         reports.sitemap.exists = true;
         reports.sitemap.status = "ok";

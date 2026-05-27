@@ -3,6 +3,7 @@ const dns = require('dns').promises;
 const tls = require('tls');
 const net = require('net');
 const cron = require('node-cron');
+const https = require('https');
 
 const { MonitorHistory, Alert } = require('../models/Schemas');
 const { analyzeSeo } = require('./seoService');
@@ -192,10 +193,12 @@ const checkWebsiteStatus = async (url) => {
   }
 
   // 2. HTTP Status, TTFB, and latency tracking using axios
+  const httpsAgent = new https.Agent({ rejectUnauthorized: false });
   const axiosInstance = axios.create({
     timeout: 8000,
     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) MonitorProSRE/1.0' },
-    validateStatus: () => true
+    validateStatus: () => true,
+    httpsAgent
   });
 
   const httpStart = Date.now();

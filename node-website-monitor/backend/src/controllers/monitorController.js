@@ -109,10 +109,41 @@ const resolveAlert = async (req, res) => {
   }
 };
 
+/**
+ * Retrieve all monitored targets and their latest status telemetry.
+ */
+const getMonitoredTargets = async (req, res) => {
+  try {
+    const histories = await MonitorHistory.find({});
+    
+    // Group and pick the latest status check per unique website URL
+    const targetsMap = {};
+    for (const h of histories) {
+      const url = h.url;
+      const checkedAt = new Date(h.checkedAt);
+      if (!targetsMap[url] || new Date(targetsMap[url].checkedAt) < checkedAt) {
+        targetsMap[url] = {
+          url: h.url,
+          isUp: h.isUp,
+          statusCode: h.statusCode,
+          loadTimeMs: h.loadTimeMs,
+          checkedAt: h.checkedAt
+        };
+      }
+    }
+    
+    const targets = Object.values(targetsMap);
+    res.status(200).json(targets);
+  } catch (error) {
+    res.status(500).json({ error: `Failed to compile monitored targets: ${error.message}` });
+  }
+};
+
 module.exports = {
   triggerAudit,
   getDashboardStats,
   getWordPressDetails,
   getAlerts,
-  resolveAlert
+  resolveAlert,
+  getMonitoredTargets
 };

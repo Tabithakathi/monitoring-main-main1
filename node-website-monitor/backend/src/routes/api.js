@@ -5,7 +5,8 @@ const {
   getDashboardStats,
   getWordPressDetails,
   getAlerts,
-  resolveAlert
+  resolveAlert,
+  getMonitoredTargets
 } = require('../controllers/monitorController');
 const {
   getSettings,
@@ -17,6 +18,9 @@ router.post('/audit', triggerAudit);
 
 // Dashboard stats & historical graphs payload
 router.get('/stats', getDashboardStats);
+
+// Unique monitored target domains list
+router.get('/targets', getMonitoredTargets);
 
 // Wordpress details
 router.get('/wordpress', getWordPressDetails);

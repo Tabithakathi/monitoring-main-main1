@@ -3,7 +3,7 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianG
 import { 
   Activity, ShieldCheck, ShieldAlert, Wifi, Globe, Database, FileText, 
   AlertTriangle, Download, Printer, CheckCircle2, XCircle, Clock, 
-  Layers, Search, AlertCircle
+  Layers, Search, AlertCircle, Image, Link, Sparkles
 } from 'lucide-react';
 import SeoDashboard from './SeoDashboard';
 import SSLMonitor from './SSLMonitor';
@@ -20,6 +20,17 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
 
   // Extract SRE nested telemetry parsed objects
   const seo = latestStatus?.seo || { seoScore: 100, alerts: [] };
+  const {
+    title = { text: '', status: 'warning', message: 'No title tag detected.' },
+    metaDescription = { text: '', status: 'warning', message: 'No description tag detected.' },
+    canonical = { text: '', status: 'ok', message: '' },
+    robotsTxt = { exists: false, status: 'warning', message: 'Robots.txt check skipped.' },
+    sitemap = { exists: false, status: 'warning', message: 'Sitemap check skipped.' },
+    indexability = { isIndexable: true, status: 'ok', message: 'Site is indexable.' },
+    links = { internalCount: 0, externalCount: 0, brokenCount: 0, brokenLinks: [], status: 'ok' },
+    imageAnalysis = { totalImages: 0, withAlt: 0, missingAlt: 0, emptyAlt: 0, missingAltSrcs: [], status: 'ok', message: '' },
+    seoScore = 100
+  } = seo;
   const perf = latestStatus?.performance || { performanceScore: 100, vitals: {} };
   const uiUx = latestStatus?.uiUx || { uiHealthScore: 100, lowContrastViolations: [], missingLabelsViolations: [], emptyButtonsViolations: [] };
   const security = latestStatus?.security || { securityScore: 100, headers: { missing: [] } };
@@ -397,6 +408,188 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
           </div>
         </div>
 
+      </div>
+
+      {/* SRE Global SEO Check Widget */}
+      <div className="glass-card p-6 mt-6 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+        <div className="flex justify-between items-center border-b border-slate-800 pb-4 mb-6">
+          <div>
+            <h3 className="text-slate-200 font-extrabold text-base flex items-center gap-2">
+              <Globe className="text-indigo-400 h-5 w-5" />
+              SRE Global SEO Integrity Auditor
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">Real-time technical crawler and indexability verification indices.</p>
+          </div>
+          <span className="text-[10px] font-black px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 tracking-widest uppercase">
+            Crawl Complete
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Circular Score */}
+          <div className="lg:col-span-3 bg-dark-900/20 border border-slate-800/60 p-5 rounded-2xl flex flex-col items-center justify-center text-center">
+            <span className="text-[10px] text-slate-550 font-bold uppercase tracking-wider mb-3 w-full text-left">Audit Score</span>
+            
+            <div className="relative w-28 h-28 flex items-center justify-center">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle cx="56" cy="56" r="48" fill="transparent" stroke="rgba(255,255,255,0.03)" strokeWidth="6"></circle>
+                <circle
+                  cx="56"
+                  cy="56"
+                  r="48"
+                  fill="transparent"
+                  stroke={seoScore >= 90 ? '#10b981' : seoScore >= 75 ? '#fbbf24' : '#f87171'}
+                  strokeWidth="6"
+                  strokeDasharray={301.6}
+                  strokeDashoffset={301.6 - (301.6 * seoScore) / 100}
+                  strokeLinecap="round"
+                  className="transition-all duration-1000 ease-in-out"
+                ></circle>
+              </svg>
+              <div className="absolute flex flex-col items-center">
+                <span className={`text-2xl font-black ${seoScore >= 90 ? 'text-emerald-400' : seoScore >= 75 ? 'text-amber-400' : 'text-rose-400'}`}>{seoScore}</span>
+                <span className="text-[8px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">SEO Health</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Audit Details */}
+          <div className="lg:col-span-9 grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            {/* Meta Title Auditor */}
+            <div className="p-4 bg-dark-900/10 border border-slate-800/40 rounded-xl flex flex-col justify-between hover:border-slate-800/40 transition-all">
+              <div>
+                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
+                  <FileText className="h-3.5 w-3.5 text-indigo-455" />
+                  Meta Title Tag
+                </span>
+                <p className="text-xs font-semibold text-slate-300 truncate pr-4 font-mono">
+                  {title?.text || <span className="text-rose-455 italic">Missing Title</span>}
+                </p>
+              </div>
+              <div className="mt-3 pt-2.5 border-t border-slate-800/40 flex justify-between items-center text-[10px]">
+                <span className="text-slate-500">Length: {title?.text?.length || 0} chars</span>
+                {title?.text?.length >= 30 && title?.text?.length <= 65 ? (
+                  <span className="text-emerald-400 font-bold flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Optimal (30-65 chars)
+                  </span>
+                ) : (
+                  <span className="text-amber-450 font-bold flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> Suboptimal length
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Meta Description Auditor */}
+            <div className="p-4 bg-dark-900/10 border border-slate-800/40 rounded-xl flex flex-col justify-between hover:border-slate-800/40 transition-all">
+              <div>
+                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
+                  <FileText className="h-3.5 w-3.5 text-indigo-455" />
+                  Meta Description
+                </span>
+                <p className="text-xs font-semibold text-slate-350 truncate pr-4 font-mono">
+                  {metaDescription?.text || <span className="text-rose-455 italic">Missing Description</span>}
+                </p>
+              </div>
+              <div className="mt-3 pt-2.5 border-t border-slate-800/40 flex justify-between items-center text-[10px]">
+                <span className="text-slate-500">Length: {metaDescription?.text?.length || 0} chars</span>
+                {metaDescription?.text?.length >= 120 && metaDescription?.text?.length <= 160 ? (
+                  <span className="text-emerald-400 font-bold flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Optimal (120-160)
+                  </span>
+                ) : (
+                  <span className="text-amber-450 font-bold flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> Suboptimal length
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Alt Tag Compliance */}
+            {(() => {
+              const total = imageAnalysis?.totalImages || 0;
+              const valid = imageAnalysis?.withAlt || 0;
+              const missing = (imageAnalysis?.missingAlt || 0) + (imageAnalysis?.emptyAlt || 0);
+              const pct = total > 0 ? Math.round((valid / total) * 100) : 100;
+              return (
+                <div className="p-4 bg-dark-900/10 border border-slate-800/40 rounded-xl hover:border-slate-800/40 transition-all">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <Image className="h-3.5 w-3.5 text-indigo-455" />
+                      Alt Tag Compliance
+                    </span>
+                    <span className="text-[10px] font-mono font-bold text-slate-400">{valid}/{total} Images</span>
+                  </div>
+                  
+                  <div className="w-full bg-slate-950/60 rounded-full h-1.5 overflow-hidden border border-slate-850/80 mb-2.5">
+                    <div className={`h-full rounded-full transition-all duration-500 ${pct >= 90 ? 'bg-emerald-500' : pct >= 70 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${pct}%` }}></div>
+                  </div>
+                  
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span className="text-slate-500">Compliance Rate: {pct}%</span>
+                    {missing > 0 ? (
+                      <span className="text-rose-400 font-bold flex items-center gap-1 animate-pulse">
+                        <AlertTriangle className="h-3 w-3" /> {missing} Missing ALT
+                      </span>
+                    ) : (
+                      <span className="text-emerald-400 font-bold flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" /> 100% Compliant
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Crawlability Probes & Dead Links combined */}
+            <div className="p-4 bg-dark-900/10 border border-slate-800/40 rounded-xl flex flex-col justify-between hover:border-slate-800/40 transition-all">
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <Link className="h-3.5 w-3.5 text-indigo-455" />
+                  Links & Crawl files
+                </span>
+                {links?.brokenCount > 0 ? (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20 animate-pulse">
+                    {links.brokenCount} BROKEN
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    LINKS SECURE
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 mt-3 pt-2 text-[10px] text-slate-400">
+                <div className="flex flex-col items-center justify-center p-1.5 bg-slate-900/30 rounded border border-slate-800/40 text-center">
+                  <span className="text-[8px] text-slate-500 font-bold uppercase block mb-1">Indexable</span>
+                  {indexability?.isIndexable ? (
+                    <span className="text-emerald-400 font-bold flex items-center gap-0.5"><CheckCircle2 className="h-3 w-3" /> Yes</span>
+                  ) : (
+                    <span className="text-rose-400 font-bold flex items-center gap-0.5"><XCircle className="h-3 w-3" /> No</span>
+                  )}
+                </div>
+                <div className="flex flex-col items-center justify-center p-1.5 bg-slate-900/30 rounded border border-slate-800/40 text-center">
+                  <span className="text-[8px] text-slate-500 font-bold uppercase block mb-1">robots.txt</span>
+                  {robotsTxt?.exists ? (
+                    <span className="text-emerald-400 font-bold flex items-center gap-0.5"><CheckCircle2 className="h-3 w-3" /> Found</span>
+                  ) : (
+                    <span className="text-amber-400 font-bold flex items-center gap-0.5"><AlertTriangle className="h-3 w-3" /> Missing</span>
+                  )}
+                </div>
+                <div className="flex flex-col items-center justify-center p-1.5 bg-slate-900/30 rounded border border-slate-800/40 text-center">
+                  <span className="text-[8px] text-slate-500 font-bold uppercase block mb-1">sitemap</span>
+                  {sitemap?.exists ? (
+                    <span className="text-emerald-400 font-bold flex items-center gap-0.5"><CheckCircle2 className="h-3 w-3" /> Found</span>
+                  ) : (
+                    <span className="text-amber-400 font-bold flex items-center gap-0.5"><AlertTriangle className="h-3 w-3" /> Missing</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
       </div>
 
       {/* 2. Sub-tab navigation */}

@@ -46,6 +46,43 @@ const wordpressMonitorSchema = new mongoose.Schema({
   databaseConnected: { type: Boolean, default: true },
   wpDebugActive: { type: Boolean, default: false },
   debugLogsCount: { type: Number, default: 0 },
+  pagesCrawled: [{
+    url: { type: String },
+    title: { type: String },
+    statusCode: { type: Number },
+    loadTimeMs: { type: Number },
+    isUp: { type: Boolean }
+  }],
+  databaseHealth: {
+    connected: { type: Boolean, default: true },
+    latencyMs: { type: Number, default: 0 },
+    engine: { type: String, default: 'MySQL' },
+    status: { type: String, default: 'Healthy' },
+    sizeMb: { type: Number, default: 0 },
+    tableCount: { type: Number, default: 0 }
+  },
+  brokenLinks: [{
+    url: { type: String },
+    sourcePage: { type: String },
+    statusCode: { type: Number },
+    reason: { type: String },
+    isInternal: { type: Boolean }
+  }],
+  formsAudited: [{
+    formId: { type: String },
+    actionUrl: { type: String },
+    method: { type: String },
+    inputsCount: { type: Number },
+    hasCsrf: { type: Boolean },
+    isInsecureSubmit: { type: Boolean },
+    status: { type: String }
+  }],
+  googleAnalytics: {
+    active: { type: Boolean, default: false },
+    measurementId: { type: String, default: '' },
+    tagType: { type: String, default: 'none' },
+    status: { type: String, default: 'Not Found' }
+  },
   lastChecked: { type: Date, default: Date.now }
 });
 

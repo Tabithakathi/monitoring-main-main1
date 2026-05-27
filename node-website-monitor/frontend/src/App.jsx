@@ -8,12 +8,8 @@ import SSLMonitor from './components/SSLMonitor';
 import SeoDashboard from './components/SeoDashboard';
 import AccessibilityAudit from './components/AccessibilityAudit';
 import SettingsPanel from './components/SettingsPanel';
-import AntigravityHub from './components/AntigravityHub';
 
-const API_BASE = typeof window !== 'undefined' && 
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port === '5173')
-  ? 'http://localhost:5000/api'
-  : 'https://monitoring-main-main1.onrender.com/api';
+const API_BASE = '/api';
 
 // Helper to normalize URLs for WebSocket event comparisons
 const normalizeUrlString = (u) => {
@@ -24,8 +20,19 @@ const normalizeUrlString = (u) => {
 export default function App() {
   const [url, setUrl] = useState('https://wordpress.org');
   const [stats, setStats] = useState(null);
+  const [targets, setTargets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [auditLoading, setAuditLoading] = useState(false);
+
+  // Fetch unique audited SRE target list
+  const fetchTargets = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/targets`);
+      setTargets(response.data);
+    } catch (err) {
+      console.error("Failed to fetch SRE audited targets:", err);
+    }
+  };
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('uptime');
   const [isSocketConnected, setIsSocketConnected] = useState(false);
@@ -66,13 +73,23 @@ export default function App() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Fetch telemetry details from Express backend
+  // Fetch telemetry details from Express backend with TLD normalizations
   const fetchStats = async (targetUrl = url) => {
     setLoading(true);
     setError(null);
+    
+    // Normalize .in, .org, .com links by prepending protocol schema if absent
+    let formattedUrl = targetUrl.trim();
+    if (formattedUrl && !/^https?:\/\//i.test(formattedUrl)) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
+    
     try {
-      const response = await axios.get(`${API_BASE}/stats?url=${encodeURIComponent(targetUrl)}`);
+      const response = await axios.get(`${API_BASE}/stats?url=${encodeURIComponent(formattedUrl)}`);
       setStats(response.data);
+      if (formattedUrl !== url) {
+        setUrl(formattedUrl);
+      }
     } catch (err) {
       console.error(err);
       setError('Failed to fetch dashboard metrics. Please confirm the Express server is running on port 5000.');
@@ -88,19 +105,26 @@ export default function App() {
       return;
     }
 
+    // Normalize .in, .org, .com links before running scan
+    let formattedUrl = url.trim();
+    if (!/^https?:\/\//i.test(formattedUrl)) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
+
     setAuditLoading(true);
-    showToast('Initiating concurrent SRE uptime & WordPress audits...', 'info');
+    showToast('Initiating concurrent SRE website scan...', 'info');
 
     try {
-      const response = await axios.post(`${API_BASE}/audit`, { url });
+      const response = await axios.post(`${API_BASE}/audit`, { url: formattedUrl });
       if (response.data.success) {
-        showToast('Immediate site SRE audit completed successfully!', 'success');
-        // Refresh metrics
-        await fetchStats(url);
+        showToast('Site SRE audit scan completed successfully!', 'success');
+        // Refresh metrics and targets list
+        await fetchStats(formattedUrl);
+        fetchTargets();
       }
     } catch (err) {
       console.error(err);
-      showToast(err.response?.data?.error || 'Immediate audit execution failed.', 'error');
+      showToast(err.response?.data?.error || 'Scan execution failed.', 'error');
     } finally {
       setAuditLoading(false);
     }
@@ -108,11 +132,12 @@ export default function App() {
 
   useEffect(() => {
     fetchStats();
+    fetchTargets();
 
     // Establish Socket.io connection to backend SRE Gateway
     const socketUrl = typeof window !== 'undefined' && 
       (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port === '5173')
-      ? 'http://localhost:5000'
+      ? 'http://localhost:8000'
       : 'https://monitoring-main-main1.onrender.com';
     const socket = io(socketUrl, {
       transports: ['websocket', 'polling']
@@ -159,6 +184,7 @@ export default function App() {
 
     // Handle full deep-audit completes (cron or manual run on another terminal)
     socket.on('auditCompleted', (freshStats) => {
+      fetchTargets();
       const normalizedCurrent = normalizeUrlString(urlRef.current);
       const normalizedAudit = normalizeUrlString(freshStats.url);
 
@@ -257,7 +283,7 @@ export default function App() {
               className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-550 hover:to-indigo-450 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/15 flex items-center gap-1.5 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${auditLoading ? 'rotate-infinite' : ''}`} />
-              <span>{auditLoading ? 'Auditing...' : 'Audit Now'}</span>
+              <span>{auditLoading ? 'Running Scan...' : 'Run Scan'}</span>
             </button>
           </div>
 
@@ -363,15 +389,6 @@ export default function App() {
             Gmail Alerts & Credentials
           </button>
 
-          <button
-            onClick={() => setActiveTab('antigravity')}
-            className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'antigravity'
-                ? 'border-indigo-500 text-indigo-400'
-                : 'border-transparent text-slate-400 hover:text-slate-250'
-              }`}
-          >
-            Antigravity & Vercel
-          </button>
         </div>
 
         {/* Dynamic tabs render panel */}
@@ -403,17 +420,45 @@ export default function App() {
                 mobileFriendliness={stats?.seoData?.mobileFriendliness}
               />
             )}
-            {activeTab === 'antigravity' && (
-              <AntigravityHub stats={stats} />
-            )}
           </div>
         ) : (
           <div className="py-24 text-center glass-card border-dashed border-slate-800 rounded-3xl max-w-3xl mx-auto my-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
             <Activity className="h-10 w-10 text-slate-650 mx-auto mb-4 animate-pulse" />
             <h4 className="font-extrabold text-slate-400">Auditer state is empty</h4>
-            <p className="text-xs text-slate-500 mt-2 max-w-md mx-auto">Please enter a valid website URL in the topbar above and click <strong className="text-indigo-455">Audit Now</strong> to launch crawler passes.</p>
+            <p className="text-xs text-slate-500 mt-2 max-w-md mx-auto">Please enter a valid website URL in the topbar above and click <strong className="text-indigo-455">Run Scan</strong> to launch crawler passes.</p>
           </div>
         )}
+
+        {/* Targets Switcher Pill Bar at the Bottom */}
+        <div className="mt-12 pt-6 border-t border-slate-800/80 animate-fade-in-up">
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block mb-2.5">Audited Targets (Previous Links Scan History)</span>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+            {targets.length === 0 ? (
+              <span className="text-xs text-slate-500 italic">No targets audited yet. Enter a URL above and click Run Scan.</span>
+            ) : (
+              targets.map((tgt) => {
+                const isActive = normalizeUrlString(url) === normalizeUrlString(tgt.url);
+                return (
+                  <button
+                    key={tgt.url}
+                    onClick={() => {
+                      setUrl(tgt.url);
+                      fetchStats(tgt.url);
+                    }}
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 ${
+                      isActive 
+                        ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400 shadow-md shadow-indigo-500/5' 
+                        : 'bg-dark-800/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                    }`}
+                  >
+                    <span className={`h-1.5 w-1.5 rounded-full ${tgt.isUp ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`}></span>
+                    <span>{tgt.url.replace(/^https?:\/\//i, '').replace(/\/$/, '')}</span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
 
       </main>
 

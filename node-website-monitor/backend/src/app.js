@@ -100,6 +100,36 @@ const seedDummyData = async () => {
         databaseConnected: true,
         wpDebugActive: true,
         debugLogsCount: 14,
+        pagesCrawled: [
+          { url: 'https://wordpress.org/', title: 'WordPress.org: Blog Tool, Publishing Platform, and CMS', statusCode: 200, loadTimeMs: 420, isUp: true },
+          { url: 'https://wordpress.org/news/', title: 'WordPress News: Official Blog', statusCode: 200, loadTimeMs: 480, isUp: true },
+          { url: 'https://wordpress.org/plugins/', title: 'WordPress Plugins Directory', statusCode: 200, loadTimeMs: 510, isUp: true },
+          { url: 'https://wordpress.org/themes/', title: 'WordPress Themes Directory', statusCode: 200, loadTimeMs: 550, isUp: true },
+          { url: 'https://wordpress.org/showcase/', title: 'WordPress Showcase', statusCode: 200, loadTimeMs: 610, isUp: true }
+        ],
+        databaseHealth: {
+          connected: true,
+          latencyMs: 4,
+          engine: 'MySQL 8.0.35',
+          status: 'Healthy',
+          sizeMb: 142.4,
+          tableCount: 104
+        },
+        brokenLinks: [
+          { url: 'https://wordpress.org/broken-link-error-404', sourcePage: 'https://wordpress.org/news/', statusCode: 404, reason: 'HTTP 404 Not Found', isInternal: true },
+          { url: 'https://expired-ad-service.net/tracker.js', sourcePage: 'https://wordpress.org/showcase/', statusCode: 503, reason: 'DNS Lookup Failed', isInternal: false }
+        ],
+        formsAudited: [
+          { formId: 'wp-loginform', actionUrl: 'https://wordpress.org/wp-login.php', method: 'POST', inputsCount: 4, hasCsrf: true, isInsecureSubmit: false, status: 'Secure' },
+          { formId: 'wp-searchform', actionUrl: 'https://wordpress.org/', method: 'GET', inputsCount: 2, hasCsrf: false, isInsecureSubmit: false, status: 'Secure' },
+          { formId: 'wp-feedbackform', actionUrl: 'http://wordpress.org/wp-comments-post.php', method: 'POST', inputsCount: 5, hasCsrf: false, isInsecureSubmit: true, status: 'Warning' }
+        ],
+        googleAnalytics: {
+          active: true,
+          measurementId: 'G-Z4E5T6Y7U8',
+          tagType: 'gtag',
+          status: 'Operational'
+        },
         lastChecked: new Date()
       });
 
@@ -194,4 +224,8 @@ const startServer = async () => {
   });
 };
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+module.exports = app;

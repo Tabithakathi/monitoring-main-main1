@@ -8,6 +8,7 @@ import SSLMonitor from './components/SSLMonitor';
 import SeoDashboard from './components/SeoDashboard';
 import AccessibilityAudit from './components/AccessibilityAudit';
 import SettingsPanel from './components/SettingsPanel';
+import AntigravityHub from './components/AntigravityHub';
 
 const API_BASE = typeof window !== 'undefined' && 
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port === '5173')
@@ -355,6 +356,16 @@ export default function App() {
           >
             Gmail Alerts & Credentials
           </button>
+
+          <button
+            onClick={() => setActiveTab('antigravity')}
+            className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'antigravity'
+                ? 'border-indigo-500 text-indigo-400'
+                : 'border-transparent text-slate-400 hover:text-slate-250'
+              }`}
+          >
+            Antigravity & Vercel
+          </button>
         </div>
 
         {/* Dynamic tabs render panel */}
@@ -385,6 +396,9 @@ export default function App() {
                 uiUxData={stats?.uiUxData}
                 mobileFriendliness={stats?.seoData?.mobileFriendliness}
               />
+            )}
+            {activeTab === 'antigravity' && (
+              <AntigravityHub stats={stats} />
             )}
           </div>
         ) : (

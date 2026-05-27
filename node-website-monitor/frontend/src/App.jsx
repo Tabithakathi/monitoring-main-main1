@@ -110,7 +110,13 @@ export default function App() {
     fetchStats();
 
     // Establish Socket.io connection to backend SRE Gateway
-    const socket = io();
+    const socketUrl = typeof window !== 'undefined' && 
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port === '5173')
+      ? 'http://localhost:5000'
+      : 'https://monitoring-main-main1.onrender.com';
+    const socket = io(socketUrl, {
+      transports: ['websocket', 'polling']
+    });
 
     socket.on('connect', () => {
       console.log('📡 Connected to SRE WebSocket Broadcast Portal');

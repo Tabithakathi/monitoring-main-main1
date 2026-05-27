@@ -295,7 +295,7 @@ export default function App() {
         )}
 
         {/* Tab Module Switcher */}
-        <div className="flex border-b border-slate-800/80 mb-6 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
+        <div className="flex flex-wrap border-b border-slate-800/80 mb-6 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
           <button
             onClick={() => setActiveTab('uptime')}
             className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'uptime'
@@ -314,6 +314,36 @@ export default function App() {
               }`}
           >
             WordPress CMS Diagnostics
+          </button>
+
+          <button
+            onClick={() => setActiveTab('ssl')}
+            className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'ssl'
+                ? 'border-indigo-500 text-indigo-400'
+                : 'border-transparent text-slate-400 hover:text-slate-250'
+              }`}
+          >
+            SSL & Security
+          </button>
+
+          <button
+            onClick={() => setActiveTab('seo')}
+            className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'seo'
+                ? 'border-indigo-500 text-indigo-400'
+                : 'border-transparent text-slate-400 hover:text-slate-250'
+              }`}
+          >
+            SEO Optimization
+          </button>
+
+          <button
+            onClick={() => setActiveTab('accessibility')}
+            className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'accessibility'
+                ? 'border-indigo-500 text-indigo-400'
+                : 'border-transparent text-slate-400 hover:text-slate-250'
+              }`}
+          >
+            UI Consistency & Accessibility
           </button>
 
           <button
@@ -338,20 +368,24 @@ export default function App() {
           </div>
         ) : stats ? (
           <div className="space-y-8">
-            {activeTab === 'uptime' ? (
+            {activeTab === 'uptime' && (
               <UptimeDashboard stats={stats} isSocketConnected={isSocketConnected} />
-            ) : (
+            )}
+            {activeTab === 'wordpress' && (
               <WordPressDashboard wordpressData={stats.wordpress} />
             )}
-
-            <SSLMonitor sslData={stats?.sslData} securityData={stats?.securityData} />
-
-            <SeoDashboard seoData={stats?.seoData} />
-
-            <AccessibilityAudit 
-              uiUxData={stats?.uiUxData}
-              mobileFriendliness={stats?.seoData?.mobileFriendliness}
-            />
+            {activeTab === 'ssl' && (
+              <SSLMonitor sslData={stats?.sslData} securityData={stats?.securityData} />
+            )}
+            {activeTab === 'seo' && (
+              <SeoDashboard seoData={stats?.seoData} />
+            )}
+            {activeTab === 'accessibility' && (
+              <AccessibilityAudit 
+                uiUxData={stats?.uiUxData}
+                mobileFriendliness={stats?.seoData?.mobileFriendliness}
+              />
+            )}
           </div>
         ) : (
           <div className="py-24 text-center glass-card border-dashed border-slate-800 rounded-3xl max-w-3xl mx-auto my-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>

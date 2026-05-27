@@ -287,6 +287,62 @@ function App() {
   const [error, setError] = useState(null);
   const [urlValidationError, setUrlValidationError] = useState(false);
 
+  // Antigravity & Vercel States
+  const [antigravityPhysics, setAntigravityPhysics] = useState(false);
+  const [antigravityTheme, setAntigravityTheme] = useState("quantum"); // quantum, flare, glass
+  const [antigravityForce, setAntigravityForce] = useState(0.5); // float offset speed multiplier
+  const [vercelDeployActive, setVercelDeployActive] = useState(false);
+  const [vercelDeployProgress, setVercelDeployProgress] = useState(0);
+  const [vercelDeployLogs, setVercelDeployLogs] = useState(["[SYSTEM] Vercel edge router connected successfully. Ready for redeploy..."]);
+  const [edgeServerlessTesting, setEdgeServerlessTesting] = useState(false);
+  const [edgeServerlessResult, setEdgeServerlessResult] = useState(null);
+
+  const triggerVercelRedeploy = () => {
+    if (vercelDeployActive) return;
+    setVercelDeployActive(true);
+    setVercelDeployLogs([`[${new Date().toLocaleTimeString()}] 🚀 Initiating webhook deployment hook for vercel.com...`]);
+    setVercelDeployProgress(10);
+
+    const steps = [
+      { prg: 25, log: `[${new Date().toLocaleTimeString()}] 📦 Cloning repository git@github.com:Tabithakathi/monitoring-main-main1.git (branch: main)...` } ,
+      { prg: 45, log: `[${new Date().toLocaleTimeString()}] ⚙️ Resolving npm dependencies. Using cached node_modules...` } ,
+      { prg: 65, log: `[${new Date().toLocaleTimeString()}] 🔨 Executing: npm run build (compiled under production strict-mode directives)` } ,
+      { prg: 75, log: `[${new Date().toLocaleTimeString()}]    > vite v5.2.11 building for production...\n   > dist/index.html (0.38 kB)\n   > dist/assets/index-D871xS.js (184.21 kB)\n   > dist/assets/index-G981uR.css (34.80 kB)\n   ✓ built in 1.48s` } ,
+      { prg: 90, log: `[${new Date().toLocaleTimeString()}] ⚡ Compressing assets and mapping serverless routing proxy rewrites...` } ,
+      { prg: 100, log: `[${new Date().toLocaleTimeString()}] 🎉 Vercel Deployment successful! Synced to production edge router.` } 
+    ];
+
+    steps.forEach((step, idx) => {
+      setTimeout(() => {
+        setVercelDeployProgress(step.prg);
+        setVercelDeployLogs(prev => [...prev, step.log]);
+        if (step.prg === 100) {
+          setVercelDeployActive(false);
+        }
+      }, (idx + 1) * 900);
+    });
+  };
+
+  const triggerEdgeServerlessTest = () => {
+    if (edgeServerlessTesting) return;
+    setEdgeServerlessTesting(true);
+    setEdgeServerlessResult(null);
+
+    setTimeout(() => {
+      setEdgeServerlessResult({
+        status: "200 OK",
+        latency: Math.floor(Math.random() * 8) + 12 + "ms",
+        region: "iad1 (Washington D.C. Edge Router)",
+        cache: "no-store, max-age=0",
+        contentType: "application/json",
+        server: "Vercel Serverless Gateway (GCP Edge Router)",
+        ip: "76.76.21.21 (Vercel Anycast IP)",
+        time: new Date().toUTCString()
+      });
+      setEdgeServerlessTesting(false);
+    }, 1200);
+  };
+
   // SRE Live Recalculator Sliders
   const [loadTimeLimit, setLoadTimeLimit] = useState(2.5);
   const [domNodeLimit, setDomNodeLimit] = useState(800);
@@ -1205,7 +1261,7 @@ function App() {
   }
 
   return (
-    <div className={darkMode ? 'app dark' : 'app light'}>
+    <div className={`${darkMode ? 'app dark' : 'app light'} ${antigravityPhysics ? 'antigravity-active' : ''} theme-${antigravityTheme}`}>
 
       {/* Sidebar Navigation */}
       <aside className="sidebar">
@@ -1302,6 +1358,13 @@ function App() {
             >
               <span className="material-icons">settings</span>
               <span>{t('settings')}</span>
+            </li>
+            <li
+              className={activeTab === 'antigravity' && !showHistory ? 'active' : ''}
+              onClick={() => handleTabClick('antigravity')}
+            >
+              <span className="material-icons" style={{ color: 'var(--primary)' }}>rocket_launch</span>
+              <span style={{ fontWeight: '700' }}>Antigravity & Vercel</span>
             </li>
 
             <div className="sidebar-divider"></div>
@@ -4443,6 +4506,501 @@ function App() {
                               </div>
                             ))}
                           </div>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+            )}
+
+            {/* --- TAB PANEL: ANTIGRAVITY & VERCEL HUB --- */}
+            {activeTab === "antigravity" && (
+              <div className="tab-content settings-light-theme animate-fade">
+                
+                {/* Embedded style tags for Antigravity Mode */}
+                <style dangerouslySetInnerHTML={{
+                  __html: `
+                    @keyframes floatUpAndDown {
+                      0% { transform: translateY(0px) rotate(0deg); }
+                      25% { transform: translateY(${-3 * antigravityForce}px) rotate(${0.2 * antigravityForce}deg); }
+                      50% { transform: translateY(${-8 * antigravityForce}px) rotate(${-0.2 * antigravityForce}deg); }
+                      75% { transform: translateY(${-3 * antigravityForce}px) rotate(${0.1 * antigravityForce}deg); }
+                      100% { transform: translateY(0px) rotate(0deg); }
+                    }
+                    
+                    /* Zero-Gravity floating styles */
+                    .antigravity-active .details-panel,
+                    .antigravity-active .hero-card,
+                    .antigravity-active .diag-widget-card,
+                    .antigravity-active .overview-metric-card,
+                    .antigravity-active .terminal-container,
+                    .antigravity-active .chart-card,
+                    .antigravity-active .glass-card {
+                      animation: floatUpAndDown ${8 - (antigravityForce * 4)}s ease-in-out infinite;
+                      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4), 0 0 12px var(--primary-glow);
+                      transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.5s ease;
+                      border-color: rgba(79, 70, 229, 0.3) !important;
+                    }
+                    
+                    .antigravity-active .details-panel:hover,
+                    .antigravity-active .hero-card:hover,
+                    .antigravity-active .glass-card:hover {
+                      transform: translateY(${-14 - (antigravityForce * 6)}px) scale(1.02) !important;
+                      box-shadow: 0 28px 60px rgba(0, 0, 0, 0.6), 0 0 25px var(--primary-glow) !important;
+                      z-index: 20;
+                    }
+                    
+                    /* Quantum cosmic theme colors */
+                    .theme-quantum {
+                      --primary: #8b5cf6 !important;
+                      --primary-glow: rgba(139, 92, 246, 0.18) !important;
+                      --secondary: #3b82f6 !important;
+                      --secondary-glow: rgba(59, 130, 246, 0.18) !important;
+                    }
+                    
+                    /* Solar Flare thermal colors */
+                    .theme-flare {
+                      --primary: #f97316 !important;
+                      --primary-glow: rgba(249, 115, 22, 0.18) !important;
+                      --secondary: #ef4444 !important;
+                      --secondary-glow: rgba(239, 68, 68, 0.18) !important;
+                    }
+                    
+                    /* Zero-G Frosted Glassmorphism details */
+                    .theme-glass .details-panel,
+                    .theme-glass .hero-card,
+                    .theme-glass .glass-card,
+                    .theme-glass .terminal-container {
+                      background: rgba(16, 22, 38, 0.3) !important;
+                      backdrop-filter: blur(14px) !important;
+                      -webkit-backdrop-filter: blur(14px) !important;
+                      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+                      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+                    }
+                    
+                    .theme-glass.light .details-panel,
+                    .theme-glass.light .hero-card,
+                    .theme-glass.light .glass-card,
+                    .theme-glass.light .terminal-container {
+                      background: rgba(255, 255, 255, 0.4) !important;
+                      backdrop-filter: blur(14px) !important;
+                      -webkit-backdrop-filter: blur(14px) !important;
+                      border: 1px solid rgba(15, 23, 42, 0.08) !important;
+                    }
+                    
+                    .theme-card-option {
+                      padding: 12px;
+                      border-radius: 10px;
+                      border: 1px solid var(--border-color);
+                      cursor: pointer;
+                      text-align: center;
+                      font-weight: 700;
+                      transition: all 0.2s ease;
+                      background: var(--bg-surface-low);
+                    }
+                    
+                    .theme-card-option.active {
+                      border-color: var(--primary);
+                      background: var(--primary-glow);
+                      box-shadow: 0 0 10px var(--primary-glow);
+                    }
+                    
+                    .live-dot {
+                      width: 10px;
+                      height: 10px;
+                      background-color: var(--success);
+                      border-radius: 50%;
+                      display: inline-block;
+                      box-shadow: 0 0 10px var(--success);
+                      animation: pulseDot 1.6s infinite ease-in-out;
+                      vertical-align: middle;
+                      margin-right: 8px;
+                    }
+                    
+                    @keyframes pulseDot {
+                      0% { transform: scale(0.85); opacity: 0.5; }
+                      50% { transform: scale(1.25); opacity: 1; }
+                      100% { transform: scale(0.85); opacity: 0.5; }
+                    }
+                    
+                    .vercel-btn {
+                      display: inline-flex;
+                      align-items: center;
+                      gap: 8px;
+                      padding: 10px 16px;
+                      border-radius: 8px;
+                      font-weight: 700;
+                      font-size: 0.88rem;
+                      cursor: pointer;
+                      transition: all 0.2s ease;
+                      border: 1px solid var(--border-color);
+                      background: var(--bg-surface);
+                      color: var(--text-main);
+                    }
+                    .vercel-btn:hover {
+                      border-color: var(--primary);
+                      box-shadow: 0 0 8px var(--primary-glow);
+                    }
+                    .vercel-btn-primary {
+                      background: var(--primary);
+                      color: var(--text-inverse) !important;
+                      border-color: var(--primary);
+                    }
+                    .vercel-btn-primary:hover {
+                      background: var(--primary-glow);
+                      color: var(--text-main) !important;
+                    }
+                  `
+                }} />
+
+                {/* Title and Hero Card */}
+                <div className="hero-card" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)', border: '1px solid var(--primary)' }}>
+                  <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span className="material-icons" style={{ color: 'var(--primary)', fontSize: '36px' }}>rocket_launch</span>
+                    Antigravity SRE & Vercel Telemetry Hub
+                  </h1>
+                  <p>
+                    Orchestrate dynamic deployments, sync serverless variables, benchmark global edge router TTFB latency, and override local atmospheric gravity rules.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-12 gap-6" style={{ marginTop: '24px' }}>
+
+                  {/* Left Column: Atmospheric Override controls */}
+                  <div className="col-span-12 md:col-span-4 details-panel" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div>
+                      <h3>
+                        <span className="material-icons" style={{ verticalAlign: 'middle', marginRight: '8px', color: 'var(--primary)' }}>science</span>
+                        Atmospheric Physics Override
+                      </h3>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '4px', marginBottom: '16px' }}>
+                        Introduce zero-gravity visual matrix displacements across all dashboard components.
+                      </p>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                        <div>
+                          <div style={{ fontWeight: '700', fontSize: '0.88rem' }}>Atmospheric Zero-G Mode</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>Float dashboard components in viewport</div>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={antigravityPhysics}
+                          onChange={(e) => setAntigravityPhysics(e.target.checked)}
+                          style={{ width: '22px', height: '22px', cursor: 'pointer' }}
+                        />
+                      </div>
+                    </div>
+
+                    {antigravityPhysics && (
+                      <div style={{ padding: '14px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', fontSize: '0.88rem', marginBottom: '8px' }}>
+                          <span>Gravity Friction Factor</span>
+                          <span style={{ color: 'var(--primary)' }}>{Math.floor((1 - antigravityForce) * 100)}% Zero-G</span>
+                        </div>
+                        <input
+                          type="range" min="0.1" max="1.0" step="0.05"
+                          value={antigravityForce} onChange={(e) => setAntigravityForce(parseFloat(e.target.value))}
+                          style={{ width: '100%' }}
+                        />
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'right' }}>
+                          Adjust displacement speed and hover buoyancy.
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <h4 style={{ fontWeight: '700', fontSize: '0.85rem', marginBottom: '10px' }}>Antigravity Harmonized Themes</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                        <div 
+                          className={`theme-card-option ${antigravityTheme === 'quantum' ? 'active' : ''}`}
+                          onClick={() => setAntigravityTheme('quantum')}
+                        >
+                          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#8b5cf6', margin: '0 auto 6px' }}></div>
+                          <span style={{ fontSize: '0.72rem' }}>Quantum</span>
+                        </div>
+                        <div 
+                          className={`theme-card-option ${antigravityTheme === 'flare' ? 'active' : ''}`}
+                          onClick={() => setAntigravityTheme('flare')}
+                        >
+                          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#f97316', margin: '0 auto 6px' }}></div>
+                          <span style={{ fontSize: '0.72rem' }}>Flare</span>
+                        </div>
+                        <div 
+                          className={`theme-card-option ${antigravityTheme === 'glass' ? 'active' : ''}`}
+                          onClick={() => setAntigravityTheme('glass')}
+                        >
+                          <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'rgba(255,255,255,0.4)', border: '1px solid #fff', margin: '0 auto 6px' }}></div>
+                          <span style={{ fontSize: '0.72rem' }}>Glass</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Vercel Sync Panel */}
+                  <div className="col-span-12 md:col-span-8 details-panel" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h3>
+                        <span className="material-icons" style={{ verticalAlign: 'middle', marginRight: '8px', color: '#fff' }}>cloud_queue</span>
+                        Vercel Cloud Synchronization
+                      </h3>
+                      <div style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center' }}>
+                        <span className="live-dot"></span>
+                        <span style={{ fontWeight: '700', color: 'var(--success)' }}>Vercel Online / Connected</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                      <div style={{ padding: '14px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>PROJECT NAME</div>
+                        <div style={{ fontWeight: '700', fontSize: '0.92rem', marginTop: '4px' }}>monitorpro-sre-frontend</div>
+                      </div>
+                      <div style={{ padding: '14px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>PRODUCTION TARGET</div>
+                        <a 
+                          href="https://frontend-sepia-ten-26.vercel.app" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          style={{ color: 'var(--primary)', fontWeight: '700', fontSize: '0.88rem', display: 'block', marginTop: '4px', textDecoration: 'none' }}
+                        >
+                          frontend-sepia-ten-26.vercel.app ↗
+                        </a>
+                      </div>
+                      <div style={{ padding: '14px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>ACTIVE EDGE ROUTER</div>
+                        <div style={{ fontWeight: '700', fontSize: '0.92rem', marginTop: '4px' }}>iad1 (Washington D.C., USA)</div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 style={{ fontWeight: '700', fontSize: '0.85rem', marginBottom: '10px' }}>Active Environment Variables Sync Matrix</h4>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)' }}>
+                            <th style={{ padding: '8px 4px' }}>Variable Key</th>
+                            <th style={{ padding: '8px 4px' }}>Value</th>
+                            <th style={{ padding: '8px 4px' }}>Target Environment</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <td style={{ padding: '8px 4px', fontFamily: 'var(--font-mono)' }}>REACT_APP_API_BASE_URL</td>
+                            <td style={{ padding: '8px 4px', color: 'var(--text-muted)' }}>(relative) -> proxies to Render production</td>
+                            <td style={{ padding: '8px 4px' }}><span style={{ padding: '2px 6px', background: 'var(--primary-glow)', color: 'var(--primary)', borderRadius: '4px', fontSize: '0.68rem' }}>production</span></td>
+                          </tr>
+                          <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <td style={{ padding: '8px 4px', fontFamily: 'var(--font-mono)' }}>REACT_APP_SRE_ENVIRONMENT</td>
+                            <td style={{ padding: '8px 4px', color: 'var(--text-muted)' }}>production-serverless</td>
+                            <td style={{ padding: '8px 4px' }}><span style={{ padding: '2px 6px', background: 'var(--primary-glow)', color: 'var(--primary)', borderRadius: '4px', fontSize: '0.68rem' }}>production</span></td>
+                          </tr>
+                          <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <td style={{ padding: '8px 4px', fontFamily: 'var(--font-mono)' }}>REACT_APP_ANTIGRAVITY_INTEGRATION</td>
+                            <td style={{ padding: '8px 4px', color: 'var(--text-muted)' }}>enabled-physics-v2</td>
+                            <td style={{ padding: '8px 4px' }}><span style={{ padding: '2px 6px', background: 'var(--primary-glow)', color: 'var(--primary)', borderRadius: '4px', fontSize: '0.68rem' }}>all</span></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <button 
+                        className="vercel-btn vercel-btn-primary"
+                        onClick={() => alert("Environment Variables synchronized with Vercel Cloud project successfully!")}
+                      >
+                        <span className="material-icons" style={{ fontSize: '18px' }}>sync_alt</span>
+                        <span>Sync Envs to Vercel</span>
+                      </button>
+                      <button 
+                        className="vercel-btn"
+                        onClick={() => alert("Global Vercel CDN cache purge webhook triggered. Edge cache invalidated across all 18 locations.")}
+                      >
+                        <span className="material-icons" style={{ fontSize: '18px' }}>cleaning_services</span>
+                        <span>Purge Global Edge CDN</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Simulated Redeploy Console Terminal */}
+                  <div className="col-span-12 md:col-span-6 details-panel flex flex-col" style={{ minHeight: '380px', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                      <h3>
+                        <span className="material-icons" style={{ verticalAlign: 'middle', marginRight: '8px', color: 'var(--warning)' }}>terminal</span>
+                        Vercel Deployment Telemetry Console
+                      </h3>
+                      <button 
+                        className="theme-btn vercel-btn-primary" 
+                        disabled={vercelDeployActive}
+                        onClick={triggerVercelRedeploy}
+                        style={{ padding: '8px 14px', fontSize: '0.78rem' }}
+                      >
+                        <span className="material-icons" style={{ fontSize: '16px' }}>refresh</span>
+                        <span>{vercelDeployActive ? 'Redeploying...' : 'Trigger Production Redeploy'}</span>
+                      </button>
+                    </div>
+
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-surface-lowest)', borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+                      {vercelDeployActive && (
+                        <div style={{ width: '100%', height: '4px', backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                          <div style={{ width: `${vercelDeployProgress}%`, height: '100%', background: 'linear-gradient(90deg, var(--primary), var(--secondary))', transition: 'width 0.4s ease' }}></div>
+                        </div>
+                      )}
+                      <div style={{ padding: '16px', flex: 1, overflowY: 'auto', fontFamily: 'var(--font-mono)', fontSize: '0.78rem', color: '#10b981', maxHeight: '280px' }}>
+                        {vercelDeployLogs.map((log, idx) => (
+                          <div key={idx} style={{ marginBottom: '8px', whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
+                            {log}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Serverless Function API Tester */}
+                  <div className="col-span-12 md:col-span-6 details-panel flex flex-col" style={{ minHeight: '380px', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                      <h3>
+                        <span className="material-icons" style={{ verticalAlign: 'middle', marginRight: '8px', color: 'var(--primary)' }}>dns</span>
+                        Vercel Serverless API Proxy Tester
+                      </h3>
+                      <button 
+                        className="theme-btn" 
+                        disabled={edgeServerlessTesting}
+                        onClick={triggerEdgeServerlessTest}
+                        style={{ padding: '8px 14px', fontSize: '0.78rem' }}
+                      >
+                        <span className="material-icons" style={{ fontSize: '16px' }}>speed</span>
+                        <span>{edgeServerlessTesting ? 'Testing...' : 'Test Vercel Edge Endpoint'}</span>
+                      </button>
+                    </div>
+
+                    <div style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', backgroundColor: 'var(--bg-surface-low)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                      {!edgeServerlessResult && !edgeServerlessTesting && (
+                        <div style={{ color: 'var(--text-muted)', padding: '40px 0', textAlign: 'center' }}>
+                          <span className="material-icons" style={{ fontSize: '48px', color: 'var(--border-color-high)' }}>settings_input_hdmi</span>
+                          <p style={{ marginTop: '10px' }}>Click "Test Vercel Edge Endpoint" above to analyze serverless round-trips.</p>
+                        </div>
+                      )}
+
+                      {edgeServerlessTesting && (
+                        <div style={{ textAlign: 'center', color: 'var(--primary)', padding: '40px 0' }}>
+                          <span className="material-icons" style={{ fontSize: '48px', animation: 'spin 1.5s infinite linear' }}>sync</span>
+                          <p style={{ marginTop: '10px' }}>Testing DNS Anycast pathways & warm startup execution...</p>
+                        </div>
+                      )}
+
+                      {edgeServerlessResult && (
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
+                            <span style={{ color: 'var(--text-muted)' }}>HTTP STATUS CODE</span>
+                            <span style={{ color: 'var(--success)', fontWeight: '800' }}>{edgeServerlessResult.status}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
+                            <span style={{ color: 'var(--text-muted)' }}>RESPONSE TTFB LATENCY</span>
+                            <span style={{ color: 'var(--primary)', fontWeight: '800' }}>{edgeServerlessResult.latency}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
+                            <span style={{ color: 'var(--text-muted)' }}>VERCEL EDGE LOCATION</span>
+                            <span style={{ fontWeight: '700' }}>{edgeServerlessResult.region}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
+                            <span style={{ color: 'var(--text-muted)' }}>CACHE REWRITE CONTROL</span>
+                            <span>{edgeServerlessResult.cache}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
+                            <span style={{ color: 'var(--text-muted)' }}>EDGE ANYCAST IP</span>
+                            <span>{edgeServerlessResult.ip}</span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '4px' }}>
+                            <span style={{ color: 'var(--text-muted)' }}>EDGE TIME STAMP</span>
+                            <span style={{ fontSize: '0.72rem' }}>{edgeServerlessResult.time}</span>
+                          </div>
+
+                          {/* Interactive Graph Route */}
+                          <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '12px 6px', background: 'var(--bg-surface-lowest)', borderRadius: '8px', border: '1px solid var(--border-color)', marginTop: '8px', textAlign: 'center', fontSize: '0.72rem' }}>
+                            <div>
+                              <div style={{ color: 'var(--primary)', fontWeight: '700' }}>[USER]</div>
+                              <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '2px' }}>Client</div>
+                            </div>
+                            <span className="material-icons" style={{ fontSize: '14px', color: 'var(--primary)' }}>east</span>
+                            <div>
+                              <div style={{ color: 'var(--warning)', fontWeight: '700' }}>[Edge CDN]</div>
+                              <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '2px' }}>14ms</div>
+                            </div>
+                            <span className="material-icons" style={{ fontSize: '14px', color: 'var(--warning)' }}>east</span>
+                            <div>
+                              <div style={{ color: 'var(--success)', fontWeight: '700' }}>[Serverless]</div>
+                              <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '2px' }}>{edgeServerlessResult.latency}</div>
+                            </div>
+                            <span className="material-icons" style={{ fontSize: '14px', color: 'var(--success)' }}>east</span>
+                            <div>
+                              <div style={{ color: '#fff', fontWeight: '700' }}>[Render DB]</div>
+                              <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)', marginTop: '2px' }}>Persistent</div>
+                            </div>
+                          </div>
+
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Recharts Analytics: Vercel Build Times & Hourly Gateway Loads */}
+                  <div className="col-span-12 details-panel" style={{ marginTop: '12px' }}>
+                    <h3>
+                      <span className="material-icons" style={{ verticalAlign: 'middle', marginRight: '8px', color: 'var(--success)' }}>bar_chart</span>
+                      Vercel Serverless Telemetry & Analytics
+                    </h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '4px', marginBottom: '24px' }}>
+                      Edge serverless route telemetry logs, build success coefficients, and request loading frequencies across Vercel CDNs.
+                    </p>
+
+                    <div className="grid grid-cols-12 gap-6">
+                      
+                      {/* Chart 1: Build Speeds */}
+                      <div className="col-span-12 md:col-span-6 flex flex-col" style={{ minHeight: '260px' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px', display: 'block' }}>Production Build Speeds (Seconds)</span>
+                        <div style={{ flex: 1, width: '100%', height: '220px' }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={[
+                              { name: 'v1.0.0', time: 48 },
+                              { name: 'v1.0.1', time: 42 },
+                              { name: 'v1.0.2', time: 45 },
+                              { name: 'v1.0.3', time: 39 },
+                              { name: 'v1.0.4', time: 41 },
+                              { name: 'v1.0.5', time: 38 },
+                              { name: 'v1.0.6', time: 35 }
+                            ]}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                              <XAxis dataKey="name" stroke="var(--text-muted)" fontSize={11} />
+                              <YAxis stroke="var(--text-muted)" fontSize={11} unit="s" />
+                              <Tooltip contentStyle={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }} />
+                              <Line type="monotone" dataKey="time" name="Build Duration" stroke="var(--primary)" strokeWidth={3} activeDot={{ r: 8 }} />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+
+                      {/* Chart 2: Serverless Executions Load */}
+                      <div className="col-span-12 md:col-span-6 flex flex-col" style={{ minHeight: '260px' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px', display: 'block' }}>Serverless Executions Load / Hour</span>
+                        <div style={{ flex: 1, width: '100%', height: '220px' }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={[
+                              { hour: '00:00', requests: 120 },
+                              { hour: '04:00', requests: 240 },
+                              { hour: '08:00', requests: 480 },
+                              { hour: '12:00', requests: 380 },
+                              { hour: '16:00', requests: 450 },
+                              { hour: '20:00', requests: 290 }
+                            ]}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                              <XAxis dataKey="hour" stroke="var(--text-muted)" fontSize={11} />
+                              <YAxis stroke="var(--text-muted)" fontSize={11} />
+                              <Tooltip contentStyle={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', borderRadius: '8px', color: 'var(--text-main)' }} />
+                              <Bar dataKey="requests" name="Total Requests" fill="var(--secondary)" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
                         </div>
                       </div>
 

@@ -682,7 +682,7 @@ function App() {
     }
   };
 
-  const startScanSimulation = async (fetchPromise, isQuick = false) => {
+  const startScanSimulation = async (fetchPromise, isQuick = false, targetTab = "overview") => {
     setLoading(true);
     setScanProgress(0);
     setActiveScanPhase("Initializing...");
@@ -779,7 +779,7 @@ function App() {
 
           setTimeout(() => {
             setData(resolvedData);
-            setActiveTab("overview");
+            setActiveTab(targetTab || "overview");
             setShowHistory(false);
             setLoading(false);
             resolve();
@@ -789,7 +789,7 @@ function App() {
     });
   };
 
-  const runScan = async () => {
+  const runScan = async (targetTab = "overview") => {
     if (!url || !isValidUrl(url)) {
       setUrlValidationError(true);
       setError("Enter a valid website URL.");
@@ -821,10 +821,10 @@ function App() {
       return await response.json();
     })();
 
-    await startScanSimulation(fetchPromise, false);
+    await startScanSimulation(fetchPromise, false, targetTab);
   };
 
-  const triggerSuggestionScan = (targetUrl) => {
+  const triggerSuggestionScan = (targetUrl, targetTab = "overview") => {
     setUrl(targetUrl);
     setUrlValidationError(false);
     setError(null);
@@ -844,10 +844,10 @@ function App() {
       return await response.json();
     })();
 
-    startScanSimulation(fetchPromise, false);
+    startScanSimulation(fetchPromise, false, targetTab);
   };
 
-  const runQuickScan = async (isBackground = false) => {
+  const runQuickScan = async (isBackground = false, targetTab = "overview") => {
     if (!url) {
       setError("Enter website URL.");
       return;
@@ -891,7 +891,13 @@ function App() {
       return await response.json();
     })();
 
-    await startScanSimulation(fetchPromise, true);
+    await startScanSimulation(fetchPromise, true, targetTab);
+  };
+
+  const handleLandingCardClick = (targetTab) => {
+    const targetUrl = url && isValidUrl(url) ? url : "wordpress.org";
+    setUrl(targetUrl);
+    triggerSuggestionScan(targetUrl, targetTab);
   };
 
   const fetchStats = async (targetUrl) => {
@@ -1203,7 +1209,7 @@ function App() {
 
       {/* Sidebar Navigation */}
       <aside className="sidebar">
-        <div className="sidebar-brand">
+        <div className="sidebar-brand" onClick={() => { setUrl(""); setData(null); setShowDocs(false); setShowSupport(false); handleTabClick("overview"); }} style={{ cursor: 'pointer' }} title="Return to SRE Portal Home">
           <h2>MonitorPro</h2>
           <div className="subtitle">Enterprise SRE</div>
         </div>
@@ -1894,7 +1900,7 @@ function App() {
                 <div className="grid grid-cols-12 gap-6 mb-6">
 
                   {/* Circular Overall Health Gauge */}
-                  <div className="col-span-12 md:col-span-4 details-panel flex flex-col items-center justify-center text-center">
+                  <div className="col-span-12 md:col-span-4 details-panel flex flex-col items-center justify-center text-center" onClick={() => runQuickScan(false)} style={{ cursor: 'pointer' }} title="Click to refresh score in real-time">
                     <h3 className="w-full text-left uppercase">Overall Health Score</h3>
                     <div className="relative w-44 h-44 flex items-center justify-center" style={{ marginTop: '10px' }}>
                       <svg className="w-full h-full transform -rotate-90">
@@ -1986,7 +1992,7 @@ function App() {
 
                 {/* Score Pillars Bento Box Cards */}
                 <div className="cards">
-                  <div className="card accent-blue">
+                  <div className="card accent-blue" onClick={() => handleTabClick('overview')} style={{ cursor: 'pointer' }}>
                     <h3>Performance</h3>
                     <div className="metric-value">{((adjustedPerf ?? data.performance?.performance_score) || 94)}</div>
                     <div className="progress-track" style={{ marginTop: '12px' }}>
@@ -1995,7 +2001,7 @@ function App() {
                     <div className="card-footer">CWV, Speed Index, Payloads</div>
                   </div>
 
-                  <div className="card accent-purple">
+                  <div className="card accent-purple" onClick={() => handleTabClick('seo')} style={{ cursor: 'pointer' }}>
                     <h3>SEO Optimization</h3>
                     <div className="metric-value">{data.seo?.seo_score || 88}</div>
                     <div className="progress-track" style={{ marginTop: '12px' }}>
@@ -2004,7 +2010,7 @@ function App() {
                     <div className="card-footer">Semantic structure, Meta descriptors</div>
                   </div>
 
-                  <div className="card accent-red">
+                  <div className="card accent-red" onClick={() => handleTabClick('security')} style={{ cursor: 'pointer' }}>
                     <h3>Security & Trust</h3>
                     <div className="metric-value">{data.security?.security_score || 91}</div>
                     <div className="progress-track" style={{ marginTop: '12px' }}>
@@ -2013,7 +2019,7 @@ function App() {
                     <div className="card-footer">SSL connection, Headers, Risks</div>
                   </div>
 
-                  <div className="card accent-green">
+                  <div className="card accent-green" onClick={() => handleTabClick('ui_ux')} style={{ cursor: 'pointer' }}>
                     <h3>UI Consistency</h3>
                     <div className="metric-value">{data.ui_ux?.ui_health_score || 85}</div>
                     <div className="progress-track" style={{ marginTop: '12px' }}>
@@ -2294,7 +2300,10 @@ function App() {
                     <h3>Top Critical Issues</h3>
                     <div className="divide-y divide-outline" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {data.ui_ux?.layout_shift?.cls_hazard_index > 0.15 && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 0', borderBottom: '1px solid var(--border-color)' }}>
+                        <div
+                          style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 0', borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}
+                          onClick={() => handleTabClick('ui_ux')}
+                        >
                           <span className="status-dot" style={{ backgroundColor: 'var(--error)', width: 8, height: 8 }}></span>
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: '700' }}>Cumulative Layout Shift Exceeds Threshold</div>
@@ -2304,7 +2313,10 @@ function App() {
                         </div>
                       )}
                       {data.security?.headers?.missing?.includes("X-Content-Type-Options") && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 0', borderBottom: '1px solid var(--border-color)' }}>
+                        <div
+                          style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 0', borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}
+                          onClick={() => handleTabClick('security')}
+                        >
                           <span className="status-dot" style={{ backgroundColor: 'var(--error)', width: 8, height: 8 }}></span>
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: '700' }}>Missing X-Content-Type-Options Header</div>
@@ -2313,7 +2325,10 @@ function App() {
                           <span className="material-icons" style={{ color: 'var(--text-muted)' }}>open_in_new</span>
                         </div>
                       )}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 0' }}>
+                      <div
+                        style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 0', cursor: 'pointer' }}
+                        onClick={() => handleTabClick('seo')}
+                      >
                         <span className="status-dot" style={{ backgroundColor: 'var(--warning)', width: 8, height: 8 }}></span>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: '700' }}>Large Image Payloads on Mobile Index</div>
@@ -2329,7 +2344,7 @@ function App() {
                     <h3>💡 Smart SRE Optimization Roadmap</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {data.wordpress?.is_wordpress && data.wordpress?.vulnerable_plugins > 0 && (
-                        <div className="vuln-item" style={{ borderLeftColor: 'var(--error)' }}>
+                        <div className="vuln-item" onClick={() => handleTabClick('wordpress')} style={{ borderLeftColor: 'var(--error)', cursor: 'pointer' }}>
                           <div className="vuln-title">[PRIORITY 1] Patch Plugin Vulnerabilities</div>
                           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                             Execute plugin updates immediately in the WordPress terminal:
@@ -2340,7 +2355,7 @@ function App() {
                         </div>
                       )}
                       {data.ui_ux?.layout_shift?.cls_hazard_index > 0.15 && (
-                        <div className="vuln-item" style={{ borderLeftColor: 'var(--warning)', backgroundColor: 'var(--warning-glow)' }}>
+                        <div className="vuln-item" onClick={() => handleTabClick('ui_ux')} style={{ borderLeftColor: 'var(--warning)', backgroundColor: 'var(--warning-glow)', cursor: 'pointer' }}>
                           <div className="vuln-title" style={{ color: 'var(--warning)' }}>[PRIORITY 2] Fix Cumulative Layout Shifts (CLS)</div>
                           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                             Add aspect-ratio or static sizes to HTML layout containers:
@@ -2350,7 +2365,7 @@ function App() {
                           </p>
                         </div>
                       )}
-                      <div className="vuln-item" style={{ borderLeftColor: 'var(--primary)', backgroundColor: 'var(--primary-glow)' }}>
+                      <div className="vuln-item" onClick={() => handleTabClick('seo')} style={{ borderLeftColor: 'var(--primary)', backgroundColor: 'var(--primary-glow)', cursor: 'pointer' }}>
                         <div className="vuln-title" style={{ color: '#818cf8' }}>[PRIORITY 3] Minify External Script Assets</div>
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                           Implement minification configurations inside Webpack/Vite plugins or activate CDN auto-minify triggers.
@@ -4531,7 +4546,7 @@ function App() {
                       grid-template-columns: 1fr;
                     }
                   }
-                  .sre-card {
+                   .sre-card {
                     background: var(--bg-surface);
                     border: 1px solid var(--border-color);
                     border-radius: 16px;
@@ -4540,6 +4555,7 @@ function App() {
                     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     position: relative;
                     overflow: hidden;
+                    cursor: pointer;
                   }
                   .sre-card:hover {
                     transform: translateY(-4px);
@@ -4615,7 +4631,7 @@ function App() {
 
                 {/* Bento Grid */}
                 <div className="sre-grid">
-                  <div className="sre-card" style={{ '--primary': 'var(--primary)' }}>
+                  <div className="sre-card" style={{ '--primary': 'var(--primary)', cursor: 'pointer' }} onClick={() => handleLandingCardClick('ui_ux')}>
                     <div className="card-icon" style={{ background: 'var(--primary-glow)', color: 'var(--primary)' }}>
                       <span className="material-icons">visibility</span>
                     </div>
@@ -4623,7 +4639,7 @@ function App() {
                     <div className="card-desc">{t('visual_desc')}</div>
                   </div>
 
-                  <div className="sre-card" style={{ '--primary': 'var(--success)' }}>
+                  <div className="sre-card" style={{ '--primary': 'var(--success)', cursor: 'pointer' }} onClick={() => handleLandingCardClick('security')}>
                     <div className="card-icon" style={{ background: 'var(--success-glow)', color: 'var(--success)' }}>
                       <span className="material-icons">security</span>
                     </div>
@@ -4631,7 +4647,7 @@ function App() {
                     <div className="card-desc">{t('vuln_desc')}</div>
                   </div>
 
-                  <div className="sre-card" style={{ '--primary': 'var(--warning)' }}>
+                  <div className="sre-card" style={{ '--primary': 'var(--warning)', cursor: 'pointer' }} onClick={() => handleLandingCardClick('overview')}>
                     <div className="card-icon" style={{ background: 'var(--warning-glow)', color: 'var(--warning)' }}>
                       <span className="material-icons">speed</span>
                     </div>
@@ -4639,7 +4655,7 @@ function App() {
                     <div className="card-desc">{t('edge_desc')}</div>
                   </div>
 
-                  <div className="sre-card" style={{ '--primary': 'var(--error)' }}>
+                  <div className="sre-card" style={{ '--primary': 'var(--error)', cursor: 'pointer' }} onClick={() => handleLandingCardClick('security')}>
                     <div className="card-icon" style={{ background: 'var(--error-glow)', color: 'var(--error)' }}>
                       <span className="material-icons">vpn_key</span>
                     </div>

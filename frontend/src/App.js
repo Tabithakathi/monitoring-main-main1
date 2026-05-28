@@ -311,7 +311,8 @@ function App() {
         databaseHealth: nodeData.wordpress.databaseHealth,
         brokenLinks: nodeData.wordpress.brokenLinks || [],
         formsAudited: nodeData.wordpress.formsAudited || [],
-        googleAnalytics: nodeData.wordpress.googleAnalytics
+        googleAnalytics: nodeData.wordpress.googleAnalytics,
+        pagesCrawled: nodeData.wordpress.pagesCrawled || []
       } : null,
       performance: {
         performance_score: nodeData.latestStatus?.performance?.performanceScore || 90,
@@ -2875,6 +2876,69 @@ function App() {
                   </div>
                 </div>
 
+                <div className="cards" style={{ marginTop: '24px', marginBottom: '24px' }}>
+                  {/* Database Health Card */}
+                  <div className="card" style={{ borderLeftColor: data.wordpress?.databaseHealth?.connected ? 'var(--success)' : 'var(--error)', flex: 1, minWidth: '280px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                      <span className="material-icons" style={{ color: data.wordpress?.databaseHealth?.connected ? 'var(--success)' : 'var(--error)' }}>dns</span>
+                      <h3 style={{ margin: 0 }}>Database Diagnostics</h3>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Status:</span>
+                        <span style={{ fontWeight: 'bold', color: data.wordpress?.databaseHealth?.connected ? 'var(--success)' : 'var(--error)' }}>
+                          {data.wordpress?.databaseHealth?.status || (data.wordpress?.databaseHealth?.connected ? 'Healthy' : 'Connection Failed')}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Query Latency:</span>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{data.wordpress?.databaseHealth?.latencyMs || 0} ms</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Database Engine:</span>
+                        <span style={{ fontWeight: '600' }}>{data.wordpress?.databaseHealth?.engine || 'MySQL 8.0'}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Tables Count:</span>
+                        <span style={{ fontFamily: 'monospace' }}>{data.wordpress?.databaseHealth?.tableCount || 0} tables</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Storage Size:</span>
+                        <span style={{ fontFamily: 'monospace' }}>{data.wordpress?.databaseHealth?.sizeMb || 0} MB</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Google Analytics Sensor Card */}
+                  <div className="card" style={{ borderLeftColor: data.wordpress?.googleAnalytics?.active ? 'var(--success)' : 'var(--warning)', flex: 1, minWidth: '280px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                      <span className="material-icons" style={{ color: data.wordpress?.googleAnalytics?.active ? 'var(--success)' : 'var(--warning)' }}>analytics</span>
+                      <h3 style={{ margin: 0 }}>Google Analytics Tag Sensor</h3>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Tag Status:</span>
+                        <span className={`badge ${data.wordpress?.googleAnalytics?.active ? 'ok' : 'warning'}`} style={{ fontWeight: 'bold' }}>
+                          {data.wordpress?.googleAnalytics?.status || (data.wordpress?.googleAnalytics?.active ? 'Operational' : 'Tag Not Discovered')}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Measurement ID:</span>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 'bold', letterSpacing: '0.05em' }}>{data.wordpress?.googleAnalytics?.measurementId || 'Missing'}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Script Sensor Type:</span>
+                        <span style={{ textTransform: 'uppercase', fontFamily: 'monospace' }}>{data.wordpress?.googleAnalytics?.tagType || 'none'}</span>
+                      </div>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '8px', lineHeight: '1.4' }}>
+                        {data.wordpress?.googleAnalytics?.active 
+                          ? 'Verified active page view analytics collection tags running in public frontend scripts.'
+                          : 'Suboptimal SRE signal: No active Google Analytics Gtag/GTM tracking scripts were discovered on audited paths.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="details-grid">
 
                   {/* Theme & Plugins Active lists */}
@@ -2963,6 +3027,184 @@ function App() {
                     })()}
                   </div>
 
+                </div>
+
+                {/* Deep-Crawl Pages Telemetry Feed */}
+                <div className="details-panel" style={{ marginTop: '24px', marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span className="material-icons" style={{ color: 'var(--primary)' }}>language</span>
+                      <h3 style={{ border: 'none', margin: 0, padding: 0 }}>🌐 Discovered Pages Telemetry Feed</h3>
+                    </div>
+                    <span className="badge info">{data.wordpress?.pagesCrawled?.length || 0} PAGES MONITORED</span>
+                  </div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '20px' }}>
+                    Showing status code diagnostics, load speed latency meters, and uptime metrics across all internal page routes:
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {data.wordpress?.pagesCrawled?.map((page, idx) => {
+                      const isHealthy = page.isUp || (page.statusCode >= 200 && page.statusCode < 400);
+
+                      return (
+                        <div key={idx} style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', padding: '14px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1', minWidth: '240px' }}>
+                            <span className="status-dot animate-pulse" style={{ backgroundColor: isHealthy ? 'var(--success)' : 'var(--error)' }}></span>
+                            <div style={{ overflow: 'hidden' }}>
+                              <div style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--text-main)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                {page.title || 'Internal Page'}
+                              </div>
+                              <a href={page.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: 'var(--primary)', textDecoration: 'none', wordBreak: 'break-all' }}>
+                                {page.url}
+                              </a>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap', marginTop: '8px' }}>
+                            {/* Load speed latency gauge */}
+                            <div style={{ display: 'flex', flexDirection: 'column', width: '120px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                                <span>Load Time:</span>
+                                <span style={{ fontFamily: 'monospace', fontWeight: '600' }}>{page.loadTimeMs}ms</span>
+                              </div>
+                              <div className="progress-track" style={{ height: '4px' }}>
+                                <div 
+                                  className="progress-fill" 
+                                  style={{ 
+                                    width: `${Math.min(100, (page.loadTimeMs / 1500) * 100)}%`,
+                                    backgroundColor: page.loadTimeMs > 800 ? 'var(--warning)' : 'var(--success)' 
+                                  }}
+                                ></div>
+                              </div>
+                            </div>
+
+                            <div style={{ textAlign: 'right', minWidth: '70px' }}>
+                              <span className={`badge ${isHealthy ? 'ok' : 'critical'}`} style={{ fontWeight: '800' }}>
+                                HTTP {page.statusCode || 200}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* SRE Forms & Broken Links Bento Grid */}
+                <div className="details-grid" style={{ marginTop: '24px' }}>
+                  {/* Forms Security Integrity Checklist */}
+                  <div className="details-panel">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
+                      <span className="material-icons" style={{ color: 'var(--secondary)' }}>assignment_turned_in</span>
+                      <h3 style={{ border: 'none', margin: 0, padding: 0 }}>Forms Security Integrity Checklist</h3>
+                    </div>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '16px' }}>
+                      Audits discovered forms to ensure active anti-CSRF token verification and to protect user submission pathways against MITM mixed-content hazards:
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {data.wordpress?.formsAudited?.map((form, idx) => {
+                        let badgeClass = 'success';
+                        let statusLabel = 'Secure';
+                        if (form.status === 'Insecure Submission') {
+                          badgeClass = 'critical';
+                          statusLabel = 'Insecure Submit';
+                        } else if (form.status === 'No CSRF Nonce') {
+                          badgeClass = 'warning';
+                          statusLabel = 'Missing Nonce';
+                        } else if (form.status === 'Broken') {
+                          badgeClass = 'critical';
+                          statusLabel = 'Broken Form';
+                        } else {
+                          badgeClass = form.status === 'Secure' ? 'ok' : 'warning';
+                          statusLabel = form.status;
+                        }
+
+                        return (
+                          <div key={idx} style={{ padding: '12px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                              <span style={{ fontWeight: '700', fontSize: '0.85rem', fontFamily: 'monospace', color: 'var(--text-main)' }}>
+                                #{form.formId}
+                              </span>
+                              <span className={`badge ${badgeClass}`} style={{ fontSize: '0.72rem', fontWeight: 'bold' }}>
+                                {statusLabel}
+                              </span>
+                            </div>
+                            
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span className="material-icons" style={{ fontSize: '12px' }}>send</span>
+                                <span>Action: <code>{form.actionUrl ? form.actionUrl.split('/').pop() || '/' : '/'}</code></span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span className="material-icons" style={{ fontSize: '12px' }}>input</span>
+                                <span>Fields: <strong>{form.inputsCount}</strong></span>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <span className="material-icons" style={{ fontSize: '12px', color: form.hasCsrf ? 'var(--success)' : 'var(--warning)' }}>
+                                  {form.hasCsrf ? 'verified_user' : 'report_problem'}
+                                </span>
+                                <span>CSRF: <strong>{form.hasCsrf ? 'Verified' : 'Unprotected'}</strong></span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Broken Hyperlink Audit Reports */}
+                  <div className="details-panel">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px', marginBottom: '16px' }}>
+                      <span className="material-icons" style={{ color: 'var(--error)' }}>link_off</span>
+                      <h3 style={{ border: 'none', margin: 0, padding: 0 }}>Broken Hyperlink Audit Reports</h3>
+                    </div>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '16px' }}>
+                      Verifies target link status codes along crawled internal routes. Discovered dead redirects and unreachable resources:
+                    </p>
+                    {data.wordpress?.brokenLinks?.length > 0 ? (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table className="zebra-table" style={{ fontSize: '0.8rem', width: '100%' }}>
+                          <thead>
+                            <tr>
+                              <th>Target URL</th>
+                              <th>Referrer</th>
+                              <th>HTTP Code</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {data.wordpress.brokenLinks.map((link, idx) => (
+                              <tr key={idx}>
+                                <td>
+                                  <a href={link.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--error)', textDecoration: 'none', wordBreak: 'break-all' }}>
+                                    {link.url}
+                                  </a>
+                                  <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                    {link.isInternal ? 'Internal Link' : 'External Link'}
+                                  </span>
+                                </td>
+                                <td style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                  <code>{link.sourcePage ? link.sourcePage.split('/').pop() || 'Home' : 'Home'}</code>
+                                </td>
+                                <td>
+                                  <span className="badge critical" style={{ fontSize: '0.7rem', display: 'inline-block' }}>
+                                    {link.statusCode ? `HTTP ${link.statusCode}` : 'TIMEOUT'}
+                                  </span>
+                                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                    {link.reason}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '32px 16px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '12px', border: '1px dashed var(--border-color)', color: 'var(--success)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                        <span className="material-icons animate-pulse" style={{ fontSize: '32px', marginBottom: '8px' }}>check_circle_outline</span>
+                        <div style={{ fontWeight: '700', fontSize: '0.9rem' }}>Zero Broken Links Detected!</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>All audited href elements returned active success status codes.</div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
               </div>

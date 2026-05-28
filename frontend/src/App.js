@@ -2699,6 +2699,48 @@ function App() {
                   </div>
                 )}
 
+                <div className="cards" style={{ marginTop: '24px', marginBottom: '24px' }}>
+                  {/* XML-RPC Protocol Audit */}
+                  <div className="card" style={{ borderLeftColor: data.wordpress?.xmlrpc_enabled ? 'var(--error)' : 'var(--success)', flex: 1, minWidth: '280px' }}>
+                    <h3>XML-RPC Auditing</h3>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px', lineHeight: '1.4' }}>
+                      Probes active states of the xmlrpc.php gateway. If active, exposes the system to brute-force logins and distributed amplification DDoS exploits.
+                    </p>
+                    <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Status:</span>
+                      <span className={`badge ${data.wordpress?.xmlrpc_enabled ? 'critical' : 'success'}`} style={{ fontWeight: 'bold' }}>
+                        {data.wordpress?.xmlrpc_enabled ? 'ACTIVE (SECURITY RISK)' : 'SECURE / DISABLED'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* REST API User Enumeration */}
+                  <div className="card" style={{ borderLeftColor: data.wordpress?.users_enumeration_exposed ? 'var(--error)' : 'var(--success)', flex: 1, minWidth: '280px' }}>
+                    <h3>REST API User Enumeration</h3>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px', lineHeight: '1.4' }}>
+                      Queries public endpoints of /wp-json/wp/v2/users to determine whether exposed system directories leak real backend user accounts and login usernames.
+                    </p>
+                    {data.wordpress?.users_enumeration_exposed && data.wordpress?.enumerated_users?.length > 0 && (
+                      <div style={{ marginTop: '12px', fontSize: '0.8rem' }}>
+                        <span style={{ color: 'var(--error)', fontWeight: 'bold', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>Exposed Usernames:</span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {data.wordpress.enumerated_users.map(user => (
+                            <span key={user} style={{ padding: '2px 6px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '4px', fontSize: '0.75rem', fontFamily: 'monospace' }}>
+                              {user}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>User Index:</span>
+                      <span className={`badge ${data.wordpress?.users_enumeration_exposed ? 'critical' : 'success'}`} style={{ fontWeight: 'bold' }}>
+                        {data.wordpress?.users_enumeration_exposed ? 'EXPOSED (HIGH RISK)' : 'SECURE / PROTECTED'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="details-grid">
 
                   {/* Theme & Plugins Active lists */}

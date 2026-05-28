@@ -27,6 +27,9 @@ const wordpressMonitorSchema = new mongoose.Schema({
   healthScore: { type: Number, default: 100 },
   coreVersion: { type: String },
   hasUpdate: { type: Boolean, default: false },
+  xmlrpcEnabled: { type: Boolean, default: false },
+  usersEnumerationExposed: { type: Boolean, default: false },
+  enumeratedUsers: [{ type: String }],
   plugins: [{
     name: { type: String },
     slug: { type: String },

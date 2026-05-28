@@ -41,6 +41,9 @@ export default function WordPressDashboard({ wordpressData }) {
     healthScore,
     coreVersion,
     hasUpdate,
+    xmlrpcEnabled = false,
+    usersEnumerationExposed = false,
+    enumeratedUsers = [],
     plugins = [],
     themes = [],
     adminAccessible,
@@ -314,6 +317,68 @@ export default function WordPressDashboard({ wordpressData }) {
                 </div>
               </div>
             )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+              {/* XML-RPC Protocol Audit */}
+              <div className="glass-card p-6 flex flex-col justify-between hover:border-indigo-500/10 transition-all duration-300">
+                <div>
+                  <h4 className="text-slate-200 font-extrabold text-sm flex items-center gap-2">
+                    <Shield className="h-4.5 w-4.5 text-indigo-400" />
+                    XML-RPC Protocol Auditing
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                    Probes active states of the backend legacy xmlrpc.php remote API gateway. If active, exposes the system to brute-force logins and distributed amplification DDoS exploits.
+                  </p>
+                </div>
+                <div className="mt-4 pt-3.5 border-t border-slate-800/40 flex justify-between items-center">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Protocol Gateway</span>
+                  <span className={`inline-block px-2.5 py-0.5 rounded font-bold text-[9px] tracking-wider uppercase ${
+                    !xmlrpcEnabled 
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                      : 'bg-rose-500/10 text-rose-455 border border-rose-500/20 animate-pulse'
+                  }`}>
+                    {xmlrpcEnabled ? 'ACTIVE (SECURITY RISK)' : 'SECURE / DISABLED'}
+                  </span>
+                </div>
+              </div>
+
+              {/* REST API User Enumeration */}
+              <div className="glass-card p-6 flex flex-col justify-between hover:border-indigo-500/10 transition-all duration-300">
+                <div>
+                  <h4 className="text-slate-200 font-extrabold text-sm flex items-center gap-2">
+                    <Shield className="h-4.5 w-4.5 text-indigo-400" />
+                    REST API User Enumeration
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                    Queries public endpoints of /wp-json/wp/v2/users to determine whether exposed system directories leak real backend user accounts and login usernames.
+                  </p>
+                </div>
+                <div>
+                  {usersEnumerationExposed && enumeratedUsers && enumeratedUsers.length > 0 && (
+                    <div className="mt-4 pt-3 border-t border-slate-800/40 text-xs">
+                      <span className="text-rose-455 font-bold uppercase tracking-wider text-[9px] block mb-2">Exposed Usernames Identified:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {enumeratedUsers.map(user => (
+                          <span key={user} className="px-2 py-0.5 bg-rose-500/5 border border-rose-500/20 text-rose-400 font-bold rounded text-[10px] font-mono">
+                            {user}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className={`pt-3.5 border-t border-slate-800/40 flex justify-between items-center ${usersEnumerationExposed ? 'mt-3' : 'mt-4'}`}>
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">User Index Status</span>
+                    <span className={`inline-block px-2.5 py-0.5 rounded font-bold text-[9px] tracking-wider uppercase ${
+                      !usersEnumerationExposed 
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                        : 'bg-rose-500/10 text-rose-455 border border-rose-500/20 animate-pulse'
+                    }`}>
+                      {usersEnumerationExposed ? 'EXPOSED (HIGH RISK)' : 'SECURE / PROTECTED'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <div className="glass-card p-6">
               <h3 className="text-slate-200 font-extrabold text-base mb-5 flex items-center gap-2">

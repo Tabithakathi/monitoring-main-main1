@@ -10,7 +10,8 @@ const {
 } = require('../controllers/monitorController');
 const {
   getSettings,
-  saveSettings
+  saveSettings,
+  testEmail
 } = require('../controllers/settingsController');
 
 // Immediate Site Audit Trigger
@@ -34,5 +35,9 @@ router.post('/alerts/resolve', resolveAlert);
 // SRE Settings & Alert configurations
 router.get('/settings', getSettings);
 router.post('/settings', saveSettings);
+
+// SMTP Test email connection
+router.post('/send-test-email', testEmail);
+router.post('/send-test-email/', testEmail);
 
 module.exports = router;

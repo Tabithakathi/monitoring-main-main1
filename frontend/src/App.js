@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import History from './History';
 import { ResponsiveContainer, AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend, PieChart, Pie, Cell } from 'recharts';
 import { Activity, ShieldCheck, ShieldAlert, Cpu, AlertTriangle, AlertCircle, Wifi, Globe, Terminal, Server, Shield, Layers, RefreshCw, CheckCircle, HelpCircle } from 'lucide-react';
-const API_BASE_URL = "";
+let API_BASE_URL = "";
 
 const translations = {
   "English": {
@@ -265,6 +265,130 @@ const translations = {
 };
 
 function App() {
+  const [activeEngine, setActiveEngine] = useState(() => {
+    return localStorage.getItem("sre_active_engine") || "django";
+  });
+
+  API_BASE_URL = activeEngine === "node" ? "http://localhost:5000" : "";
+
+  const getEngineBaseUrl = () => {
+    return activeEngine === "node" ? "http://localhost:5000" : "";
+  };
+
+  const mapNodeToReactState = (nodeData) => {
+    return {
+      url: nodeData.url,
+      overall_score: nodeData.wordpress?.healthScore || nodeData.latestStatus?.performance?.performanceScore || 85,
+      check: {
+        is_up: nodeData.latestStatus?.isUp,
+        load_time: (nodeData.latestStatus?.loadTimeMs || 0) / 1000,
+        status_code: nodeData.latestStatus?.statusCode,
+        ttfb: (nodeData.latestStatus?.ttfbMs || 0) / 1000,
+        page_size_kb: nodeData.latestStatus?.performance?.pageSizeKb || 85,
+        perf_rating: nodeData.latestStatus?.performance?.grade || 'A'
+      },
+      wordpress: nodeData.wordpress ? {
+        is_wordpress: true,
+        core_version: nodeData.wordpress.coreVersion,
+        latest_stable_version: "6.5.3",
+        core_update_available: nodeData.wordpress.hasUpdate,
+        vulnerable_plugins: nodeData.wordpress.plugins?.filter(p => p.hasVulnerability).length || 0,
+        plugin_updates: nodeData.wordpress.plugins?.filter(p => p.hasUpdate).length || 0,
+        theme_updates: nodeData.wordpress.themes?.filter(t => t.hasUpdate).length || 0,
+        admin_accessible: nodeData.wordpress.adminAccessible,
+        xmlrpc_enabled: nodeData.wordpress.xmlrpcEnabled,
+        users_enumeration_exposed: nodeData.wordpress.usersEnumerationExposed,
+        enumerated_users: nodeData.wordpress.enumeratedUsers || [],
+        detected_plugins: nodeData.wordpress.plugins || [],
+        detected_theme: nodeData.wordpress.themes?.[0] || {},
+        vulnerabilities: nodeData.wordpress.plugins?.filter(p => p.hasVulnerability).map(p => ({
+          name: p.name,
+          version: p.version,
+          cve: "CVE-UNKNOWN",
+          msg: p.vulnerabilityDetails
+        })) || [],
+        healthScore: nodeData.wordpress.healthScore,
+        databaseHealth: nodeData.wordpress.databaseHealth,
+        brokenLinks: nodeData.wordpress.brokenLinks || [],
+        formsAudited: nodeData.wordpress.formsAudited || [],
+        googleAnalytics: nodeData.wordpress.googleAnalytics
+      } : null,
+      performance: {
+        performance_score: nodeData.latestStatus?.performance?.performanceScore || 90,
+        vitals: nodeData.latestStatus?.performance?.vitals || {}
+      },
+      seo: {
+        seo_score: nodeData.latestStatus?.seo?.seoScore || 85,
+        title: { text: "WordPress Title" }
+      },
+      security: {
+        security_score: nodeData.latestStatus?.security?.securityScore || 90,
+        ssl: nodeData.latestStatus?.ssl || {},
+        headers: nodeData.latestStatus?.security?.headers || {}
+      },
+      all_alerts: nodeData.activeAlerts || []
+    };
+  };
+
+  const executeSreScan = async (targetUrl) => {
+    if (activeEngine === "node") {
+      const base = "http://localhost:5000";
+      // 1. Trigger Audit
+      const auditResp = await fetch(`${base}/api/audit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: targetUrl })
+      });
+      if (!auditResp.ok) {
+        throw new Error(`Node Engine Uptime Audit Failed: HTTP ${auditResp.status}`);
+      }
+      
+      // 2. Fetch Compiled Stats
+      const statsResp = await fetch(`${base}/api/stats?url=${encodeURIComponent(targetUrl)}`);
+      if (!statsResp.ok) {
+        throw new Error(`Node Engine Stats Compilation Failed: HTTP ${statsResp.status}`);
+      }
+      const nodeStats = await statsResp.json();
+      
+      // 3. Map Node Stats to React UIs State
+      const mapped = mapNodeToReactState(nodeStats);
+      
+      // 4. Map historical charts
+      const historyLog = nodeStats.historyLog || [];
+      const labels = historyLog.map(h => new Date(h.checkedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })).reverse();
+      const overall_scores = historyLog.map(h => h.wordpress?.healthScore || h.performance?.performanceScore || 85).reverse();
+      const performance_scores = historyLog.map(h => h.performance?.performanceScore || 85).reverse();
+      const seo_scores = historyLog.map(h => h.seo?.seoScore || 80).reverse();
+      const security_scores = historyLog.map(h => h.security?.securityScore || 90).reverse();
+      const load_times = historyLog.map(h => h.loadTimeMs || 0).reverse();
+      const status_codes = historyLog.map(h => h.statusCode || 200).reverse();
+
+      setStatsData({
+        labels,
+        overall_scores,
+        performance_scores,
+        seo_scores,
+        security_scores,
+        load_times,
+        status_codes
+      });
+      
+      return mapped;
+    } else {
+      // Django standard scan path
+      const response = await fetch(`${API_BASE_URL}/api/analyze/?url=${encodeURIComponent(targetUrl)}&lang=${encodeURIComponent(selectedLanguage)}`);
+      if (!response.ok) {
+        let errMsg = `HTTP ${response.status}`;
+        try {
+          const body = await response.json();
+          errMsg = body.error || errMsg;
+        } catch { }
+        throw new Error(errMsg);
+      }
+      return await response.json();
+    }
+  };
+
   // SRE Authentication State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginEmail, setLoginEmail] = useState("");
@@ -433,7 +557,7 @@ function App() {
   // Dynamic backend SRE SMTP sync helper
   const syncActiveAccountToBackend = async (email) => {
     try {
-      const resp = await fetch("/api/settings/");
+      const resp = await fetch(getEngineBaseUrl() + "/api/settings/");
       let slack = "https://hooks.slack.com/services/T00/B00/XRE2026";
       let telegram = "-10098471203";
       let pwd = "";
@@ -443,7 +567,7 @@ function App() {
         telegram = d.telegram_chat_id || telegram;
         pwd = d.email_host_password || pwd;
       }
-      await fetch("/api/settings/", {
+      await fetch(getEngineBaseUrl() + "/api/settings/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -465,9 +589,10 @@ function App() {
   };
 
   const fetchDbDiag = async () => {
+    if (activeEngine !== "django") return; // Diagnostics only available on SQLite Django
     setDbDiagLoading(true);
     try {
-      const resp = await fetch("/api/db-diagnostics/");
+      const resp = await fetch(getEngineBaseUrl() + "/api/db-diagnostics/");
       if (resp.ok) {
         const d = await resp.json();
         setDbDiag(d);
@@ -482,14 +607,15 @@ function App() {
 
   const fetchSreSettings = async () => {
     try {
-      const resp = await fetch("/api/settings/");
+      const resp = await fetch(getEngineBaseUrl() + "/api/settings/");
       if (resp.ok) {
         const d = await resp.json();
-        setSlackWebhook(d.slack_webhook || "");
-        setTelegramChatId(d.telegram_chat_id || "");
-        setCriticalEmail(d.critical_email || "");
-        setGmailAccount(d.email_host_user || "");
-        setGmailPassword(d.email_host_password || "");
+        const settings = d.settings || d; // Handle unified settings response shape
+        setSlackWebhook(settings.slack_webhook || "");
+        setTelegramChatId(settings.telegram_chat_id || "");
+        setCriticalEmail(settings.critical_email || "");
+        setGmailAccount(settings.email_host_user || "");
+        setGmailPassword(settings.email_host_password || "");
       }
     } catch (e) {
       console.error("Failed to load SRE settings:", e);
@@ -503,12 +629,12 @@ function App() {
     if (activeTab === "settings") {
       fetchDbDiag();
     }
-  }, [activeTab]);
+  }, [activeTab, activeEngine]);
 
   const handleSaveSettings = async () => {
     setSettingsStatus({ type: 'info', message: "Synchronizing settings with SRE environment..." });
     try {
-      const resp = await fetch("/api/settings/", {
+      const resp = await fetch(getEngineBaseUrl() + "/api/settings/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -520,7 +646,7 @@ function App() {
         })
       });
       const res = await resp.json();
-      if (resp.ok && res.success) {
+      if (resp.ok && (res.success || res.settings)) {
         setSettingsStatus({ type: 'success', message: res.message || "All configuration parameters synchronized and saved successfully!" });
         fetchSreSettings();
       } else {
@@ -536,7 +662,7 @@ function App() {
     setSettingsStatus({ type: 'info', message: "Attempting SMTP handshake and dispatching test alert..." });
     try {
       // First save settings to ensure latest credentials are used
-      const saveResp = await fetch("/api/settings/", {
+      const saveResp = await fetch(getEngineBaseUrl() + "/api/settings/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -548,12 +674,12 @@ function App() {
         })
       });
       const saveRes = await saveResp.json();
-      if (!saveResp.ok || !saveRes.success) {
+      if (!saveResp.ok || (!saveRes.success && !saveRes.settings)) {
         throw new Error(saveRes.error || "Failed to save settings prior to testing");
       }
 
       // Trigger test email
-      const resp = await fetch("/api/send-test-email/", { method: "POST" });
+      const resp = await fetch(getEngineBaseUrl() + "/api/send-test-email/", { method: "POST" });
       const res = await resp.json();
       if (resp.ok && res.success) {
         setSettingsStatus({ type: 'success', message: res.message });
@@ -568,10 +694,11 @@ function App() {
   };
 
   const handleDbVacuum = async () => {
+    if (activeEngine !== "django") return; // SQLite vacuum only on Django
     setDbVacuumLoading(true);
     setDbLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] SQLite VACUUM: Initiating defragmentation sweep...`]);
     try {
-      const resp = await fetch("/api/db-vacuum/");
+      const resp = await fetch(getEngineBaseUrl() + "/api/db-vacuum/");
       if (resp.ok) {
         const d = await resp.json();
         setDbDiag(prev => prev ? {
@@ -803,25 +930,7 @@ function App() {
     setData(null);
     setStatsData(null);
 
-    const fetchPromise = (async () => {
-      const response = await fetch(
-        `${API_BASE_URL}/api/analyze/?url=${encodeURIComponent(url)}&lang=${encodeURIComponent(selectedLanguage)}`
-      );
-      if (!response.ok) {
-        let errMsg = `HTTP ${response.status}`;
-        try {
-          const body = await response.json();
-          errMsg = body.error || errMsg;
-        } catch {
-          try {
-            const text = await response.text();
-            errMsg = text || errMsg;
-          } catch { }
-        }
-        throw new Error(errMsg);
-      }
-      return await response.json();
-    })();
+    const fetchPromise = executeSreScan(url);
 
     await startScanSimulation(fetchPromise, false, targetTab);
   };
@@ -833,18 +942,7 @@ function App() {
     setData(null);
     setStatsData(null);
 
-    const fetchPromise = (async () => {
-      const response = await fetch(`${API_BASE_URL}/api/analyze/?url=${encodeURIComponent(targetUrl)}&lang=${encodeURIComponent(selectedLanguage)}`);
-      if (!response.ok) {
-        let errMsg = `HTTP ${response.status}`;
-        try {
-          const body = await response.json();
-          errMsg = body.error || errMsg;
-        } catch { }
-        throw new Error(errMsg);
-      }
-      return await response.json();
-    })();
+    const fetchPromise = executeSreScan(targetUrl);
 
     startScanSimulation(fetchPromise, false, targetTab);
   };
@@ -857,12 +955,17 @@ function App() {
 
     if (isBackground) {
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/api/quick-analyze/?url=${encodeURIComponent(url)}&lang=${encodeURIComponent(selectedLanguage)}`
-        );
-        if (response.ok) {
-          const result = await response.json();
+        if (activeEngine === "node") {
+          const result = await executeSreScan(url);
           setData(result);
+        } else {
+          const response = await fetch(
+            `${API_BASE_URL}/api/quick-analyze/?url=${encodeURIComponent(url)}&lang=${encodeURIComponent(selectedLanguage)}`
+          );
+          if (response.ok) {
+            const result = await response.json();
+            setData(result);
+          }
         }
       } catch (e) {
         console.error("Background quick scan auto-monitor failed:", e);
@@ -874,23 +977,27 @@ function App() {
     setData(null);
 
     const fetchPromise = (async () => {
-      const response = await fetch(
-        `${API_BASE_URL}/api/quick-analyze/?url=${encodeURIComponent(url)}&lang=${encodeURIComponent(selectedLanguage)}`
-      );
-      if (!response.ok) {
-        let errMsg = `HTTP ${response.status}`;
-        try {
-          const body = await response.json();
-          errMsg = body.error || errMsg;
-        } catch {
+      if (activeEngine === "node") {
+        return await executeSreScan(url);
+      } else {
+        const response = await fetch(
+          `${API_BASE_URL}/api/quick-analyze/?url=${encodeURIComponent(url)}&lang=${encodeURIComponent(selectedLanguage)}`
+        );
+        if (!response.ok) {
+          let errMsg = `HTTP ${response.status}`;
           try {
-            const text = await response.text();
-            errMsg = text || errMsg;
-          } catch { }
+            const body = await response.json();
+            errMsg = body.error || errMsg;
+          } catch (e) {
+            try {
+              const text = await response.text();
+              errMsg = text || errMsg;
+            } catch { }
+          }
+          throw new Error(errMsg);
         }
-        throw new Error(errMsg);
+        return await response.json();
       }
-      return await response.json();
     })();
 
     await startScanSimulation(fetchPromise, true, targetTab);
@@ -903,6 +1010,7 @@ function App() {
   };
 
   const fetchStats = async (targetUrl) => {
+    if (activeEngine === "node") return; // Node sets statsData directly in executeSreScan!
     try {
       const response = await fetch(`${API_BASE_URL}/api/history-stats/?url=${encodeURIComponent(targetUrl)}`);
       if (response.ok) {
@@ -1497,7 +1605,33 @@ function App() {
             </div>
           </button>
 
-            <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-color)', margin: '0 8px' }}></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-surface-low)', border: '1px solid var(--border-color)', padding: '4px 10px', borderRadius: '10px', height: '36px' }}>
+            <span className="material-icons" style={{ fontSize: '16px', color: 'var(--primary)' }}>dns</span>
+            <select
+              value={activeEngine}
+              onChange={(e) => {
+                const newEngine = e.target.value;
+                setActiveEngine(newEngine);
+                localStorage.setItem("sre_active_engine", newEngine);
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-main)',
+                fontSize: '0.8rem',
+                fontWeight: '700',
+                outline: 'none',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-display)',
+                paddingRight: '6px'
+              }}
+            >
+              <option value="django" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-normal)' }}>Django SRE Engine</option>
+              <option value="node" style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-normal)' }}>Node SRE Engine</option>
+            </select>
+          </div>
+
+          <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-color)', margin: '0 8px' }}></div>
 
             {/* Language picker */}
             <div style={{ position: 'relative' }}>
@@ -4405,94 +4539,96 @@ function App() {
                   </div>
 
                   {/* SQLite Database Diagnostics & SRE Maintenance */}
-                  <div className="col-span-12 details-panel" style={{ marginTop: '24px' }}>
-                    <h3>
-                      <span className="material-icons" style={{ verticalAlign: 'middle', marginRight: '6px', color: 'var(--primary)' }}>storage</span>
-                      SQLite Database Diagnostics & SRE Maintenance
-                    </h3>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '4px', marginBottom: '20px' }}>
-                      Audit active table structures and optimize SQLite disk blocks. Reclaim storage space and verify persistent indexes.
-                    </p>
+                  {activeEngine === "django" && (
+                    <div className="col-span-12 details-panel" style={{ marginTop: '24px' }}>
+                      <h3>
+                        <span className="material-icons" style={{ verticalAlign: 'middle', marginRight: '6px', color: 'var(--primary)' }}>storage</span>
+                        SQLite Database Diagnostics & SRE Maintenance
+                      </h3>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '4px', marginBottom: '20px' }}>
+                        Audit active table structures and optimize SQLite disk blocks. Reclaim storage space and verify persistent indexes.
+                      </p>
 
-                    <div className="grid grid-cols-12 gap-6">
-                      {/* Metric Badges */}
-                      <div className="col-span-12 md:col-span-6" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                        <div className="diag-widget-card">
-                          <div className="diag-metric-label">SQLite Disk Size</div>
-                          <div className="diag-metric-number">
-                            {dbDiagLoading ? "Loading..." : `${dbDiag?.size_mb ?? '1.54'} MB`}
+                      <div className="grid grid-cols-12 gap-6">
+                        {/* Metric Badges */}
+                        <div className="col-span-12 md:col-span-6" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                          <div className="diag-widget-card">
+                            <div className="diag-metric-label">SQLite Disk Size</div>
+                            <div className="diag-metric-number">
+                              {dbDiagLoading ? "Loading..." : `${dbDiag?.size_mb ?? '1.54'} MB`}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                              File: db.sqlite3
+                            </div>
                           </div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                            File: db.sqlite3
+
+                          <div className="diag-widget-card">
+                            <div className="diag-metric-label">DB Integrity</div>
+                            <div className="diag-metric-number" style={{ color: dbDiag?.integrity_ok ? 'var(--success)' : 'var(--error)' }}>
+                              {dbDiagLoading ? "Loading..." : (dbDiag?.integrity_ok ? "PASS" : "FAIL")}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                              PRAGMA check
+                            </div>
+                          </div>
+
+                          <div className="diag-widget-card">
+                            <div className="diag-metric-label">Reports Logged</div>
+                            <div className="diag-metric-number">
+                              {dbDiagLoading ? "Loading..." : (dbDiag?.reports_count ?? 108)}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                              AnalysisReport rows
+                            </div>
+                          </div>
+
+                          <div className="diag-widget-card">
+                            <div className="diag-metric-label">Alert Records</div>
+                            <div className="diag-metric-number">
+                              {dbDiagLoading ? "Loading..." : (dbDiag?.alerts_count ?? 935)}
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                              AlertHistory rows
+                            </div>
                           </div>
                         </div>
 
-                        <div className="diag-widget-card">
-                          <div className="diag-metric-label">DB Integrity</div>
-                          <div className="diag-metric-number" style={{ color: dbDiag?.integrity_ok ? 'var(--success)' : 'var(--error)' }}>
-                            {dbDiagLoading ? "Loading..." : (dbDiag?.integrity_ok ? "PASS" : "FAIL")}
+                        {/* Control Panel / Console Logs */}
+                        <div className="col-span-12 md:col-span-6 flex flex-col justify-between" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                          <div style={{ padding: '16px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '12px', border: '1px solid var(--border-color)', flex: 1 }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Database Optimization Engine</span>
+                            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '6px', marginBottom: '14px' }}>
+                              Defragment the persistent storage engine. Executes standard SQL VACUUM, rebuilding all primary key B-Trees.
+                            </p>
+                            <button
+                              className="scan-btn"
+                              style={{ padding: '12px 20px', width: '100%', justifyContent: 'center', background: dbVacuumLoading ? 'var(--bg-surface-high)' : '' }}
+                              disabled={dbVacuumLoading || dbDiagLoading}
+                              onClick={handleDbVacuum}
+                            >
+                              <span className="material-icons">{dbVacuumLoading ? 'sync' : 'auto_mode'}</span>
+                              <span>{dbVacuumLoading ? 'Defragmenting tables...' : 'Run SQLite DB Defragmentation'}</span>
+                            </button>
                           </div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                            PRAGMA check
+
+                          <div className="terminal-container" style={{ margin: '0', borderLeftColor: 'var(--secondary)' }}>
+                            <div className="terminal-header" style={{ padding: '8px 14px' }}>
+                              <span className="terminal-title" style={{ fontSize: '0.7rem' }}>sqlite-engine-logs</span>
+                              <button className="theme-btn" style={{ padding: '2px 8px', fontSize: '0.65rem' }} onClick={() => setDbLogs(["sqlite@monitorpro:~$ Console logs flushed."])}>Clear Logs</button>
+                            </div>
+                            <div className="terminal-body" style={{ minHeight: '110px', maxHeight: '140px', padding: '12px', fontSize: '0.78rem', color: '#38bdf8' }}>
+                              {dbLogs.map((log, idx) => (
+                                <div key={idx} style={{ marginBottom: '3px' }}>
+                                  {log}
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
 
-                        <div className="diag-widget-card">
-                          <div className="diag-metric-label">Reports Logged</div>
-                          <div className="diag-metric-number">
-                            {dbDiagLoading ? "Loading..." : (dbDiag?.reports_count ?? 108)}
-                          </div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                            AnalysisReport rows
-                          </div>
-                        </div>
-
-                        <div className="diag-widget-card">
-                          <div className="diag-metric-label">Alert Records</div>
-                          <div className="diag-metric-number">
-                            {dbDiagLoading ? "Loading..." : (dbDiag?.alerts_count ?? 935)}
-                          </div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                            AlertHistory rows
-                          </div>
-                        </div>
                       </div>
-
-                      {/* Control Panel / Console Logs */}
-                      <div className="col-span-12 md:col-span-6 flex flex-col justify-between" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <div style={{ padding: '16px', backgroundColor: 'var(--bg-surface-low)', borderRadius: '12px', border: '1px solid var(--border-color)', flex: 1 }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Database Optimization Engine</span>
-                          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '6px', marginBottom: '14px' }}>
-                            Defragment the persistent storage engine. Executes standard SQL VACUUM, rebuilding all primary key B-Trees.
-                          </p>
-                          <button
-                            className="scan-btn"
-                            style={{ padding: '12px 20px', width: '100%', justifyContent: 'center', background: dbVacuumLoading ? 'var(--bg-surface-high)' : '' }}
-                            disabled={dbVacuumLoading || dbDiagLoading}
-                            onClick={handleDbVacuum}
-                          >
-                            <span className="material-icons">{dbVacuumLoading ? 'sync' : 'auto_mode'}</span>
-                            <span>{dbVacuumLoading ? 'Defragmenting tables...' : 'Run SQLite DB Defragmentation'}</span>
-                          </button>
-                        </div>
-
-                        <div className="terminal-container" style={{ margin: '0', borderLeftColor: 'var(--secondary)' }}>
-                          <div className="terminal-header" style={{ padding: '8px 14px' }}>
-                            <span className="terminal-title" style={{ fontSize: '0.7rem' }}>sqlite-engine-logs</span>
-                            <button className="theme-btn" style={{ padding: '2px 8px', fontSize: '0.65rem' }} onClick={() => setDbLogs(["sqlite@monitorpro:~$ Console logs flushed."])}>Clear Logs</button>
-                          </div>
-                          <div className="terminal-body" style={{ minHeight: '110px', maxHeight: '140px', padding: '12px', fontSize: '0.78rem', color: '#38bdf8' }}>
-                            {dbLogs.map((log, idx) => (
-                              <div key={idx} style={{ marginBottom: '3px' }}>
-                                {log}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
                     </div>
-                  </div>
+                  )}
 
                 </div>
 

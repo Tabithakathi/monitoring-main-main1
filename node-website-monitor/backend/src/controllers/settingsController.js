@@ -112,7 +112,88 @@ const saveSettings = async (req, res) => {
   }
 };
 
+/**
+ * Test SMTP connection and dispatch test email
+ */
+const testEmail = async (req, res) => {
+  const nodemailer = require('nodemailer');
+  let settings = {
+    critical_email: 'alex.rivera@monitorpro.sre',
+    email_host_user: '',
+    email_host_password: '',
+    alerts_enabled: true
+  };
+
+  try {
+    if (fs.existsSync(settingsPath)) {
+      const data = fs.readFileSync(settingsPath, 'utf8');
+      settings = { ...settings, ...JSON.parse(data) };
+    }
+  } catch (err) {
+    console.error('⚠️ Failed to read settings in testEmail:', err.message);
+  }
+
+  const recipient = settings.critical_email;
+  const hostUser = settings.email_host_user;
+  const hostPass = settings.email_host_password;
+
+  if (!recipient) {
+    return res.status(400).json({ success: false, error: 'No email recipient configured. Please save a critical email recipient first.' });
+  }
+
+  const subject = "TEST SRE ALERT: Gmail Connection Verified";
+  const text = `Hello SRE Operator,\n\nThis is a real-time test alert from your MonitorPro SRE Dashboard.\nYour Gmail SMTP configuration is working perfectly!\n\nStatus: OPERATIONAL\nTimestamp: ${new Date().toISOString().replace('T', ' ').substring(0, 19)} UTC\n\nSystem: MonitorPro Enterprise SRE Console`;
+
+  const html = `
+    <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; max-width: 600px;">
+      <h2 style="color: #4f46e5; margin-top: 0;">TEST SRE ALERT: Gmail Connection Verified</h2>
+      <p>Hello SRE Operator,</p>
+      <p>This is a real-time test alert from your MonitorPro SRE Dashboard. Your Gmail SMTP configuration is working perfectly!</p>
+      <div style="background-color: #f1f5f9; padding: 15px; border-radius: 6px; font-family: monospace; margin: 15px 0;">
+        <strong>Status:</strong> OPERATIONAL<br/>
+        <strong>Timestamp:</strong> ${new Date().toISOString().replace('T', ' ').substring(0, 19)} UTC
+      </div>
+      <p style="color: #64748b; font-size: 12px; margin-bottom: 0;">System: MonitorPro Enterprise SRE Console</p>
+    </div>
+  `;
+
+  // Log to email_delivery.log for SRE audit trail
+  const time = new Date().toISOString();
+  const logMsg = `[${time}] EMAIL DISPATCHED TO: ${recipient}\nSUBJECT: ${subject}\n\n${text}\n--------------------------------------------------\n\n`;
+  try {
+    fs.appendFileSync(emailLogPath, logMsg, 'utf-8');
+  } catch (err) {
+    console.error('⚠️ Failed to log test email:', err.message);
+  }
+
+  if (hostUser && hostPass) {
+    try {
+      const isGmail = hostUser.toLowerCase().includes("@gmail.com");
+      const transporter = nodemailer.createTransport({
+        host: isGmail ? 'smtp.gmail.com' : (process.env.EMAIL_HOST || 'localhost'),
+        port: isGmail ? 587 : (parseInt(process.env.EMAIL_PORT) || 25),
+        secure: !isGmail && process.env.EMAIL_USE_SSL === 'true',
+        auth: { user: hostUser, pass: hostPass }
+      });
+
+      await transporter.sendMail({
+        from: hostUser,
+        to: recipient,
+        subject,
+        text,
+        html
+      });
+      return res.status(200).json({ success: true, message: `Test alert email successfully dispatched to ${recipient} via SMTP.` });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: `SMTP Connection Failed: ${err.message}` });
+    }
+  } else {
+    return res.status(200).json({ success: true, message: `Test alert email successfully dispatched to console/logs (SMTP Credentials omitted).` });
+  }
+};
+
 module.exports = {
   getSettings,
-  saveSettings
+  saveSettings,
+  testEmail
 };

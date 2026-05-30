@@ -23,6 +23,10 @@ export default function AccessibilityAudit({ uiUxData, mobileFriendliness }) {
     missingLabelsViolations = [],
     emptyButtonsViolations = [],
     fixedWidthViolations = [],
+    zoomBlockingViolations = [],
+    nonDescriptiveLinkViolations = [],
+    disabledOutlineViolations = [],
+    missingImageAltViolations = [],
     responsiveness = { hasResponsiveStyles: true, mediaQueriesCount: 0, status: 'ok', message: '' }
   } = uiUxData;
 
@@ -43,6 +47,10 @@ export default function AccessibilityAudit({ uiUxData, mobileFriendliness }) {
     missingLabelsViolations.length + 
     emptyButtonsViolations.length +
     fixedWidthViolations.length +
+    zoomBlockingViolations.length +
+    nonDescriptiveLinkViolations.length +
+    disabledOutlineViolations.length +
+    missingImageAltViolations.length +
     (!mobileFriendliness?.viewportConfigured ? 1 : 0);
 
   // Device dimension descriptors
@@ -112,9 +120,9 @@ export default function AccessibilityAudit({ uiUxData, mobileFriendliness }) {
               WCAG Accessibility Pillars
             </span>
             
-            <div className="space-y-3.5 mt-2 text-xs">
-              <div className="flex justify-between items-center py-1.5 border-b border-slate-800/40">
-                <span className="text-slate-400">Total Checked Violations:</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 mt-2 text-xs">
+              <div className="flex justify-between items-center py-1.5 border-b border-slate-800/40 col-span-1 md:col-span-2">
+                <span className="text-slate-400 font-semibold">Total Checked Violations:</span>
                 <span className={`font-extrabold text-[11px] px-2 py-0.5 rounded-full ${totalViolations === 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400 animate-pulse'}`}>
                   {totalViolations} {totalViolations === 1 ? 'Anomaly' : 'Anomalies'} Detected
                 </span>
@@ -134,10 +142,38 @@ export default function AccessibilityAudit({ uiUxData, mobileFriendliness }) {
                 </span>
               </div>
 
-              <div className="flex justify-between items-center py-1.5">
+              <div className="flex justify-between items-center py-1.5 border-b border-slate-800/40">
                 <span className="text-slate-400">Unbound Form Input Labels:</span>
                 <span className={`font-bold ${missingLabelsViolations.length > 0 ? 'text-rose-455' : 'text-slate-350'}`}>
                   {missingLabelsViolations.length} violations
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center py-1.5 border-b border-slate-800/40">
+                <span className="text-slate-400">Zoom-blocking Viewports:</span>
+                <span className={`font-bold ${zoomBlockingViolations.length > 0 ? 'text-rose-455' : 'text-slate-350'}`}>
+                  {zoomBlockingViolations.length} violations
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center py-1.5 border-b border-slate-800/40">
+                <span className="text-slate-400">Non-Descriptive Link Labels:</span>
+                <span className={`font-bold ${nonDescriptiveLinkViolations.length > 0 ? 'text-amber-400' : 'text-slate-350'}`}>
+                  {nonDescriptiveLinkViolations.length} violations
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center py-1.5 border-b border-slate-800/40">
+                <span className="text-slate-400">Disabled Focus Outlines:</span>
+                <span className={`font-bold ${disabledOutlineViolations.length > 0 ? 'text-rose-455' : 'text-slate-350'}`}>
+                  {disabledOutlineViolations.length} violations
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center py-1.5 border-b border-slate-800/40 col-span-1 md:col-span-2">
+                <span className="text-slate-400">Missing Image Alt Texts:</span>
+                <span className={`font-bold ${missingImageAltViolations.length > 0 ? 'text-rose-455' : 'text-slate-350'}`}>
+                  {missingImageAltViolations.length} violations
                 </span>
               </div>
             </div>
@@ -472,6 +508,110 @@ export default function AccessibilityAudit({ uiUxData, mobileFriendliness }) {
                       <p className="text-slate-200 font-semibold">{v.message}</p>
                       <p className="text-[10px] text-slate-500 leading-normal">
                         Suggestion: Screen readers cannot parse empty tags. Add inner descriptive text anchors, or bind aria-label="Button Function" to provide direct auditable headers.
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Zoom-blocking Viewport Warnings */}
+          <div>
+            <span className="text-slate-400 font-bold uppercase tracking-wider block text-[10px] mb-3">Zoom-Blocking Viewports</span>
+            {zoomBlockingViolations.length === 0 ? (
+              <div className="p-5 border border-dashed border-slate-800 text-center text-slate-500 text-xs rounded-xl flex items-center justify-center gap-2 bg-dark-900/20">
+                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                No zoom scaling limitations detected. Users can scale the browser layout cleanly.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {zoomBlockingViolations.map((v, i) => (
+                  <div key={i} className="p-4 bg-dark-850/40 border-l-4 border-l-rose-500 border border-slate-800/60 rounded-xl flex gap-3.5 text-xs hover:border-slate-700 transition-all shadow-md">
+                    <XCircle className="text-rose-400 h-5 w-5 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <code className="text-slate-300 font-mono text-[10px] bg-slate-950/60 px-2 py-0.5 rounded border border-slate-800/60 inline-block mb-1">{v.element}</code>
+                      <p className="text-slate-200 font-semibold">{v.message}</p>
+                      <p className="text-[10px] text-slate-500 leading-normal">
+                        Suggestion: Remove user-scalable=no, user-scalable=0, or maximum-scale=1 attributes from your viewport configuration meta tag.
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Non-Descriptive Anchor Text Warnings */}
+          <div>
+            <span className="text-slate-400 font-bold uppercase tracking-wider block text-[10px] mb-3">Non-Descriptive Anchor Labels</span>
+            {nonDescriptiveLinkViolations.length === 0 ? (
+              <div className="p-5 border border-dashed border-slate-800 text-center text-slate-500 text-xs rounded-xl flex items-center justify-center gap-2 bg-dark-900/20">
+                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                No generic link text discovered. All hyperlink anchors are descriptive.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {nonDescriptiveLinkViolations.map((v, i) => (
+                  <div key={i} className="p-4 bg-dark-850/40 border-l-4 border-l-amber-500 border border-slate-800/60 rounded-xl flex gap-3.5 text-xs hover:border-slate-700 transition-all shadow-md">
+                    <AlertTriangle className="text-amber-500 h-5 w-5 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <code className="text-slate-300 font-mono text-[10px] bg-slate-950/60 px-2 py-0.5 rounded border border-slate-800/60 inline-block mb-1">{v.element}</code>
+                      <p className="text-slate-200 font-semibold">{v.message}</p>
+                      <p className="text-[10px] text-slate-500 leading-normal">
+                        Suggestion: Change generic words like "click here" or "read more" to descriptive labels explaining the destination (e.g. "Read our privacy policy").
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Disabled Outline / Focus Warnings */}
+          <div>
+            <span className="text-slate-400 font-bold uppercase tracking-wider block text-[10px] mb-3">Disabled Outlines / Focus Visibility</span>
+            {disabledOutlineViolations.length === 0 ? (
+              <div className="p-5 border border-dashed border-slate-800 text-center text-slate-500 text-xs rounded-xl flex items-center justify-center gap-2 bg-dark-900/20">
+                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                No outline-suppression styles discovered. Outline ring properties are active.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {disabledOutlineViolations.map((v, i) => (
+                  <div key={i} className="p-4 bg-dark-850/40 border-l-4 border-l-rose-500 border border-slate-800/60 rounded-xl flex gap-3.5 text-xs hover:border-slate-700 transition-all shadow-md">
+                    <XCircle className="text-rose-400 h-5 w-5 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <code className="text-slate-300 font-mono text-[10px] bg-slate-950/60 px-2 py-0.5 rounded border border-slate-800/60 inline-block mb-1">{v.element}</code>
+                      <p className="text-slate-200 font-semibold">{v.message}</p>
+                      <p className="text-[10px] text-slate-500 leading-normal">
+                        Suggestion: Avoid using outline: none or outline: 0 without defining custom focus outline styles to support screen readers and keyboard users.
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Missing Image Alternative Texts */}
+          <div>
+            <span className="text-slate-400 font-bold uppercase tracking-wider block text-[10px] mb-3">Image Alternative Description Audits</span>
+            {missingImageAltViolations.length === 0 ? (
+              <div className="p-5 border border-dashed border-slate-800 text-center text-slate-500 text-xs rounded-xl flex items-center justify-center gap-2 bg-dark-900/20">
+                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                All image elements are labeled with descriptive alt tag text structures.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {missingImageAltViolations.map((v, i) => (
+                  <div key={i} className="p-4 bg-dark-850/40 border-l-4 border-l-rose-500 border border-slate-800/60 rounded-xl flex gap-3.5 text-xs hover:border-slate-700 transition-all shadow-md">
+                    <XCircle className="text-rose-400 h-5 w-5 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <code className="text-slate-300 font-mono text-[10px] bg-slate-950/60 px-2 py-0.5 rounded border border-slate-800/60 inline-block mb-1">{v.element}</code>
+                      <p className="text-slate-200 font-semibold">{v.message}</p>
+                      <p className="text-[10px] text-slate-500 leading-normal">
+                        Suggestion: Add a descriptive alt="Description of image" attribute to provide context for visually impaired operators.
                       </p>
                     </div>
                   </div>

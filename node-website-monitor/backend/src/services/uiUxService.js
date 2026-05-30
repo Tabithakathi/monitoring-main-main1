@@ -1,6 +1,9 @@
+const cheerio = require('cheerio');
+
 /**
  * Scan DOM properties for accessibility violations, low contrast layouts, 
- * missing form input label tags, and empty buttons.
+ * missing form input label tags, empty buttons, zoom-blocking viewports,
+ * generic descriptive links, missing focus indicators, and empty image alt attributes.
  * 
  * @param {string} htmlContent - Webpage raw markup.
  * @returns {object} Accessibility and UI report payload.
@@ -11,148 +14,226 @@ const analyzeUiUx = (htmlContent = '') => {
     lowContrastViolations: [],
     missingLabelsViolations: [],
     emptyButtonsViolations: [],
-    responsivenessScore: 100,
+    fixedWidthViolations: [],
+    zoomBlockingViolations: [],
+    nonDescriptiveLinkViolations: [],
+    disabledOutlineViolations: [],
+    missingImageAltViolations: [],
+    responsiveness: { hasResponsiveStyles: true, mediaQueriesCount: 0, status: 'ok', message: '' },
     alerts: []
   };
 
   if (!htmlContent) {
-    return { uiHealthScore: 80, alerts: [] };
+    return { uiHealthScore: 80, alerts: [{ level: 'warning', message: 'No HTML content received for UI/UX audit.' }] };
   }
 
-  // 1. Missing labels and ARIA attributes check
-  const formElements = [];
-  
-  // Extract inputs
-  const inputMatches = [...htmlContent.matchAll(/<input([^>]*)\/?>/gi)];
-  inputMatches.forEach(match => {
-    const attrs = match[1].toLowerCase();
-    if (!attrs.includes('type=["\']hidden["\']') && !attrs.includes('type=hidden')) {
-      formElements.push({
-        tag: 'input',
-        element: match[0],
-        attrs: match[1]
-      });
-    }
-  });
+  try {
+    const $ = cheerio.load(htmlContent);
 
-  // Extract selects
-  const selectMatches = [...htmlContent.matchAll(/<select([^>]*)>/gi)];
-  selectMatches.forEach(match => {
-    formElements.push({
-      tag: 'select',
-      element: match[0],
-      attrs: match[1]
-    });
-  });
-
-  // Extract textareas
-  const textareaMatches = [...htmlContent.matchAll(/<textarea([^>]*)>/gi)];
-  textareaMatches.forEach(match => {
-    formElements.push({
-      tag: 'textarea',
-      element: match[0],
-      attrs: match[1]
-    });
-  });
-
-  for (let el of formElements) {
-    const elementTag = el.element.trim().substring(0, 100);
-    const attrs = el.attrs.toLowerCase();
-    
-    const hasAriaLabel = attrs.includes('aria-label') || attrs.includes('aria-labelledby') || attrs.includes('title=');
-    const idMatch = attrs.match(/id=["']([^"']*)["']/i);
-    let hasMatchingLabel = false;
-    
-    if (idMatch && idMatch[1]) {
-      const elementId = idMatch[1];
-      const labelRegex = new RegExp(`<label[^>]*for=["']${elementId}["'][^>]*>`, 'gi');
-      if (htmlContent.match(labelRegex)) {
-        hasMatchingLabel = true;
+    // 1. Zoom-blocking viewport configuration
+    const viewport = $('meta[name="viewport"]');
+    if (viewport.length > 0) {
+      const content = viewport.attr('content') || '';
+      const contentLower = content.toLowerCase();
+      const hasZoomBlock = contentLower.includes('user-scalable=no') || 
+                           contentLower.includes('user-scalable=0') || 
+                           contentLower.includes('maximum-scale=1') || 
+                           contentLower.includes('maximum-scale=1.0');
+      if (hasZoomBlock) {
+        reports.zoomBlockingViolations.push({
+          element: `<meta name="viewport" content="${content}">`,
+          message: 'Viewport configuration blocks text scaling or user zooming capabilities, violating WCAG Guideline 1.4.4.'
+        });
+        reports.uiHealthScore -= 15;
+        reports.alerts.push({
+          level: 'warning',
+          message: 'Accessibility: Viewport settings block user-scalable zooming, breaking accessibility guidelines.'
+        });
       }
     }
-    
-    if (!hasAriaLabel && !hasMatchingLabel) {
-      reports.missingLabelsViolations.push({
-        element: elementTag,
-        message: `Interactive form <${el.tag}> elements must possess a descriptive label, title, or matching ARIA accessibility attribute.`
-      });
-      reports.uiHealthScore -= 8;
+
+    // 2. Interactive Form Inputs missing labels
+    $('input, textarea, select').each((_, el) => {
+      const tag = el.name.toLowerCase();
+      const type = $(el).attr('type') || '';
+      if (tag === 'input' && type.toLowerCase() === 'hidden') return;
+
+      const elementHtml = $.html(el).substring(0, 120);
+      const id = $(el).attr('id') || '';
+      const ariaLabel = $(el).attr('aria-label') || '';
+      const ariaLabelledby = $(el).attr('aria-labelledby') || '';
+      const title = $(el).attr('title') || '';
+
+      const hasAriaLabel = ariaLabel.trim() || ariaLabelledby.trim() || title.trim();
+      let hasMatchingLabel = false;
+
+      if (id) {
+        if ($(`label[for="${id}"]`).length > 0) {
+          hasMatchingLabel = true;
+        }
+      }
+
+      if (!hasAriaLabel && !hasMatchingLabel) {
+        reports.missingLabelsViolations.push({
+          element: elementHtml,
+          message: `Interactive form <${tag}> element lacks a matching <label> or ARIA description.`
+        });
+        reports.uiHealthScore -= 8;
+        reports.alerts.push({
+          level: 'warning',
+          message: `Accessibility: Interactive <${tag}> element lacks a matching <label> or ARIA-label declaration.`
+        });
+      }
+    });
+
+    // 3. Empty Buttons Check
+    $('button').each((_, el) => {
+      const buttonHtml = $.html(el).substring(0, 125);
+      const textContent = $(el).text().trim();
+      const ariaLabel = $(el).attr('aria-label') || '';
+      const title = $(el).attr('title') || '';
+
+      if (!textContent && !ariaLabel.trim() && !title.trim()) {
+        reports.emptyButtonsViolations.push({
+          element: buttonHtml,
+          message: 'Button elements must contain accessible text, a title, or an aria-label description.'
+        });
+        reports.uiHealthScore -= 10;
+        reports.alerts.push({
+          level: 'warning',
+          message: 'Accessibility: Empty interactive <button> element lacks ARIA description or inner text.'
+        });
+      }
+    });
+
+    // 4. Low Contrast inline style check
+    $('[style]').each((_, el) => {
+      const elementHtml = $.html(el).substring(0, 120);
+      const style = $(el).attr('style') || '';
+      const styleLower = style.toLowerCase();
+
+      // Check for inline contrast indicators
+      const hasLowContrastHex = styleLower.includes('color:#ccc') || 
+                                styleLower.includes('color: #ccc') || 
+                                styleLower.includes('color:#888') ||
+                                styleLower.includes('color: #888') ||
+                                styleLower.includes('color:#999') ||
+                                styleLower.includes('color: #999') ||
+                                styleLower.includes('color:#aaa') ||
+                                styleLower.includes('color: #aaa');
+      if (hasLowContrastHex) {
+        reports.lowContrastViolations.push({
+          element: elementHtml,
+          message: 'Inline style specifies low-contrast text color against the default background layer.'
+        });
+        reports.uiHealthScore -= 12;
+        reports.alerts.push({
+          level: 'warning',
+          message: 'Accessibility: Inline stylesheet colors exhibit poor contrast ratios against background layers.'
+        });
+      }
+
+      // 5. Disabled Focus Outline Check
+      const hasDisabledOutline = styleLower.includes('outline:none') || 
+                                 styleLower.includes('outline: none') || 
+                                 styleLower.includes('outline:0') || 
+                                 styleLower.includes('outline: 0');
+      if (hasDisabledOutline) {
+        reports.disabledOutlineViolations.push({
+          element: elementHtml,
+          message: 'Inline styles disable default focus outlines (outline: none/0), making keyboard navigation impossible.'
+        });
+        reports.uiHealthScore -= 8;
+        reports.alerts.push({
+          level: 'warning',
+          message: 'Accessibility: Outline disable styling violates WCAG keyboard focus visibility rules.'
+        });
+      }
+
+      // 6. Fixed Width Constraints check
+      const widthMatch = styleLower.match(/width:\s*(\d{3,})px/i);
+      if (widthMatch) {
+        const val = parseInt(widthMatch[1], 10);
+        if (val > 360) {
+          reports.fixedWidthViolations.push({
+            element: elementHtml,
+            message: `Absolute width constraints (${widthMatch[0]}) break fluid grid system scaling.`
+          });
+          reports.uiHealthScore -= 5;
+          reports.alerts.push({
+            level: 'warning',
+            message: `UI/UX Warning: Fixed layout width (${widthMatch[0]}) causes content bleed on mobile screen states.`
+          });
+        }
+      }
+    });
+
+    // 7. Non-descriptive links
+    const genericTextRegex = /^(click\s*here|read\s*more|link|more|details|click|go|info|page)$/i;
+    $('a').each((_, el) => {
+      const linkHtml = $.html(el).substring(0, 120);
+      const text = $(el).text().trim();
+      const ariaLabel = $(el).attr('aria-label') || '';
+      const title = $(el).attr('title') || '';
+
+      const accessibleText = text || ariaLabel || title;
+
+      if (genericTextRegex.test(accessibleText.trim())) {
+        reports.nonDescriptiveLinkViolations.push({
+          element: linkHtml,
+          message: `Anchor text "${accessibleText}" is non-descriptive and hinders screen reader accessibility.`
+        });
+        reports.uiHealthScore -= 5;
+        reports.alerts.push({
+          level: 'warning',
+          message: `Accessibility: Generic link anchor text "${accessibleText}" violates WCAG descriptive link rules.`
+        });
+      }
+    });
+
+    // 8. Missing Image Alt Text
+    $('img').each((_, el) => {
+      const imgHtml = $.html(el).substring(0, 130);
+      const alt = $(el).attr('alt');
+      const role = $(el).attr('role') || '';
+
+      // If alt is undefined (attribute missing) and it's not explicitly labeled as decorative role="presentation"
+      if (alt === undefined && role.toLowerCase() !== 'presentation') {
+        reports.missingImageAltViolations.push({
+          element: imgHtml,
+          message: 'Image element lacks an alternative text description (alt attribute), rendering it invisible to screen readers.'
+        });
+        reports.uiHealthScore -= 5;
+        reports.alerts.push({
+          level: 'warning',
+          message: 'Accessibility: Image tag missing alt attribute breaks standard screen reader accessibility.'
+        });
+      }
+    });
+
+    // 9. Media Queries and Responsive Styles Check
+    const mediaQueryMatches = [...htmlContent.matchAll(/@media[^{]+\{/gi)];
+    const hasResponsiveStyles = mediaQueryMatches.length > 0 || htmlContent.includes('flex') || htmlContent.includes('grid') || htmlContent.includes('col-');
+
+    reports.responsiveness = {
+      hasResponsiveStyles,
+      mediaQueriesCount: mediaQueryMatches.length,
+      status: hasResponsiveStyles ? 'ok' : 'warning',
+      message: hasResponsiveStyles 
+        ? `Detected ${mediaQueryMatches.length} stylesheet media breakpoints and responsive flexbox/grid classes.` 
+        : 'No media query breakpoints or responsive container classes discovered in layout.'
+    };
+
+    if (!hasResponsiveStyles) {
+      reports.uiHealthScore -= 15;
       reports.alerts.push({
         level: 'warning',
-        message: `Accessibility: Interactive <${el.tag}> element lacks a matching <label> or ARIA-label declaration.`
+        message: "UI/UX Warning: Web page layout lacks media queries or responsive container properties."
       });
     }
-  }
 
-  // 2. Empty buttons check
-  const buttonMatches = [...htmlContent.matchAll(/<button[^>]*>([\s\S]*?)<\/button>/gi)];
-  for (let match of buttonMatches) {
-    const fullButton = match[0].trim();
-    const content = match[1].replace(/<[^>]*>/g, '').trim();
-    const hasAria = fullButton.toLowerCase().includes('aria-label') || fullButton.toLowerCase().includes('title=');
-    
-    if (!content && !hasAria) {
-      reports.emptyButtonsViolations.push({
-        element: fullButton.substring(0, 100),
-        message: "Button elements must contain accessible inner text, a title, or an aria-label descriptor."
-      });
-      reports.uiHealthScore -= 10;
-      reports.alerts.push({
-        level: 'warning',
-        message: "Accessibility: Discovered an empty interactive <button> lacking an ARIA-label or text description."
-      });
-    }
-  }
-
-  // 3. Low Contrast violations check
-  if (htmlContent.includes("color:#ccc") || htmlContent.includes("color: #ccc") || htmlContent.includes("color:#888")) {
-    reports.lowContrastViolations.push({
-      element: '<span style="color:#ccc; background:#eee">Subtext</span>',
-      message: "Subtext elements fail basic contrast minimums (contrast ratio is below 3.0:1)."
-    });
-    reports.uiHealthScore -= 12;
-    reports.alerts.push({
-      level: 'warning',
-      message: "Accessibility: Subtext inline styles have low contrast ratios against background layers."
-    });
-  }
-
-  // 4. Stylesheet Media Queries & Responsive Layout Probes
-  const mediaQueryMatches = [...htmlContent.matchAll(/@media[^{]+\{/gi)];
-  const hasResponsiveStyles = mediaQueryMatches.length > 0 || htmlContent.includes('flex') || htmlContent.includes('grid') || htmlContent.includes('col-');
-  
-  reports.responsiveness = {
-    hasResponsiveStyles,
-    mediaQueriesCount: mediaQueryMatches.length,
-    status: hasResponsiveStyles ? 'ok' : 'warning',
-    message: hasResponsiveStyles 
-      ? `Detected ${mediaQueryMatches.length} stylesheet media breakpoints and responsive flexbox/grid classes.` 
-      : 'No media query breakpoints or responsive container classes discovered in layout.'
-  };
-
-  if (!hasResponsiveStyles) {
-    reports.uiHealthScore -= 15;
-    reports.alerts.push({
-      level: 'warning',
-      message: "UI/UX Warning: Web page layout lacks media queries or responsive container properties."
-    });
-  }
-
-  // Check for inline styles with fixed pixel widths that can cause content overlap
-  const fixedWidthMatches = [...htmlContent.matchAll(/style=["'][^"']*(width:\s*\d{3,}px)[^"']*["']/gi)];
-  reports.fixedWidthViolations = [];
-  
-  for (let match of fixedWidthMatches) {
-    const fixedWidthRule = match[1];
-    reports.fixedWidthViolations.push({
-      element: match[0].substring(0, 100),
-      message: `Fixed layout width constraints (${fixedWidthRule}) detected in style declarations.`
-    });
-    reports.uiHealthScore -= 5;
-    reports.alerts.push({
-      level: 'warning',
-      message: `UI/UX Warning: Fixed layout width (${fixedWidthRule}) can cause content overflow on mobile devices.`
-    });
+  } catch (e) {
+    console.error(`UI/UX Accessibility Parser error: ${e.message}`);
   }
 
   reports.uiHealthScore = Math.max(10, reports.uiHealthScore);

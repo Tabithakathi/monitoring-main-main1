@@ -32,6 +32,7 @@ export default function SeoDashboard({ seoData }) {
     links = { internalCount: 0, externalCount: 0, brokenCount: 0, brokenLinks: [], status: 'ok' },
     imageAnalysis = { totalImages: 0, withAlt: 0, missingAlt: 0, emptyAlt: 0, lazyLoaded: 0, duplicateAltsCount: 0, duplicateAlts: [], missingAltSrcs: [], imageReportList: [], imageScore: 100, status: 'ok', message: '' },
     structuredData = { schemasCount: 0, invalidSchemasCount: 0, schemaTypes: [], status: 'info', message: '' },
+    metaPlacement = { titleIndex: -1, descIndex: -1, robotsIndex: -1, viewportIndex: -1, renderBlockingCount: 0, metaViolations: [], status: 'ok', message: '' },
     seoScore = 100
   } = seoData;
 
@@ -212,6 +213,119 @@ export default function SeoDashboard({ seoData }) {
               </div>
               <span className="text-[10px] text-slate-500 mt-2 block">{metaDescription?.message}</span>
             </div>
+
+            {/* Meta Tags Placement Checklist */}
+            <div className="pt-4 border-t border-slate-800/80 space-y-3">
+              <span className="text-slate-500 font-bold uppercase tracking-wider block text-[10px]">Head Meta Tags Placement Checklist</span>
+              <div className="space-y-2">
+                {/* Viewport Check */}
+                <div className="flex justify-between items-center py-1 border-b border-slate-800/40">
+                  <span className="text-slate-400">Viewport Scaling Tag:</span>
+                  {(metaPlacement.viewportIndex !== -1 || mobileFriendliness?.viewportConfigured) ? (
+                    <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Optimal
+                    </span>
+                  ) : (
+                    <span className="text-rose-400 font-semibold flex items-center gap-1">
+                      <XCircle className="h-3.5 w-3.5" /> Missing
+                    </span>
+                  )}
+                </div>
+
+                {/* Robots Tag */}
+                <div className="flex justify-between items-center py-1 border-b border-slate-800/40">
+                  <span className="text-slate-400">Robots Directive Tag:</span>
+                  {metaPlacement.robotsIndex !== -1 ? (
+                    <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Present
+                    </span>
+                  ) : (
+                    <span className="text-slate-400 font-semibold flex items-center gap-1">
+                      <Info className="h-3.5 w-3.5" /> Absent (Default index)
+                    </span>
+                  )}
+                </div>
+
+                {/* Canonical Tag */}
+                <div className="flex justify-between items-center py-1 border-b border-slate-800/40">
+                  <span className="text-slate-400">Canonical Tag Placement:</span>
+                  {canonical?.text ? (
+                    <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Optimal
+                    </span>
+                  ) : (
+                    <span className="text-amber-400 font-semibold flex items-center gap-1">
+                      <AlertTriangle className="h-3.5 w-3.5" /> Missing
+                    </span>
+                  )}
+                </div>
+
+                {/* Title Placement Check */}
+                <div className="flex justify-between items-center py-1 border-b border-slate-800/40">
+                  <span className="text-slate-400">Title Tag Position:</span>
+                  {title?.text ? (
+                    metaPlacement.metaViolations.some(v => v.tag === 'title') ? (
+                      <span className="text-amber-400 font-semibold flex items-center gap-1" title="Declared after render-blocking stylesheet or script.">
+                        <AlertTriangle className="h-3.5 w-3.5 animate-pulse" /> Delayed Placement
+                      </span>
+                    ) : (
+                      <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Optimal
+                      </span>
+                    )
+                  ) : (
+                    <span className="text-rose-400 font-semibold flex items-center gap-1">
+                      <XCircle className="h-3.5 w-3.5" /> Missing Title
+                    </span>
+                  )}
+                </div>
+
+                {/* Description Placement Check */}
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-slate-400">Description Position:</span>
+                  {metaDescription?.text ? (
+                    metaPlacement.metaViolations.some(v => v.tag === 'description') ? (
+                      <span className="text-amber-400 font-semibold flex items-center gap-1" title="Declared after render-blocking stylesheet or script.">
+                        <AlertTriangle className="h-3.5 w-3.5 animate-pulse" /> Delayed Placement
+                      </span>
+                    ) : (
+                      <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Optimal
+                      </span>
+                    )
+                  ) : (
+                    <span className="text-rose-400 font-semibold flex items-center gap-1">
+                      <XCircle className="h-3.5 w-3.5" /> Missing Desc
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Render-Blocking Delay Warnings Details */}
+              {metaPlacement.metaViolations.length > 0 && (
+                <div className="mt-3 p-3 bg-amber-950/15 border border-amber-900/20 rounded-xl text-[10px] text-amber-300 space-y-1">
+                  <div className="flex items-center gap-1 font-bold text-amber-400">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    Layout Hierarchy Warnings
+                  </div>
+                  <p className="text-[9.5px] text-slate-450 leading-relaxed">
+                    Render-blocking script or stylesheet tags declared before meta properties delay parsing and slow crawler discovery.
+                  </p>
+                  <div className="space-y-1 font-mono text-[9px] bg-slate-950/40 p-2 rounded border border-slate-800/80 max-h-24 overflow-y-auto">
+                    {metaPlacement.metaViolations.map((v, i) => (
+                      <div key={i} className="leading-tight">
+                        <span className="text-rose-400 font-bold">{v.tag.toUpperCase()}</span> delayed by:
+                        <ul className="list-disc pl-3 text-slate-400 mt-0.5">
+                          {v.blockingResources.map((res, ridx) => (
+                            <li key={ridx} className="truncate" title={res}>{res}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -259,24 +373,76 @@ export default function SeoDashboard({ seoData }) {
         {/* Hierarchy and keywords density map */}
         <div className="col-span-12 md:col-span-6 glass-card p-6 space-y-6">
           <div>
-            <h3 className="text-slate-200 font-extrabold text-sm border-b border-slate-800 pb-3 mb-4 flex items-center gap-2">
-              <Layers className="text-indigo-400 h-4.5 w-4.5" />
-              H1 Page Headings Hierarchy
-            </h3>
-            <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
-              {headings?.h1?.length === 0 ? (
-                <div className="p-3.5 bg-rose-950/10 border border-rose-900/20 rounded-xl flex items-center gap-2">
-                  <AlertTriangle className="text-rose-400 h-4 w-4 shrink-0" />
-                  <span className="text-rose-400 text-xs font-bold leading-normal">No H1 heading tag detected on this page! Suboptimal structural indexability.</span>
-                </div>
-              ) : (
-                headings.h1.map((h, i) => (
-                  <div key={i} className="text-xs p-2.5 bg-indigo-950/15 border border-indigo-900/25 text-indigo-350 rounded-lg font-semibold flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-400 shrink-0 animate-pulse"></span>
-                    {h}
-                  </div>
-                ))
+            <h3 className="text-slate-200 font-extrabold text-sm border-b border-slate-800 pb-3 mb-4 flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <Layers className="text-indigo-400 h-4.5 w-4.5" />
+                H1-H6 Heading Layout Tree
+              </span>
+              {headings?.violations?.length > 0 && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-450 border border-amber-500/25 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3 shrink-0" />
+                  {headings.violations.length} Nesting Jumps
+                </span>
               )}
+            </h3>
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {(() => {
+                let headingsList = headings?.list || [];
+                if (headingsList.length === 0) {
+                  if (headings?.h1) headings.h1.forEach(text => headingsList.push({ tag: 'h1', text, level: 1 }));
+                  if (headings?.h2) headings.h2.forEach(text => headingsList.push({ tag: 'h2', text, level: 2 }));
+                  if (headings?.h3) headings.h3.forEach(text => headingsList.push({ tag: 'h3', text, level: 3 }));
+                  if (headings?.h4) headings.h4.forEach(text => headingsList.push({ tag: 'h4', text, level: 4 }));
+                  if (headings?.h5) headings.h5.forEach(text => headingsList.push({ tag: 'h5', text, level: 5 }));
+                  if (headings?.h6) headings.h6.forEach(text => headingsList.push({ tag: 'h6', text, level: 6 }));
+                }
+
+                if (headingsList.length === 0) {
+                  return (
+                    <div className="p-3.5 bg-rose-950/10 border border-rose-900/20 rounded-xl flex items-center gap-2">
+                      <AlertTriangle className="text-rose-400 h-4 w-4 shrink-0" />
+                      <span className="text-rose-400 text-xs font-bold leading-normal">
+                        No heading tags (H1-H6) detected on this page! Suboptimal structural indexability.
+                      </span>
+                    </div>
+                  );
+                }
+
+                return headingsList.map((h, i) => {
+                  const paddingLeft = `${Math.max(8, (h.level - 1) * 12 + 8)}px`;
+                  return (
+                    <div 
+                      key={i} 
+                      className={`text-xs p-2 bg-dark-800/20 border border-slate-800/40 rounded-lg flex flex-col gap-1 transition-all hover:bg-dark-800/45 ${
+                        h.jumpViolation ? 'border-amber-900/30 bg-amber-950/5' : ''
+                      }`}
+                      style={{ paddingLeft }}
+                    >
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded tracking-wide font-mono ${
+                          h.level === 1 ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' :
+                          h.level === 2 ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20' :
+                          h.level === 3 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                          h.level === 4 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                          h.level === 5 ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                          'bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20'
+                        }`}>
+                          {h.tag.toUpperCase()}
+                        </span>
+                        <span className="text-slate-300 font-semibold truncate max-w-[280px]" title={h.text}>
+                          {h.text || <span className="text-slate-650 italic">Empty heading tag</span>}
+                        </span>
+                        {h.jumpViolation && (
+                          <span className="flex items-center gap-0.5 text-[8px] bg-amber-500/10 border border-amber-500/20 px-1 py-0.2 rounded text-amber-400 font-bold ml-auto animate-pulse">
+                            <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
+                            Jump (from {h.prevTag.toUpperCase()})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
           </div>
 

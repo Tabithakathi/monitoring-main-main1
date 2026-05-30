@@ -170,14 +170,61 @@ const analyzeSeo = async (url, htmlContent = '') => {
     reports.alerts.push({ level: 'warning', message: 'SEO Warning: Missing canonical URL link.' });
   }
 
-  // 4. Heading Structure H1/H2/H3
+  // 4. Heading Structure H1-H6 & Chronological Order Auditing
   const h1Matches = [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)];
   const h2Matches = [...html.matchAll(/<h2[^>]*>([\s\S]*?)<\/h2>/gi)];
   const h3Matches = [...html.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>/gi)];
+  const h4Matches = [...html.matchAll(/<h4[^>]*>([\s\S]*?)<\/h4>/gi)];
+  const h5Matches = [...html.matchAll(/<h5[^>]*>([\s\S]*?)<\/h5>/gi)];
+  const h6Matches = [...html.matchAll(/<h6[^>]*>([\s\S]*?)<\/h6>/gi)];
 
-  reports.headings.h1 = h1Matches.map(m => m[1].replace(/<[^>]*>/g, '').trim());
-  reports.headings.h2 = h2Matches.map(m => m[1].replace(/<[^>]*>/g, '').trim());
-  reports.headings.h3 = h3Matches.map(m => m[1].replace(/<[^>]*>/g, '').trim());
+  reports.headings = {
+    h1: h1Matches.map(m => m[1].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()),
+    h2: h2Matches.map(m => m[1].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()),
+    h3: h3Matches.map(m => m[1].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()),
+    h4: h4Matches.map(m => m[1].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()),
+    h5: h5Matches.map(m => m[1].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()),
+    h6: h6Matches.map(m => m[1].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()),
+    list: [],
+    violations: [],
+    status: "ok",
+    message: "Headings structure is valid."
+  };
+
+  const headingRegex = /<(h[1-6])\b([^>]*)>([\s\S]*?)<\/h[1-6]>/gi;
+  const headingsList = [];
+  const headingMatches = [...html.matchAll(headingRegex)];
+
+  for (let match of headingMatches) {
+    const tag = match[1].toLowerCase();
+    const text = match[3].replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    const level = parseInt(tag.charAt(1));
+    headingsList.push({ tag, text, level, jumpViolation: false, prevTag: '' });
+  }
+
+  const headingViolations = [];
+  let prevLevel = null;
+  let prevTag = '';
+  for (let i = 0; i < headingsList.length; i++) {
+    const current = headingsList[i];
+    if (prevLevel !== null) {
+      if (current.level - prevLevel > 1) {
+        current.jumpViolation = true;
+        current.prevTag = prevTag;
+        headingViolations.push({
+          from: prevTag,
+          to: current.tag,
+          text: current.text,
+          message: `Heading level skipped: jumped directly from ${prevTag.toUpperCase()} to ${current.tag.toUpperCase()} ("${current.text}")`
+        });
+      }
+    }
+    prevLevel = current.level;
+    prevTag = current.tag;
+  }
+
+  reports.headings.list = headingsList;
+  reports.headings.violations = headingViolations;
 
   if (reports.headings.h1.length === 0) {
     reports.seoScore -= 12;
@@ -190,6 +237,120 @@ const analyzeSeo = async (url, htmlContent = '') => {
     reports.headings.message = "Multiple H1 tags detected. Keep a single unique H1 heading.";
     reports.alerts.push({ level: 'warning', message: 'SEO Warning: Multiple H1 tag declarations found.' });
   }
+
+  if (headingViolations.length > 0) {
+    const penalty = Math.min(15, headingViolations.length * 3);
+    reports.seoScore -= penalty;
+    reports.headings.status = "warning";
+    reports.headings.message = `Headings contain ${headingViolations.length} nesting structure jump violations.`;
+    reports.alerts.push({ level: 'warning', message: `SEO Warning: Detected ${headingViolations.length} heading nesting jumps.` });
+  }
+
+  // 4b. Meta Tag Layout Hierarchy within <head>
+  const headMatch = html.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
+  const headContent = headMatch ? headMatch[1] : '';
+
+  const titleIndex = headContent.search(/<title[^>]*>/i);
+
+  let descIndex = -1;
+  const descTagMatch = headContent.match(/<meta[^>]*(name|property)=["']description["'][^>]*>/i) ||
+                       headContent.match(/<meta[^>]*content=["'][^"']*["'][^>]*(name|property)=["']description["']/i);
+  if (descTagMatch) {
+    descIndex = descTagMatch.index;
+  }
+
+  const renderBlockingResources = [];
+
+  const scriptRegex = /<script\b([^>]*)>/gi;
+  let scriptMatch;
+  while ((scriptMatch = scriptRegex.exec(headContent)) !== null) {
+    const attrs = scriptMatch[1];
+    const isAsync = /\basync\b/i.test(attrs);
+    const isDefer = /\bdefer\b/i.test(attrs);
+    const isLdJson = /type=["']application\/ld\+json["']/i.test(attrs);
+    const isImportMap = /type=["']importmap["']/i.test(attrs);
+    if (!isAsync && !isDefer && !isLdJson && !isImportMap) {
+      renderBlockingResources.push({
+        type: 'script',
+        html: scriptMatch[0].trim(),
+        index: scriptMatch.index
+      });
+    }
+  }
+
+  const styleRegex = /<style\b([^>]*)>/gi;
+  let styleMatch;
+  while ((styleMatch = styleRegex.exec(headContent)) !== null) {
+    renderBlockingResources.push({
+      type: 'style',
+      html: styleMatch[0].trim(),
+      index: styleMatch.index
+    });
+  }
+
+  const linkRegex = /<link\b([^>]*)>/gi;
+  let linkMatch;
+  while ((linkMatch = linkRegex.exec(headContent)) !== null) {
+    const attrs = linkMatch[1];
+    const isStylesheet = /\brel=["']stylesheet["']/i.test(attrs);
+    if (isStylesheet) {
+      renderBlockingResources.push({
+        type: 'stylesheet',
+        html: linkMatch[0].trim(),
+        index: linkMatch.index
+      });
+    }
+  }
+
+  const metaViolations = [];
+
+  if (titleIndex !== -1) {
+    const blockingBeforeTitle = renderBlockingResources.filter(r => r.index < titleIndex);
+    if (blockingBeforeTitle.length > 0) {
+      metaViolations.push({
+        tag: 'title',
+        message: 'Declared after render-blocking assets in <head>',
+        blockingResources: blockingBeforeTitle.map(r => r.html)
+      });
+    }
+  }
+
+  if (descIndex !== -1) {
+    const blockingBeforeDesc = renderBlockingResources.filter(r => r.index < descIndex);
+    if (blockingBeforeDesc.length > 0) {
+      metaViolations.push({
+        tag: 'description',
+        message: 'Declared after render-blocking assets in <head>',
+        blockingResources: blockingBeforeDesc.map(r => r.html)
+      });
+    }
+  }
+
+  const robotsTagMatch = headContent.match(/<meta\s+[^>]*name=["']robots["'][^>]*content=["']([^"']*)["']/i);
+  const viewportTagMatch = headContent.match(/<meta\s+[^>]*name=["']viewport["'][^>]*content=["']([^"']*)["']/i);
+
+  reports.metaPlacement = {
+    titleIndex,
+    descIndex,
+    robotsIndex: robotsTagMatch ? robotsTagMatch.index : -1,
+    viewportIndex: viewportTagMatch ? viewportTagMatch.index : -1,
+    renderBlockingCount: renderBlockingResources.length,
+    metaViolations,
+    status: metaViolations.length === 0 ? "ok" : "warning",
+    message: metaViolations.length === 0
+      ? "Critical meta tags are declared before render-blocking stylesheets or scripts."
+      : `Critical meta tags are delayed by ${metaViolations.length} render-blocking assets inside the <head> block.`
+  };
+
+  if (metaViolations.length > 0) {
+    const penalty = Math.min(10, metaViolations.length * 2);
+    reports.seoScore -= penalty;
+    reports.alerts.push({
+      level: 'warning',
+      message: `SEO Warning: Meta tags (title/description) placed after render-blocking scripts or stylesheet links.`
+    });
+  }
+
 
   // 5. Indexability & Robots
   const robotsMatch = html.match(/<meta\s+[^>]*name=["']robots["'][^>]*content=["']([^"']*)["']/i);

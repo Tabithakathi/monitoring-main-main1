@@ -6,7 +6,8 @@ import {
 } from 'recharts';
 import { 
   ShieldCheck, AlertTriangle, AlertCircle, Mail, Key, Bell, 
-  ToggleLeft, ToggleRight, Sparkles, RefreshCw, Send, CheckCircle2
+  ToggleLeft, ToggleRight, Sparkles, RefreshCw, Send, CheckCircle2,
+  Cpu, Activity
 } from 'lucide-react';
 
 const API_BASE = '/api';
@@ -19,12 +20,48 @@ export default function SettingsPanel({ showToast }) {
     email_host_user: '',
     email_host_password: '',
     alert_email_recipients: '',
-    alerts_enabled: true
+    alerts_enabled: true,
+    ga4_property_id: '',
+    ga4_client_email: '',
+    ga4_private_key: ''
   });
   const [emailLogs, setEmailLogs] = useState([]);
   const [totalLogsCount, setTotalLogsCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [dbHealth, setDbHealth] = useState(null);
+  const [fetchingDb, setFetchingDb] = useState(false);
+
+  const fetchDbHealth = async () => {
+    setFetchingDb(true);
+    try {
+      const response = await axios.get(`${API_BASE}/db-health`);
+      setDbHealth(response.data);
+    } catch (err) {
+      console.error("Failed to fetch database health:", err);
+    } finally {
+      setFetchingDb(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    setTestingEmail(true);
+    try {
+      const response = await axios.post(`${API_BASE}/send-test-email`);
+      if (response.data.success) {
+        showToast(response.data.message || 'Test email dispatched successfully.', 'success');
+        await fetchSettings();
+      } else {
+        showToast(response.data.error || 'Failed to dispatch test email.', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast(err.response?.data?.error || 'Failed to trigger test email.', 'error');
+    } finally {
+      setTestingEmail(false);
+    }
+  };
 
   // Fetch settings from server
   const fetchSettings = async () => {
@@ -48,6 +85,7 @@ export default function SettingsPanel({ showToast }) {
 
   useEffect(() => {
     fetchSettings();
+    fetchDbHealth();
   }, []);
 
   const handleSave = async (e) => {
@@ -211,6 +249,15 @@ export default function SettingsPanel({ showToast }) {
           <div className="border-t border-slate-800/40 pt-4 flex justify-end gap-3.5">
             <button
               type="button"
+              onClick={handleTestEmail}
+              disabled={testingEmail}
+              className="px-4 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <Send className={`h-3.5 w-3.5 ${testingEmail ? 'animate-pulse' : ''}`} />
+              <span>{testingEmail ? 'Sending...' : 'Send Test Alert'}</span>
+            </button>
+            <button
+              type="button"
               onClick={fetchSettings}
               className="px-4 py-2 bg-dark-900 border border-slate-850 hover:bg-slate-800 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
             >
@@ -317,7 +364,149 @@ export default function SettingsPanel({ showToast }) {
 
       </div>
 
-      {/* 2. Dispatch logs audit streams */}
+      {/* 2. Google Analytics 4 & Database Diagnostics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        {/* GA4 Credentials Form */}
+        <form onSubmit={handleSave} className="col-span-12 md:col-span-7 glass-card p-6 flex flex-col justify-between space-y-6">
+          <div>
+            <div className="border-b border-slate-800/80 pb-4 mb-5">
+              <h3 className="text-slate-200 font-extrabold text-lg flex items-center gap-2">
+                <ShieldCheck className="text-indigo-400 h-5 w-5" />
+                Google Analytics 4 API Integration
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">Provide Google Cloud Service Account credentials to query live views/sessions directly from GA4 API.</p>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              {/* Property ID */}
+              <div className="space-y-2">
+                <label className="text-slate-400 font-bold uppercase tracking-wider block text-[10px]">GA4 Property ID</label>
+                <div className="bg-dark-900 border border-slate-850/60 rounded-xl px-3 py-2.5 flex items-center gap-2 focus-within:border-indigo-500/50 transition-all shadow-inner">
+                  <Activity className="text-slate-500 h-4 w-4 shrink-0" />
+                  <input 
+                    type="text"
+                    placeholder="e.g. 412345678"
+                    value={settings.ga4_property_id || ''}
+                    onChange={e => setSettings(prev => ({ ...prev, ga4_property_id: e.target.value }))}
+                    className="bg-transparent border-none outline-none text-xs w-full text-slate-250 placeholder-slate-600"
+                  />
+                </div>
+              </div>
+
+              {/* Client Email */}
+              <div className="space-y-2">
+                <label className="text-slate-400 font-bold uppercase tracking-wider block text-[10px]">Service Account Email</label>
+                <div className="bg-dark-900 border border-slate-850/60 rounded-xl px-3 py-2.5 flex items-center gap-2 focus-within:border-indigo-500/50 transition-all shadow-inner">
+                  <Mail className="text-slate-500 h-4 w-4 shrink-0" />
+                  <input 
+                    type="email"
+                    placeholder="service-account@project-id.iam.gserviceaccount.com"
+                    value={settings.ga4_client_email || ''}
+                    onChange={e => setSettings(prev => ({ ...prev, ga4_client_email: e.target.value }))}
+                    className="bg-transparent border-none outline-none text-xs w-full text-slate-250 placeholder-slate-600"
+                  />
+                </div>
+              </div>
+
+              {/* Private Key */}
+              <div className="space-y-2">
+                <label className="text-slate-400 font-bold uppercase tracking-wider block text-[10px]">Service Account Private Key</label>
+                <div className="bg-dark-900 border border-slate-850/60 rounded-xl px-3 py-2.5 flex items-start gap-2 focus-within:border-indigo-500/50 transition-all shadow-inner">
+                  <Key className="text-slate-500 h-4 w-4 shrink-0 mt-1" />
+                  <textarea 
+                    placeholder="-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC...\n-----END PRIVATE KEY-----"
+                    value={settings.ga4_private_key || ''}
+                    onChange={e => setSettings(prev => ({ ...prev, ga4_private_key: e.target.value }))}
+                    rows="4"
+                    className="bg-transparent border-none outline-none text-xs w-full text-slate-250 placeholder-slate-600 font-mono resize-none"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-500 leading-normal italic mt-1">
+                  * Note: Ensure your Service Account email is added with **Viewer** access in your Google Analytics Admin Property permissions.
+                </p>
+              </div>
+
+            </div>
+          </div>
+
+          <div className="border-t border-slate-800/40 pt-4 flex justify-end gap-3.5">
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-6 py-2 bg-gradient-to-r from-indigo-650 to-indigo-550 hover:from-indigo-575 hover:to-indigo-475 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/15 cursor-pointer flex items-center gap-1.5 transition-all"
+            >
+              {saving ? 'Saving...' : 'Save GA4 Settings'}
+            </button>
+          </div>
+        </form>
+
+        {/* Database Health Card */}
+        <div className="col-span-12 md:col-span-5 glass-card p-6 flex flex-col justify-between space-y-4">
+          <div>
+            <h3 className="text-slate-200 font-extrabold text-sm flex items-center gap-2 border-b border-slate-800 pb-3">
+              <Cpu className="text-indigo-400 h-4.5 w-4.5" />
+              Database Health Diagnostics
+            </h3>
+            <p className="text-[11px] text-slate-500 mt-1">Real-time diagnostics of the system database (MongoDB).</p>
+          </div>
+
+          {dbHealth ? (
+            <div className="space-y-3.5 text-xs">
+              <div className="flex justify-between items-center bg-dark-900/50 p-2.5 rounded-xl border border-slate-850">
+                <span className="text-slate-400">Connection Status</span>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                  dbHealth.connected 
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25' 
+                    : 'bg-rose-500/10 text-rose-400 border-rose-500/25'
+                }`}>
+                  {dbHealth.status || 'Disconnected'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center bg-dark-900/50 p-2.5 rounded-xl border border-slate-850">
+                <span className="text-slate-400">Database Engine</span>
+                <span className="font-semibold text-slate-200">{dbHealth.engine || 'MongoDB'}</span>
+              </div>
+              <div className="flex justify-between items-center bg-dark-900/50 p-2.5 rounded-xl border border-slate-850">
+                <span className="text-slate-400">Response Latency</span>
+                <span className="font-mono text-indigo-400 font-bold">{dbHealth.latencyMs} ms</span>
+              </div>
+              <div className="flex justify-between items-center bg-dark-900/50 p-2.5 rounded-xl border border-slate-850">
+                <span className="text-slate-400">Total Collections</span>
+                <span className="font-semibold text-slate-200">{dbHealth.collectionsCount}</span>
+              </div>
+              <div className="flex justify-between items-center bg-dark-900/50 p-2.5 rounded-xl border border-slate-850">
+                <span className="text-slate-400">Total Documents</span>
+                <span className="font-semibold text-slate-200">{dbHealth.documentsCount} docs</span>
+              </div>
+              <div className="flex justify-between items-center bg-dark-900/50 p-2.5 rounded-xl border border-slate-850">
+                <span className="text-slate-400">Storage Size</span>
+                <span className="font-mono text-slate-200">{dbHealth.sizeMb} MB</span>
+              </div>
+              <div className="flex justify-between items-center bg-dark-900/50 p-2.5 rounded-xl border border-slate-850">
+                <span className="text-slate-400">Index Size</span>
+                <span className="font-mono text-slate-200">{dbHealth.indexSizeMb} MB</span>
+              </div>
+            </div>
+          ) : (
+            <div className="h-44 flex items-center justify-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-2xl bg-dark-900/20">
+              Loading database telemetry...
+            </div>
+          )}
+
+          <div className="border-t border-slate-800/40 pt-2 flex justify-end">
+            <button
+              onClick={fetchDbHealth}
+              disabled={fetchingDb}
+              className="px-3.5 py-1.5 bg-dark-900 border border-slate-850 hover:bg-slate-800 text-[10px] font-bold rounded-xl flex items-center gap-1 cursor-pointer transition-all"
+            >
+              <RefreshCw className={`h-3 w-3 ${fetchingDb ? 'rotate-infinite' : ''}`} />
+              Refresh Diagnosis
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Dispatch logs audit streams */}
       <div className="glass-card p-6">
         <div className="border-b border-slate-800/80 pb-3 mb-4 flex justify-between items-center">
           <h3 className="text-slate-200 font-extrabold text-base flex items-center gap-2">

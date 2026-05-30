@@ -23,6 +23,7 @@ export default function App() {
   const [targets, setTargets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [auditLoading, setAuditLoading] = useState(false);
+  const [dbHealth, setDbHealth] = useState(null);
 
   // Fetch unique audited SRE target list
   const fetchTargets = async () => {
@@ -33,6 +34,17 @@ export default function App() {
       console.error("Failed to fetch SRE audited targets:", err);
     }
   };
+
+  // Fetch live database health metrics
+  const fetchDbHealth = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/db-health`);
+      setDbHealth(response.data);
+    } catch (err) {
+      console.error("Failed to fetch database health:", err);
+    }
+  };
+
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('uptime');
   const [isSocketConnected, setIsSocketConnected] = useState(false);
@@ -94,6 +106,9 @@ export default function App() {
 
       if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
         setStats(response.data);
+        if (response.data.dbHealth) {
+          setDbHealth(response.data.dbHealth);
+        }
       } else {
         console.error("Received invalid stats format (HTML instead of JSON):", response.data);
         setError("Invalid response format received from SRE Monitor backend.");
@@ -132,6 +147,9 @@ export default function App() {
         // Synchronously update the React SRE state with fresh compiled stats
         if (response.data.stats && typeof response.data.stats === 'object' && !Array.isArray(response.data.stats)) {
           setStats(response.data.stats);
+          if (response.data.stats.dbHealth) {
+            setDbHealth(response.data.stats.dbHealth);
+          }
         }
         // Refresh target quick-switcher list
         fetchTargets();
@@ -144,11 +162,14 @@ export default function App() {
     }
   };
 
+  const socketRef = useRef(null);
+
   useEffect(() => {
     fetchStats();
     fetchTargets();
+    fetchDbHealth();
 
-    // Establish Socket.io connection to backend SRE Gateway
+    // Establish Socket.io connection to SRE Gateway
     const socketUrl = typeof window !== 'undefined' &&
       (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port === '5173')
       ? 'http://localhost:8000'
@@ -157,9 +178,14 @@ export default function App() {
       transports: ['websocket', 'polling']
     });
 
+    socketRef.current = socket;
+
     socket.on('connect', () => {
       console.log('📡 Connected to SRE WebSocket Broadcast Portal');
       setIsSocketConnected(true);
+      if (urlRef.current) {
+        socket.emit('subscribe', urlRef.current);
+      }
     });
 
     socket.on('disconnect', () => {
@@ -199,7 +225,7 @@ export default function App() {
       }
     });
 
-    // Handle full deep-audit completes (cron or manual run on another terminal)
+    // Handle full deep-audit completes (cron or manual run)
     socket.on('auditCompleted', (freshStats) => {
       fetchTargets();
       const normalizedCurrent = normalizeUrlString(urlRef.current);
@@ -217,6 +243,13 @@ export default function App() {
       socket.disconnect();
     };
   }, []);
+
+  // Emit subscription when URL changes
+  useEffect(() => {
+    if (socketRef.current && isSocketConnected && url) {
+      socketRef.current.emit('subscribe', url);
+    }
+  }, [url, isSocketConnected]);
 
   // Safeguard: Redirect from wordpress tab if target website is not WordPress
   useEffect(() => {
@@ -261,6 +294,22 @@ export default function App() {
               {isDark ? <Sun className="h-4 w-4 text-amber-400 animate-pulse" /> : <Moon className="h-4 w-4 text-indigo-500" />}
             </button>
           </div>
+
+          {/* Database connection latency badge */}
+          {dbHealth && (
+            <div 
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all shadow-sm ${
+                dbHealth.connected 
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                  : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+              }`}
+              title={`DB: ${dbHealth.engine || 'MongoDB'}\nLatency: ${dbHealth.latencyMs}ms\nCollections: ${dbHealth.collectionsCount || 0}\nSize: ${dbHealth.sizeMb || 0} MB`}
+            >
+              <span className={`h-2 w-2 rounded-full ${dbHealth.connected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`}></span>
+              <span className="hidden md:inline text-slate-400 font-medium">DB Connection:</span>
+              <span>{dbHealth.connected ? `${dbHealth.latencyMs}ms` : 'Offline'}</span>
+            </div>
+          )}
 
           {/* SRE Domain search filter bar */}
           <div className="flex-1 max-w-xl flex gap-2">
@@ -428,16 +477,22 @@ export default function App() {
             <p className="text-xs text-slate-500 mt-1">Fetching local histories and alert logs from MongoDB</p>
           </div>
         ) : stats ? (
-          <div className="space-y-8">
-            <div
-              style={{
-                color: "white",
-                fontSize: "30px",
-                padding: "40px"
-              }}
-            >
-              DASHBOARD WORKING
-            </div>
+          <div className="space-y-8 animate-fade-in-up">
+            {activeTab === 'uptime' && (
+              <UptimeDashboard stats={stats} isSocketConnected={isSocketConnected} />
+            )}
+            {activeTab === 'wordpress' && (
+              <WordPressDashboard wordpressData={stats.wordpress} />
+            )}
+            {activeTab === 'ssl' && (
+              <SSLMonitor sslData={stats.sslData} securityData={stats.securityData} />
+            )}
+            {activeTab === 'seo' && (
+              <SeoDashboard seoData={stats.seoData} />
+            )}
+            {activeTab === 'accessibility' && (
+              <AccessibilityAudit uiUxData={stats.uiUxData} mobileFriendliness={stats.seoData?.mobileFriendliness} />
+            )}
           </div>
         ) : (
           <div className="py-24 text-center glass-card border-dashed border-slate-800 rounded-3xl max-w-3xl mx-auto my-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>

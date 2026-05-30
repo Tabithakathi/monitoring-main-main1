@@ -6,7 +6,7 @@ const path = require('path');
 const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 const apiRoutes = require('./routes/api');
-const { startUptimeScheduler } = require('./services/monitorService');
+const { startUptimeScheduler, runQuickPing } = require('./services/monitorService');
 const { MonitorHistory, WordPressMonitor, Alert } = require('./models/Schemas');
 
 // Load configurations
@@ -162,38 +162,29 @@ const seedDummyData = async () => {
   }
 };
 
-// Stream real-time telemetry beats every 3 seconds to all connected clients
+// Stream real-time telemetry beats on a 5-second interval for all active URL subscriptions
 let liveTelemetryTimer = null;
 const startLiveTelemetryStream = () => {
   if (liveTelemetryTimer) return; // Already running
   
-  console.log('⏱️ Live Telemetry Broadcast engine started [Jitter ping beat every 3s]');
+  console.log('⏱️ Live Telemetry Broadcast engine started [Real-time dynamic subscriptions]');
   liveTelemetryTimer = setInterval(async () => {
-    const monitorUrl = process.env.DEFAULT_MONITOR_URL || 'https://wordpress.org';
     try {
-      const latest = await MonitorHistory.findOne({ url: monitorUrl }).sort({ checkedAt: -1 });
-      if (latest && latest.isUp) {
-        // Add subtle organic variations
-        const jitter = Math.round((Math.random() - 0.5) * 40); // -20ms to +20ms
-        const ttfbJitter = Math.round((Math.random() - 0.5) * 10);
-        
-        const beat = {
-          url: monitorUrl,
-          isUp: true,
-          statusCode: latest.statusCode,
-          loadTimeMs: Math.max(50, latest.loadTimeMs + jitter),
-          ttfbMs: Math.max(10, latest.ttfbMs + ttfbJitter),
-          dnsResolutionTimeMs: Math.max(5, latest.dnsResolutionTimeMs + Math.round((Math.random() - 0.5) * 4)),
-          checkedAt: new Date(),
-          isLiveBeat: true
-        };
-        
-        io.emit('liveTelemetry', beat);
+      const rooms = io.sockets.adapter.rooms;
+      for (const [roomName, room] of rooms.entries()) {
+        if (roomName.startsWith('monitor:')) {
+          const targetUrl = roomName.substring(8);
+          if (room.size > 0) {
+            // Run a real-time HTTP & DNS quick ping
+            const beat = await runQuickPing(targetUrl);
+            io.to(roomName).emit('liveTelemetry', beat);
+          }
+        }
       }
     } catch (err) {
-      // Ignore background ticker errors
+      console.error(`Error in live telemetry scheduler:`, err.message);
     }
-  }, 3000);
+  }, 5000);
 };
 
 // Monitor socket connection states
@@ -202,6 +193,24 @@ io.on('connection', (socket) => {
   
   // Start the live ticker if not already running
   startLiveTelemetryStream();
+  
+  // Handle room subscriptions
+  socket.on('subscribe', (targetUrl) => {
+    if (!targetUrl) return;
+    const normalized = targetUrl.trim().toLowerCase();
+    
+    // Unsubscribe from any other monitor: rooms
+    for (const room of socket.rooms) {
+      if (room.startsWith('monitor:')) {
+        socket.leave(room);
+        console.log(`🔌 Client ${socket.id} left room ${room}`);
+      }
+    }
+    
+    const roomName = `monitor:${normalized}`;
+    socket.join(roomName);
+    console.log(`🔌 Client ${socket.id} joined room ${roomName}`);
+  });
   
   socket.on('disconnect', () => {
     console.log(`🔌 Client disconnected from SRE WebSocket portal [ID: ${socket.id}]`);

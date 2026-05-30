@@ -581,30 +581,30 @@ export default function WordPressDashboard({ wordpressData }) {
 
               <div className="glass-card p-6 flex flex-col justify-between">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">WP Database Size</span>
+                  <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">WP DOM Density</span>
                   <Database className="text-indigo-400 h-4.5 w-4.5" />
                 </div>
                 <div>
                   <h3 className="text-3xl font-black text-slate-200 tracking-tight">
-                    {optimizedSize !== null ? optimizedSize : databaseHealth.sizeMb} MB
+                    {databaseHealth.domElementsCount || 0} nodes
                   </h3>
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1.5">
-                    Storage Allocation
+                    Total HTML DOM Elements
                   </p>
                 </div>
               </div>
 
               <div className="glass-card p-6 flex flex-col justify-between">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">WP Data Tables</span>
+                  <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Scripts & Styles</span>
                   <FileText className="text-indigo-400 h-4.5 w-4.5" />
                 </div>
                 <div>
                   <h3 className="text-3xl font-black text-slate-200 tracking-tight">
-                    {databaseHealth.tableCount}
+                    {databaseHealth.scriptTagsCount || 0} / {databaseHealth.styleTagsCount || 0}
                   </h3>
                   <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1.5">
-                    Active WP Schema Tables
+                    Active Script / Style Tags
                   </p>
                 </div>
               </div>
@@ -644,7 +644,7 @@ export default function WordPressDashboard({ wordpressData }) {
                   <p className="text-emerald-400 font-bold">✔ [OK] Connection handshaking validated in {databaseHealth.latencyMs}ms.</p>
                   
                   <p><span className="text-indigo-400 font-bold">▶</span> Analyzing schema consistency indexes...</p>
-                  <p className="text-slate-300">↳ Detected {databaseHealth.tableCount} total schemas tables (prefix wp_).</p>
+                  <p className="text-slate-300">↳ Detected {databaseHealth.domElementsCount || 0} DOM nodes and {databaseHealth.styleTagsCount || 0} active stylesheets.</p>
                   
                   {wpDebugActive ? (
                     <p className="text-amber-400 font-bold">⚠ [WARNING] wp_options debug logs active ({debugLogsCount} lines recorded). Highly recommended to truncate logs to avoid overhead.</p>
@@ -693,8 +693,8 @@ export default function WordPressDashboard({ wordpressData }) {
                     </div>
 
                     <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-[9px] tracking-wider shrink-0 ${
-                      form.status === 'Secure' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25' :
-                      form.status === 'Warning' || form.status === 'No CSRF Nonce' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/25' :
+                      form.status === 'Secure' || form.status === 'Active / Tested' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25' :
+                      form.status === 'Warning' || form.status === 'No CSRF Nonce' || form.status.includes('External') ? 'bg-amber-500/10 text-amber-400 border border-emerald-500/20' :
                       'bg-rose-500/10 text-rose-400 border border-rose-500/25 animate-pulse'
                     }`}>
                       {form.status.toUpperCase()}
@@ -703,24 +703,24 @@ export default function WordPressDashboard({ wordpressData }) {
 
                   <div className="space-y-2.5 bg-dark-900/60 border border-slate-800/40 rounded-xl p-3.5 text-xs">
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-450">Method:</span>
+                      <span className="text-slate-455">Method:</span>
                       <span className="font-bold text-slate-350">{form.method}</span>
                     </div>
                     
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-450">Input Fields Count:</span>
+                      <span className="text-slate-455">Input Fields Count:</span>
                       <span className="font-bold text-slate-350">{form.inputsCount} fields</span>
                     </div>
 
                     <div className="flex justify-between items-center border-t border-slate-850 pt-2">
                       <span className="text-slate-455">Working Status:</span>
-                      {form.status !== 'Broken' && form.status !== 'Insecure Submission' ? (
+                      {form.status === 'Active / Tested' || form.status === 'Secure' || form.status.includes('External') ? (
                         <span className="text-emerald-450 font-bold flex items-center gap-1 text-[10px]">
                           <CheckCircle2 className="h-3.5 w-3.5" /> Working / Operational
                         </span>
                       ) : (
-                        <span className="text-rose-455 font-bold flex items-center gap-1 text-[10px] animate-pulse">
-                          <XCircle className="h-3.5 w-3.5" /> Broken / Non-Operational
+                        <span className="text-rose-450 font-bold flex items-center gap-1 text-[10px] animate-pulse">
+                          <XCircle className="h-3.5 w-3.5" /> Inactive / Non-Operational
                         </span>
                       )}
                     </div>

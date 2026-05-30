@@ -407,6 +407,9 @@ const compileStats = async (rawUrl) => {
   };
 
   const historyMapped = history.map(mapHistoryRecord);
+  
+  const { getDatabaseHealth } = require('./dbHealthService');
+  const dbHealth = await getDatabaseHealth();
 
   return {
     url,
@@ -415,7 +418,8 @@ const compileStats = async (rawUrl) => {
     latestStatus: historyMapped[0] || null,
     historyLog: historyMapped,
     wordpress,
-    activeAlerts
+    activeAlerts,
+    dbHealth
   };
 };
 
@@ -444,8 +448,82 @@ const startUptimeScheduler = (io) => {
   });
 };
 
+const runQuickPing = async (rawUrl) => {
+  const url = normalizeUrl(rawUrl);
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname;
+    
+    const dnsStart = Date.now();
+    let dnsResolutionTimeMs = 0;
+    try {
+      await dns.resolve4(hostname);
+      dnsResolutionTimeMs = Date.now() - dnsStart;
+    } catch (err) {
+      dnsResolutionTimeMs = Date.now() - dnsStart;
+    }
+
+    const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+    const axiosInstance = axios.create({
+      timeout: 3000,
+      headers: { 'User-Agent': 'Mozilla/5.0 MonitorProSRE/1.0' },
+      validateStatus: () => true,
+      httpsAgent
+    });
+
+    const httpStart = Date.now();
+    let ttfbStart = 0;
+    axiosInstance.interceptors.request.use((config) => {
+      ttfbStart = Date.now();
+      return config;
+    });
+
+    try {
+      const response = await axiosInstance.get(url);
+      const ttfbMs = Date.now() - ttfbStart;
+      const loadTimeMs = Date.now() - httpStart;
+      return {
+        url,
+        isUp: response.status === 200,
+        statusCode: response.status,
+        loadTimeMs,
+        ttfbMs,
+        dnsResolutionTimeMs,
+        checkedAt: new Date(),
+        isLiveBeat: true
+      };
+    } catch (err) {
+      return {
+        url,
+        isUp: false,
+        statusCode: null,
+        loadTimeMs: 0,
+        ttfbMs: 0,
+        dnsResolutionTimeMs,
+        checkedAt: new Date(),
+        isLiveBeat: true,
+        error: err.message
+      };
+    }
+  } catch (err) {
+    return {
+      url,
+      isUp: false,
+      statusCode: null,
+      loadTimeMs: 0,
+      ttfbMs: 0,
+      dnsResolutionTimeMs: 0,
+      checkedAt: new Date(),
+      isLiveBeat: true,
+      error: 'Invalid URL structure'
+    };
+  }
+};
+
 module.exports = {
   checkWebsiteStatus,
   startUptimeScheduler,
-  compileStats
+  compileStats,
+  runQuickPing
 };
+

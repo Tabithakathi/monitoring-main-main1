@@ -104,14 +104,15 @@ const analyzeSeo = async (url, htmlContent = '') => {
     keywordAnalysis: { topKeywords: [], status: "ok" },
     links: { internalCount: 0, externalCount: 0, brokenCount: 0, brokenLinks: [], status: "ok" },
     imageAnalysis: { totalImages: 0, withAlt: 0, missingAlt: 0, emptyAlt: 0, missingAltSrcs: [], status: "ok", message: "No images analyzed." },
+    structuredData: { schemasCount: 0, invalidSchemasCount: 0, schemaTypes: [], status: "info", message: "" },
     seoScore: 100,
     alerts: []
   };
 
-  // 1. Meta Title Detection
-  const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-  if (titleMatch && titleMatch[1]) {
-    const titleText = titleMatch[1].trim();
+  // 1. Meta Title Detection & Duplicate Checks
+  const titleMatches = [...html.matchAll(/<title[^>]*>([\s\S]*?)<\/title>/gi)];
+  if (titleMatches.length > 0) {
+    const titleText = titleMatches[0][1].trim();
     reports.title.text = titleText;
     if (titleText.length < 30 || titleText.length > 65) {
       reports.title.status = "warning";
@@ -121,16 +122,20 @@ const analyzeSeo = async (url, htmlContent = '') => {
       reports.title.status = "ok";
       reports.title.message = "Meta title length is excellent!";
     }
+    if (titleMatches.length > 1) {
+      reports.seoScore -= 10;
+      reports.alerts.push({ level: 'critical', message: `SEO Critical: Multiple HTML Meta Title tags detected (${titleMatches.length}).` });
+    }
   } else {
     reports.seoScore -= 15;
     reports.alerts.push({ level: 'critical', message: 'SEO Critical: Missing HTML Meta Title tag.' });
   }
 
-  // 2. Meta Description Detection
-  const descMatch = html.match(/<meta\s+[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i) ||
-                    html.match(/<meta\s+[^>]*content=["']([^"']*)["'][^>]*name=["']description["']/i);
-  if (descMatch && descMatch[1]) {
-    const descText = descMatch[1].trim();
+  // 2. Meta Description Detection & Duplicate Checks
+  const descMatches = [...html.matchAll(/<meta[^>]*(name|property)=["']description["'][^>]*content=["']([^"']*)["']/gi),
+                       ...html.matchAll(/<meta[^>]*content=["']([^"']*)["'][^>]*(name|property)=["']description["']/gi)];
+  if (descMatches.length > 0) {
+    const descText = descMatches[0][2].trim();
     reports.metaDescription.text = descText;
     if (descText.length < 120 || descText.length > 160) {
       reports.metaDescription.status = "warning";
@@ -140,16 +145,24 @@ const analyzeSeo = async (url, htmlContent = '') => {
       reports.metaDescription.status = "ok";
       reports.metaDescription.message = "Meta description length is excellent!";
     }
+    if (descMatches.length > 1) {
+      reports.seoScore -= 8;
+      reports.alerts.push({ level: 'warning', message: `SEO Warning: Multiple Meta Description tags detected (${descMatches.length}).` });
+    }
   } else {
     reports.seoScore -= 15;
     reports.alerts.push({ level: 'critical', message: 'SEO Critical: Missing Meta Description tag.' });
   }
 
-  // 3. Canonical Check
-  const canonicalMatch = html.match(/<link\s+[^>]*rel=["']canonical["'][^>]*href=["']([^"']*)["']/i);
-  if (canonicalMatch && canonicalMatch[1]) {
-    reports.canonical.text = canonicalMatch[1];
+  // 3. Canonical Check & Duplicate Checks
+  const canonicalMatches = [...html.matchAll(/<link\s+[^>]*rel=["']canonical["'][^>]*href=["']([^"']*)["']/gi)];
+  if (canonicalMatches.length > 0) {
+    reports.canonical.text = canonicalMatches[0][1];
     reports.canonical.status = "ok";
+    if (canonicalMatches.length > 1) {
+      reports.seoScore -= 5;
+      reports.alerts.push({ level: 'warning', message: `SEO Warning: Multiple Canonical link tags detected (${canonicalMatches.length}).` });
+    }
   } else {
     reports.seoScore -= 10;
     reports.canonical.status = "warning";
@@ -194,8 +207,6 @@ const analyzeSeo = async (url, htmlContent = '') => {
   // 6. Robots.txt and Sitemap Detections
   try {
     const hostUrl = new URL(url);
-    
-    // Real robots.txt fetch in real-time
     const robotsUrl = `${hostUrl.origin}/robots.txt`;
     try {
       const robotsResp = await axios.get(robotsUrl, { 
@@ -223,7 +234,6 @@ const analyzeSeo = async (url, htmlContent = '') => {
       reports.seoScore -= 5;
     }
 
-    // Real sitemap.xml fetch in real-time
     const sitemapUrl = `${hostUrl.origin}/sitemap.xml`;
     try {
       const sitemapResp = await axios.get(sitemapUrl, { 
@@ -311,48 +321,96 @@ const analyzeSeo = async (url, htmlContent = '') => {
 
   reports.keywordAnalysis.topKeywords = sortedKeywords;
 
-  // 10. Link Analysis (separating internal vs external)
+  // 10. Link Analysis (separating internal vs external & Active Broken Link crawler)
   const linkMatches = [...html.matchAll(/<a\s+[^>]*href=["']([^"']*)["']/gi)];
-  let internal = 0;
-  let external = 0;
+  const uniqueLinks = [];
+  const parsedUrl = new URL(url);
   
   for (let match of linkMatches) {
     const l = match[1];
-    if (!l || l.startsWith("#") || l.startsWith("javascript:")) continue;
-    if (l.startsWith("/") || l.includes(url.replace(/^https?:\/\//i, ''))) {
-      internal++;
-    } else if (l.startsWith("http")) {
-      external++;
-    }
+    if (!l || l.startsWith("#") || l.startsWith("javascript:") || l.startsWith("mailto:") || l.startsWith("tel:")) continue;
+    try {
+      const resolved = new URL(l, url).href;
+      if (!uniqueLinks.includes(resolved)) {
+        uniqueLinks.push(resolved);
+      }
+    } catch (e) {}
   }
 
-  reports.links.internalCount = internal;
-  reports.links.externalCount = external;
+  const internalLinks = [];
+  const externalLinks = [];
+  for (let l of uniqueLinks) {
+    try {
+      const lUrl = new URL(l);
+      if (lUrl.hostname === parsedUrl.hostname) {
+        internalLinks.push(l);
+      } else {
+        externalLinks.push(l);
+      }
+    } catch (e) {}
+  }
 
-  // Broken links checks
+  reports.links.internalCount = internalLinks.length;
+  reports.links.externalCount = externalLinks.length;
+
+  const linksToTest = uniqueLinks.slice(0, 15);
   const brokenLinksList = [];
-  if (html.includes("href=\"/broken-link-error-404\"") || html.includes("href=\"/undefined\"") || html.includes("href=\"/null\"")) {
-    brokenLinksList.push({ url: "/broken-link-error-404", type: "internal", reason: "HTTP 404 Not Found" });
-  }
-  
-  if (external > 15) {
-    brokenLinksList.push({ url: "https://expired-ad-service.net/tracker.js", type: "external", reason: "DNS Lookup Failed" });
-  }
+
+  await Promise.all(linksToTest.map(async (l) => {
+    try {
+      const isInternal = new URL(l).hostname === parsedUrl.hostname;
+      await axios.get(l, {
+        timeout: 3000,
+        headers: { 'User-Agent': 'Mozilla/5.0 MonitorProSRE/1.0' },
+        validateStatus: (status) => status < 400,
+        maxRedirects: 3,
+        httpsAgent
+      });
+    } catch (err) {
+      const isInternal = l.startsWith('/') || (new URL(l, url).hostname === parsedUrl.hostname);
+      let reason = 'HTTP Error';
+      if (err.code === 'ENOTFOUND') {
+        reason = 'DNS Lookup Failed';
+      } else if (err.code === 'ECONNABORTED' || err.message.includes('timeout')) {
+        reason = 'Request Timeout';
+      } else if (err.message.includes('too many redirects') || err.message.includes('Max redirects exceeded')) {
+        reason = 'Redirect Loop';
+      } else if (err.response?.status) {
+        reason = `HTTP ${err.response.status} Not Found`;
+      } else {
+        reason = err.message || 'Connection Failed';
+      }
+      
+      brokenLinksList.push({
+        url: l,
+        sourcePage: url,
+        statusCode: err.response?.status || 0,
+        reason,
+        isInternal,
+        type: isInternal ? 'internal' : 'external'
+      });
+    }
+  }));
 
   reports.links.brokenCount = brokenLinksList.length;
   reports.links.brokenLinks = brokenLinksList;
-  if (reports.links.brokenCount > 0) {
-    reports.seoScore -= reports.links.brokenCount * 5;
-    reports.alerts.push({ level: 'warning', message: `SEO Warning: Detected ${reports.links.brokenCount} broken links or missing resources.` });
+  if (brokenLinksList.length > 0) {
+    const penalty = Math.min(25, brokenLinksList.length * 5);
+    reports.seoScore -= penalty;
+    reports.alerts.push({ level: 'warning', message: `SEO Warning: Detected ${brokenLinksList.length} broken links or missing resources.` });
   }
 
-  // 11. Image Alt and Description Analysis (Real-time check)
+  // 11. Image Alt, Oversized & Compression Analysis (Real-time checks)
   const imgMatches = [...html.matchAll(/<img([^>]*)\/?>/gi)];
   const totalImages = imgMatches.length;
   let missingAlt = 0;
   let emptyAlt = 0;
   let withAlt = 0;
+  let lazyLoaded = 0;
   const missingAltSrcs = [];
+  const imageReportList = [];
+  const altMap = new Map();
+  const duplicateAlts = new Set();
 
   for (let match of imgMatches) {
     const attrs = match[1];
@@ -361,48 +419,177 @@ const analyzeSeo = async (url, htmlContent = '') => {
                      attrs.match(/srcset=["']([^"']*)["']/i);
     const altMatch = attrs.match(/alt=["']([^"']*)["']/i);
     const hasAltAttr = attrs.toLowerCase().includes('alt=');
-    const src = srcMatch ? srcMatch[1] : '';
+    const isLazy = attrs.toLowerCase().includes('loading=') && attrs.toLowerCase().includes('lazy');
+    const src = srcMatch ? new URL(srcMatch[1], url).href : '';
+    const alt = altMatch ? altMatch[1].trim() : '';
 
+    if (isLazy) lazyLoaded++;
+
+    let altStatus = 'ok';
     if (!hasAltAttr) {
       missingAlt++;
+      altStatus = 'missing';
       if (src) {
-        const slicedSrc = src.substring(0, 120);
         missingAltSrcs.push({
-          src: slicedSrc,
-          suggestedAlt: generateSuggestedAlt(slicedSrc)
+          src,
+          suggestedAlt: generateSuggestedAlt(src)
         });
       }
-    } else if (altMatch && altMatch[1].trim() === '') {
+    } else if (alt === '') {
       emptyAlt++;
+      altStatus = 'empty';
       if (src) {
-        const slicedSrc = src.substring(0, 120);
         missingAltSrcs.push({
-          src: slicedSrc,
-          suggestedAlt: generateSuggestedAlt(slicedSrc)
+          src,
+          suggestedAlt: generateSuggestedAlt(src)
         });
       }
     } else {
       withAlt++;
+      if (altMap.has(alt)) {
+        if (altMap.get(alt) !== src) {
+          duplicateAlts.add(alt);
+          altStatus = 'duplicate';
+        }
+      } else {
+        altMap.set(alt, src);
+      }
+    }
+
+    if (src) {
+      imageReportList.push({
+        src,
+        alt,
+        altStatus,
+        isLazy,
+        isOversized: false,
+        isBroken: false,
+        sizeKb: 0,
+        compressionAdvice: ''
+      });
     }
   }
+
+  // Active check on first 10 image sizes and broken states
+  const imagesToTest = imageReportList.slice(0, 10);
+  await Promise.all(imagesToTest.map(async (img) => {
+    try {
+      const headResp = await axios.head(img.src, {
+        timeout: 2000,
+        headers: { 'User-Agent': 'Mozilla/5.0 MonitorProSRE/1.0' },
+        validateStatus: () => true,
+        httpsAgent
+      });
+      
+      let sizeBytes = 0;
+      let isBroken = headResp.status >= 400;
+      
+      if (!isBroken) {
+        sizeBytes = parseInt(headResp.headers['content-length']) || 0;
+        if (sizeBytes === 0) {
+          const getResp = await axios.get(img.src, {
+            timeout: 2000,
+            headers: { 'User-Agent': 'Mozilla/5.0 MonitorProSRE/1.0', Range: 'bytes=0-1024' },
+            validateStatus: () => true,
+            httpsAgent
+          });
+          const contentRange = getResp.headers['content-range'];
+          if (contentRange) {
+            const match = contentRange.match(/\/(\d+)/);
+            if (match) sizeBytes = parseInt(match[1]);
+          }
+        }
+      }
+      
+      img.sizeKb = Math.round(sizeBytes / 1024);
+      img.isBroken = isBroken;
+      img.isOversized = img.sizeKb > 500;
+      
+      const ext = img.src.split('?')[0].split('.').pop().toLowerCase();
+      if (!['webp', 'avif', 'svg'].includes(ext)) {
+        img.compressionAdvice = `Convert to WebP/AVIF. Estimated saving: ~65%`;
+      }
+    } catch (e) {
+      img.isBroken = true;
+      img.sizeKb = 0;
+      img.compressionAdvice = 'Resource unreachable';
+    }
+  }));
+
+  let imageScore = 100;
+  if (totalImages > 0) {
+    imageScore -= ((missingAlt + emptyAlt) / totalImages) * 30;
+    imageScore -= (duplicateAlts.size / totalImages) * 15;
+    imageScore -= imageReportList.filter(img => img.isOversized).length * 10;
+    imageScore -= imageReportList.filter(img => img.isBroken).length * 20;
+  }
+  imageScore = Math.max(10, Math.round(imageScore));
 
   reports.imageAnalysis = {
     totalImages,
     withAlt,
     missingAlt,
     emptyAlt,
+    lazyLoaded,
+    duplicateAltsCount: duplicateAlts.size,
+    duplicateAlts: [...duplicateAlts],
     missingAltSrcs: missingAltSrcs.slice(0, 50),
-    status: totalImages === 0 ? "ok" : (missingAlt + emptyAlt) === 0 ? "ok" : "warning",
+    imageReportList,
+    imageScore,
+    status: totalImages === 0 ? "ok" : imageScore >= 80 ? "ok" : imageScore >= 50 ? "warning" : "critical",
     message: totalImages === 0 
       ? "No images found on this page."
-      : (missingAlt + emptyAlt) === 0
-      ? `All ${totalImages} images have valid ALT text attributes.`
-      : `${missingAlt + emptyAlt} of ${totalImages} images are missing description ALT attributes.`
+      : imageScore === 100
+      ? `All ${totalImages} images satisfy modern SEO and WCAG standard checks.`
+      : `Discovered image optimization issues. Image Score: ${imageScore}%`
   };
 
-  if (reports.imageAnalysis.status === "warning") {
+  if (reports.imageAnalysis.status !== "ok") {
+    reports.alerts.push({ 
+      level: reports.imageAnalysis.status === "critical" ? "critical" : "warning", 
+      message: `SEO Warning: Image audit failed with score ${imageScore}%` 
+    });
+    reports.seoScore -= Math.round((100 - imageScore) * 0.3);
+  }
+
+  // 12. Structured Schema Markup Validation
+  const schemaMatches = [...html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
+  let schemasCount = schemaMatches.length;
+  let invalidSchemasCount = 0;
+  let schemaTypesList = [];
+  
+  for (let match of schemaMatches) {
+    try {
+      const parsed = JSON.parse(match[1].trim());
+      if (parsed['@type']) {
+        schemaTypesList.push(parsed['@type']);
+      } else if (Array.isArray(parsed)) {
+        parsed.forEach(item => {
+          if (item['@type']) schemaTypesList.push(item['@type']);
+        });
+      }
+    } catch (e) {
+      invalidSchemasCount++;
+    }
+  }
+  
+  reports.structuredData = {
+    schemasCount,
+    invalidSchemasCount,
+    schemaTypes: [...new Set(schemaTypesList)],
+    status: invalidSchemasCount > 0 ? 'warning' : schemasCount > 0 ? 'ok' : 'info',
+    message: schemasCount === 0 
+      ? 'No JSON-LD structured schema markup detected.' 
+      : invalidSchemasCount > 0 
+      ? `Detected ${schemasCount} schemas, but ${invalidSchemasCount} contains invalid JSON syntax!` 
+      : `Detected ${schemasCount} valid structured schemas: ${schemaTypesList.join(', ')}`
+  };
+  
+  if (invalidSchemasCount > 0) {
     reports.seoScore -= 10;
-    reports.alerts.push({ level: 'warning', message: `SEO Warning: ${missingAlt + emptyAlt} images are missing ALT descriptive text.` });
+    reports.alerts.push({ level: 'critical', message: `SEO Critical: ${invalidSchemasCount} structured schema markup block(s) contain invalid JSON syntax!` });
+  } else if (schemasCount === 0) {
+    reports.alerts.push({ level: 'info', message: `SEO Info: No structured schema markup detected (JSON-LD).` });
   }
 
   reports.seoScore = Math.max(10, reports.seoScore);

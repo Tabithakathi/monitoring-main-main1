@@ -117,13 +117,42 @@ const analyzeUiUx = (htmlContent = '') => {
     });
   }
 
-  // Ensure default fallback values for visual completeness
-  if (reports.lowContrastViolations.length === 0 && htmlContent.length > 500) {
-    reports.lowContrastViolations.push({
-      element: '<small style="color: #999999; background: #ffffff;">Copyright Notice</small>',
-      message: "Contrast ratio is suboptimal (2.85:1, ideal minimum is 4.5:1 for small text)."
+  // 4. Stylesheet Media Queries & Responsive Layout Probes
+  const mediaQueryMatches = [...htmlContent.matchAll(/@media[^{]+\{/gi)];
+  const hasResponsiveStyles = mediaQueryMatches.length > 0 || htmlContent.includes('flex') || htmlContent.includes('grid') || htmlContent.includes('col-');
+  
+  reports.responsiveness = {
+    hasResponsiveStyles,
+    mediaQueriesCount: mediaQueryMatches.length,
+    status: hasResponsiveStyles ? 'ok' : 'warning',
+    message: hasResponsiveStyles 
+      ? `Detected ${mediaQueryMatches.length} stylesheet media breakpoints and responsive flexbox/grid classes.` 
+      : 'No media query breakpoints or responsive container classes discovered in layout.'
+  };
+
+  if (!hasResponsiveStyles) {
+    reports.uiHealthScore -= 15;
+    reports.alerts.push({
+      level: 'warning',
+      message: "UI/UX Warning: Web page layout lacks media queries or responsive container properties."
+    });
+  }
+
+  // Check for inline styles with fixed pixel widths that can cause content overlap
+  const fixedWidthMatches = [...htmlContent.matchAll(/style=["'][^"']*(width:\s*\d{3,}px)[^"']*["']/gi)];
+  reports.fixedWidthViolations = [];
+  
+  for (let match of fixedWidthMatches) {
+    const fixedWidthRule = match[1];
+    reports.fixedWidthViolations.push({
+      element: match[0].substring(0, 100),
+      message: `Fixed layout width constraints (${fixedWidthRule}) detected in style declarations.`
     });
     reports.uiHealthScore -= 5;
+    reports.alerts.push({
+      level: 'warning',
+      message: `UI/UX Warning: Fixed layout width (${fixedWidthRule}) can cause content overflow on mobile devices.`
+    });
   }
 
   reports.uiHealthScore = Math.max(10, reports.uiHealthScore);

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { getDatabaseHealth } = require('../services/dbHealthService');
 
 const settingsPath = path.join(__dirname, '../../../../sre_settings.json');
 const emailLogPath = path.join(__dirname, '../../../email_delivery.log');
@@ -192,8 +193,21 @@ const testEmail = async (req, res) => {
   }
 };
 
+/**
+ * Get live database health metrics
+ */
+const getDbHealth = async (req, res) => {
+  try {
+    const health = await getDatabaseHealth();
+    res.status(200).json(health);
+  } catch (error) {
+    res.status(500).json({ error: `Database diagnostic failure: ${error.message}` });
+  }
+};
+
 module.exports = {
   getSettings,
   saveSettings,
-  testEmail
+  testEmail,
+  getDbHealth
 };

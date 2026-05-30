@@ -11,7 +11,8 @@ const {
 const {
   getSettings,
   saveSettings,
-  testEmail
+  testEmail,
+  getDbHealth
 } = require('../controllers/settingsController');
 
 // Immediate Site Audit Trigger
@@ -39,5 +40,8 @@ router.post('/settings', saveSettings);
 // SMTP Test email connection
 router.post('/send-test-email', testEmail);
 router.post('/send-test-email/', testEmail);
+
+// Database health diagnostics
+router.get('/db-health', getDbHealth);
 
 module.exports = router;

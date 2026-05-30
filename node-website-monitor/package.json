@@ -4,9 +4,11 @@
   "description": "Unified SRE portal root workspace for Vercel deployment",
   "dependencies": {
     "axios": "^1.6.8",
+    "cheerio": "^1.2.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "googleapis": "^173.0.0",
     "mongoose": "^8.3.1",
     "node-cron": "^3.0.3",
     "nodemailer": "^8.0.8",

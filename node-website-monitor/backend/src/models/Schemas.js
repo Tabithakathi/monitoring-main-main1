@@ -135,7 +135,7 @@ const MonitorHistory = {
     return logs;
   },
   find: (query = {}) => {
-    const isConn = isConnected();
+    if (isConnected()) return RealMonitorHistory.find(query);
     const filterData = () => {
       let res = inMemoryHistory;
       if (query.url) {
@@ -146,12 +146,13 @@ const MonitorHistory = {
     return {
       sort: (sortQuery) => ({
         limit: async (lim) => {
-          if (isConn) return await RealMonitorHistory.find(query).sort(sortQuery).limit(lim);
           return filterData().slice(0, lim);
+        },
+        then: async (resolve) => {
+          return resolve(filterData());
         }
       }),
       then: async (resolve) => {
-        if (isConn) return resolve(await RealMonitorHistory.find(query));
         return resolve(filterData());
       }
     };
@@ -221,7 +222,7 @@ const Alert = {
     return alert;
   },
   find: (query = {}) => {
-    const isConn = isConnected();
+    if (isConnected()) return RealAlert.find(query);
     const filterData = () => {
       let res = inMemoryAlerts;
       if (query.url) {
@@ -235,12 +236,10 @@ const Alert = {
     return {
       sort: (sortQuery) => ({
         then: async (resolve) => {
-          if (isConn) return resolve(await RealAlert.find(query).sort(sortQuery));
           return resolve(filterData());
         }
       }),
       then: async (resolve) => {
-        if (isConn) return resolve(await RealAlert.find(query));
         return resolve(filterData());
       }
     };

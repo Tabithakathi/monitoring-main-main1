@@ -33,6 +33,7 @@ export default function SeoDashboard({ seoData }) {
     imageAnalysis = { totalImages: 0, withAlt: 0, missingAlt: 0, emptyAlt: 0, lazyLoaded: 0, duplicateAltsCount: 0, duplicateAlts: [], missingAltSrcs: [], imageReportList: [], imageScore: 100, status: 'ok', message: '' },
     structuredData = { schemasCount: 0, invalidSchemasCount: 0, schemaTypes: [], status: 'info', message: '' },
     metaPlacement = { titleIndex: -1, descIndex: -1, robotsIndex: -1, viewportIndex: -1, renderBlockingCount: 0, metaViolations: [], status: 'ok', message: '' },
+    forms = { count: 0, list: [], status: 'info', message: '' },
     seoScore = 100
   } = seoData;
 
@@ -528,6 +529,87 @@ export default function SeoDashboard({ seoData }) {
           </div>
         </div>
 
+        {/* Interactive Forms Audit Card */}
+        <div className="col-span-12 glass-card p-6 space-y-4">
+          <h3 className="text-slate-200 font-extrabold text-sm border-b border-slate-800 pb-3 flex justify-between items-center">
+            <span className="flex items-center gap-2">
+              <Sparkles className="text-indigo-400 h-4.5 w-4.5" />
+              Interactive Forms Audit (Real-Time checks)
+            </span>
+            <span className="text-xs font-semibold px-2 py-0.5 bg-slate-800/60 text-slate-400 rounded-md">
+              Forms Detected: {forms?.count || 0}
+            </span>
+          </h3>
+
+          <div className="space-y-4 text-xs">
+            {(!forms?.list || forms.list.length === 0) ? (
+              <div className="p-3.5 bg-slate-950/20 border border-slate-800 rounded-xl flex items-start gap-2.5">
+                <Info className="text-slate-500 h-4 w-4 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-slate-400 leading-normal">
+                  No interactive forms were detected on this page. If this page contains input portals (e.g. signup, contact), declaring them as standard &lt;form&gt; tags is recommended.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-[10px] text-slate-550 font-bold uppercase tracking-wider">
+                      <th className="py-2.5 pr-4">Form Identifier</th>
+                      <th className="py-2.5 pr-4">Action Target URL</th>
+                      <th className="py-2.5 pr-4">Method</th>
+                      <th className="py-2.5 pr-4">Inputs</th>
+                      <th className="py-2.5 pr-4">CSRF Nonce</th>
+                      <th className="py-2.5">Security Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {forms.list.map((form, idx) => (
+                      <tr key={idx} className="border-b border-slate-800/50 hover:bg-dark-800/20 transition-all">
+                        <td className="py-3 pr-4 font-bold text-slate-300 font-mono truncate max-w-[150px]" title={form.formId}>
+                          {form.formId}
+                        </td>
+                        <td className="py-3 pr-4 font-mono text-slate-450 truncate max-w-[220px]" title={form.actionUrl}>
+                          {form.actionUrl}
+                        </td>
+                        <td className="py-3 pr-4 font-bold text-slate-350">
+                          {form.method}
+                        </td>
+                        <td className="py-3 pr-4 font-bold text-indigo-400">
+                          {form.inputsCount} fields
+                        </td>
+                        <td className="py-3 pr-4">
+                          {form.hasCsrf ? (
+                            <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Token Present
+                            </span>
+                          ) : form.method === 'POST' ? (
+                            <span className="text-amber-400 font-semibold flex items-center gap-1" title="POST requests without Anti-CSRF/Nonce parameters are vulnerable.">
+                              <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> Missing Token
+                            </span>
+                          ) : (
+                            <span className="text-slate-500 font-medium">N/A (GET)</span>
+                          )}
+                        </td>
+                        <td className="py-3">
+                          {form.isInsecureSubmit ? (
+                            <span className="px-2 py-0.5 rounded bg-rose-500/10 text-rose-455 font-bold border border-rose-500/20 text-[9px] uppercase tracking-wide">
+                              Insecure HTTP Action
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-450 font-bold border border-emerald-500/20 text-[9px] uppercase tracking-wide">
+                              Secure Submit
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
 
       {/* Advanced Deep Image SEO Dashboard */}
@@ -733,6 +815,17 @@ export default function SeoDashboard({ seoData }) {
           <span className="flex items-center gap-2">
             <Link className="text-indigo-400 h-4.5 w-4.5" />
             Crawled Links Integrity Audit
+            {(links?.brokenCount || 0) > 0 ? (
+              <span className="ml-2 text-[9px] font-bold px-2 py-0.5 rounded bg-rose-500/10 text-rose-455 border border-rose-500/25 flex items-center gap-1 animate-pulse">
+                <AlertTriangle className="h-3 w-3 shrink-0" />
+                Warning: {links.brokenCount} Broken
+              </span>
+            ) : (
+              <span className="ml-2 text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3 shrink-0" />
+                Integrity OK
+              </span>
+            )}
           </span>
           <span className="text-xs font-semibold px-2 py-0.5 bg-slate-850/60 text-slate-400 rounded-md">
             Internal: {links?.internalCount || 0} • External: {links?.externalCount || 0}

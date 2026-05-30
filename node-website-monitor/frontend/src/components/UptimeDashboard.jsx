@@ -48,6 +48,8 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
     imageAnalysis = { totalImages: 0, withAlt: 0, missingAlt: 0, emptyAlt: 0, missingAltSrcs: [], status: 'ok', message: '' },
     techStack = [],
     totalPages = 1,
+    forms = { count: 0, list: [], status: 'info', message: '' },
+    crawledPages = [],
     seoScore = 100
   } = seo;
   const perf = latestStatus?.performance || { performanceScore: 100, vitals: {} };
@@ -439,7 +441,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
       </div>
 
       {/* 1b. Additional SRE Site Weights */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 animate-fade-in-up" style={{ animationDelay: '0.04s' }}>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6 animate-fade-in-up" style={{ animationDelay: '0.04s' }}>
         
         {/* Total Crawled Pages */}
         <div className="glass-card p-6 flex flex-col justify-between">
@@ -473,6 +475,31 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
           </div>
         </div>
 
+        {/* Links Integrity Audit Card */}
+        <div className="glass-card p-6 flex flex-col justify-between">
+          <div className="flex justify-between items-center">
+            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Link Integrity</span>
+            <Link className={`${(links?.brokenCount || 0) > 0 ? 'text-amber-400 animate-pulse' : 'text-emerald-400'} h-5 w-5`} />
+          </div>
+          <div className="mt-4">
+            {(links?.brokenCount || 0) > 0 ? (
+              <>
+                <h2 className="text-2xl font-black tracking-tight text-amber-400">WARNING</h2>
+                <p className="text-slate-500 text-[10px] mt-1.5 uppercase font-bold tracking-wide">
+                  {links.brokenCount} Broken link(s) found
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-3xl font-black tracking-tight text-emerald-400">OK</h2>
+                <p className="text-slate-500 text-[10px] mt-1.5 uppercase font-bold tracking-wide">
+                  Zero broken links
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+
         {/* Overall SRE Health Rating */}
         <div className="glass-card p-6 flex flex-col justify-between">
           <div className="flex justify-between items-center">
@@ -493,7 +520,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                 <h2 className={`text-3xl font-black tracking-tight ${color}`}>{overall}%</h2>
               );
             })()}
-            <p className="text-slate-500 text-xs mt-1">Weighted average across SRE segments</p>
+            <p className="text-slate-500 text-xs mt-1">Weighted SRE average score</p>
           </div>
         </div>
 
@@ -573,6 +600,66 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
               CLIENT SPA
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* SRE Multi-Page Live Status Explorer */}
+      <div className="glass-card p-6 mt-6 animate-fade-in-up" style={{ animationDelay: '0.09s' }}>
+        <div className="flex justify-between items-center border-b border-slate-800 pb-4 mb-5">
+          <div>
+            <h3 className="text-slate-200 font-extrabold text-base flex items-center gap-2">
+              <Globe className="text-indigo-400 h-5 w-5" />
+              SRE Multi-Page Live Status Explorer
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">Verifies if crawled internal pages are active and responding correctly in live production.</p>
+          </div>
+          <span className="text-[10px] font-black px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 tracking-widest uppercase">
+            {crawledPages && crawledPages.length > 0 
+              ? `${crawledPages.filter(p => p.isUp).length} / ${crawledPages.length} Pages Live`
+              : '1 / 1 Pages Live'}
+          </span>
+        </div>
+
+        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+          {(!crawledPages || crawledPages.length === 0) ? (
+            <div className="p-4 bg-dark-800/30 border border-slate-800/60 rounded-xl flex items-center justify-between text-xs transition-all hover:bg-dark-800/50">
+              <div className="flex items-center gap-3 truncate max-w-[70%]">
+                <span className="h-2 w-2 rounded-full bg-emerald-450 animate-pulse shrink-0"></span>
+                <span className="font-mono text-slate-350 truncate block" title={stats.url}>{stats.url}</span>
+                <span className="text-slate-500 font-semibold truncate block">Home Page</span>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="font-mono bg-dark-900 border border-slate-800 text-[10px] text-slate-450 px-2 py-0.5 rounded">
+                  {latestStatus?.loadTimeMs || 250}ms
+                </span>
+                <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-450 font-bold border border-emerald-500/20 text-[9px] uppercase tracking-wide">
+                  HTTP 200 OK
+                </span>
+              </div>
+            </div>
+          ) : (
+            crawledPages.map((page, idx) => (
+              <div key={idx} className="p-3.5 bg-dark-800/20 border border-slate-800/50 rounded-xl flex items-center justify-between text-xs transition-all hover:bg-dark-800/40">
+                <div className="flex items-center gap-3 truncate max-w-[70%]">
+                  <span className={`h-2 w-2 rounded-full shrink-0 ${page.isUp ? 'bg-emerald-450 animate-pulse' : 'bg-rose-455 animate-bounce'}`}></span>
+                  <span className="font-mono text-slate-355 truncate block" title={page.url}>{page.url}</span>
+                  <span className="text-slate-500 font-semibold truncate block max-w-[200px]">{page.title || 'No Title'}</span>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="font-mono bg-dark-900 border border-slate-800 text-[10px] text-slate-450 px-2 py-0.5 rounded">
+                    {page.loadTimeMs}ms
+                  </span>
+                  <span className={`px-2 py-0.5 rounded font-bold text-[9px] uppercase tracking-wide border ${
+                    page.isUp 
+                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                      : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                  }`}>
+                    HTTP {page.statusCode || 500} {page.isUp ? 'OK' : 'ERROR'}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

@@ -9,6 +9,7 @@ const { MonitorHistory, Alert } = require('../models/Schemas');
 const { analyzeSeo } = require('./seoService');
 const { analyzeUiUx } = require('./uiUxService');
 const { sendAlertEmail } = require('./emailService');
+const { crawlSite } = require('./crawlerService');
 
 const normalizeUrl = (url) => {
   if (!url) return '';
@@ -328,11 +329,24 @@ const checkWebsiteStatus = async (rawUrl) => {
   security.securityScore = Math.max(10, security.securityScore);
   auditReport.securityData = JSON.stringify(security);
 
-  // 6. Technical SEO audits
+  // 6. Technical SEO audits & SRE multi-page crawling
   let seo = { seoScore: 60, alerts: [] };
   try {
     seo = await analyzeSeo(url, htmlContent, responseHeaders['server'] || '');
-  } catch (e) {}
+    
+    // Multi-page crawl to verify if all pages are live in real-time
+    console.log(`🕷️ [Multi-Page Crawler] Crawling internal paths for ${url}...`);
+    const crawledPages = await crawlSite(url, 12);
+    seo.crawledPages = crawledPages.map(page => ({
+      url: page.url,
+      title: page.title,
+      statusCode: page.statusCode,
+      loadTimeMs: page.loadTimeMs,
+      isUp: page.isUp
+    }));
+  } catch (e) {
+    console.error(`🕷️ [Multi-Page Crawler Error] ${e.message}`);
+  }
   auditReport.seoData = JSON.stringify(seo);
 
   // 7. Visual UX & Spacing Diffs

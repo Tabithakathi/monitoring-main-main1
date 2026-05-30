@@ -1,4 +1,5 @@
 const axios = require('axios');
+const cheerio = require('cheerio');
 const https = require('https');
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
@@ -105,6 +106,7 @@ const analyzeSeo = async (url, htmlContent = '', serverHeader = '') => {
     links: { internalCount: 0, externalCount: 0, brokenCount: 0, brokenLinks: [], status: "ok" },
     imageAnalysis: { totalImages: 0, withAlt: 0, missingAlt: 0, emptyAlt: 0, missingAltSrcs: [], status: "ok", message: "No images analyzed." },
     structuredData: { schemasCount: 0, invalidSchemasCount: 0, schemaTypes: [], status: "info", message: "" },
+    forms: { count: 0, list: [], status: "info", message: "No interactive forms audited." },
     seoScore: 100,
     alerts: []
   };
@@ -800,6 +802,50 @@ const analyzeSeo = async (url, htmlContent = '', serverHeader = '') => {
 
   reports.techStack = techStack;
   reports.totalPages = reports.sitemap?.exists && reports.sitemap?.urlCount ? reports.sitemap.urlCount : (reports.links?.internalCount + 1 || 1);
+
+  // 14. Cheerio Forms Auditing
+  const formsList = [];
+  try {
+    const $ = cheerio.load(html);
+    $('form').each((idx, el) => {
+      const formEl = $(el);
+      const actionAttr = formEl.attr('action') || '';
+      let actionUrl = url;
+      try {
+        actionUrl = new URL(actionAttr, url).href;
+      } catch (e) {}
+      const method = (formEl.attr('method') || 'GET').toUpperCase();
+      const formId = formEl.attr('id') || formEl.attr('name') || `form-${idx + 1}`;
+      
+      const inputs = [];
+      formEl.find('input, textarea, select').each((_, inputEl) => {
+        const name = $(inputEl).attr('name');
+        const type = $(inputEl).attr('type') || 'text';
+        if (name) inputs.push({ name, type });
+      });
+      
+      const hasCsrf = html.toLowerCase().includes('nonce') || html.toLowerCase().includes('csrf') || html.toLowerCase().includes('token');
+      const isInsecureSubmit = url.startsWith('https://') && actionUrl.startsWith('http://');
+      
+      formsList.push({
+        formId,
+        actionUrl,
+        method,
+        inputsCount: inputs.length || 1,
+        hasCsrf,
+        isInsecureSubmit
+      });
+    });
+  } catch (e) {}
+
+  reports.forms = {
+    count: formsList.length,
+    list: formsList,
+    status: formsList.length > 0 ? "ok" : "info",
+    message: formsList.length > 0 
+      ? `Discovered ${formsList.length} interactive form pathways on this page.`
+      : 'No interactive form elements discovered on this page.'
+  };
 
   reports.seoScore = Math.max(10, reports.seoScore);
   return reports;

@@ -110,6 +110,8 @@ export default function App() {
         if (response.data.dbHealth) {
           setDbHealth(response.data.dbHealth);
         }
+        // Refresh the audited targets list so the bottom bar includes this URL if it was newly scanned on-the-fly
+        fetchTargets();
       } else {
         console.error("Received invalid stats format (HTML instead of JSON):", response.data);
         setError("Invalid response format received from SRE Monitor backend.");

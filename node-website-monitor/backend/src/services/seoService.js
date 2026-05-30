@@ -74,7 +74,7 @@ const generateSuggestedAlt = (src) => {
  * @param {string} htmlContent - Optional HTML content already loaded.
  * @returns {Promise<object>} Complete SEO audit payload.
  */
-const analyzeSeo = async (url, htmlContent = '') => {
+const analyzeSeo = async (url, htmlContent = '', serverHeader = '') => {
   let html = htmlContent;
   if (!html) {
     try {
@@ -752,6 +752,54 @@ const analyzeSeo = async (url, htmlContent = '') => {
   } else if (schemasCount === 0) {
     reports.alerts.push({ level: 'info', message: `SEO Info: No structured schema markup detected (JSON-LD).` });
   }
+
+  // 13. Dynamic Tech Stack & Total Pages Detection
+  const techStack = [];
+
+  if (html.includes('/wp-content/') || html.includes('/wp-includes/') || /generator=["']WordPress/i.test(html)) {
+    techStack.push({ name: 'WordPress', category: 'CMS', confidence: 'High' });
+  }
+  if (html.includes('_next/static') || html.includes('__NEXT_DATA__') || html.includes('id="__next"')) {
+    techStack.push({ name: 'Next.js', category: 'Frontend Framework', confidence: 'High' });
+  }
+  if (html.includes('data-reactroot') || html.includes('react.production') || html.includes('react.development') || html.includes('_react')) {
+    techStack.push({ name: 'React', category: 'JavaScript Library', confidence: 'High' });
+  }
+  if (html.includes('/@vite/client') || html.includes('vite/')) {
+    techStack.push({ name: 'Vite', category: 'Build Tool', confidence: 'High' });
+  }
+  if (html.includes('vue.global') || html.includes('vue.production') || /data-v-[a-f0-9]/i.test(html)) {
+    techStack.push({ name: 'Vue.js', category: 'Frontend Framework', confidence: 'High' });
+  }
+  if (/jquery[-.0-9]*.min.js/i.test(html) || /jquery\b/i.test(html)) {
+    techStack.push({ name: 'jQuery', category: 'JavaScript Library', confidence: 'High' });
+  }
+  if (/bootstrap[-.0-9]*.min.css/i.test(html) || html.includes('bootstrap.js') || html.includes('bootstrap.css')) {
+    techStack.push({ name: 'Bootstrap', category: 'CSS Framework', confidence: 'High' });
+  }
+  if (html.includes('tailwind.css') || html.includes('tailwind.min.css') || /class=["'][^"']*\b(space-y-|grid-cols-|text-slate-|glass-card)\b/i.test(html)) {
+    techStack.push({ name: 'Tailwind CSS', category: 'CSS Framework', confidence: 'Medium' });
+  }
+  if (html.includes('googletagmanager.com') || html.includes('google-analytics.com') || html.includes('gtag(')) {
+    techStack.push({ name: 'Google Analytics', category: 'Analytics', confidence: 'High' });
+  }
+  if (html.includes('cdn.shopify.com') || html.includes('Shopify.shop') || html.includes('shopify-payment-button')) {
+    techStack.push({ name: 'Shopify', category: 'E-commerce', confidence: 'High' });
+  }
+  if (html.includes('data-wf-page') || html.includes('data-wf-site') || html.includes('webflow.js')) {
+    techStack.push({ name: 'Webflow', category: 'No-Code Builder', confidence: 'High' });
+  }
+
+  if (serverHeader) {
+    techStack.unshift({ name: serverHeader, category: 'Web Server', confidence: 'High' });
+  }
+
+  if (techStack.length === 0) {
+    techStack.push({ name: 'HTML5 / Vanilla JavaScript', category: 'Frontend', confidence: 'High' });
+  }
+
+  reports.techStack = techStack;
+  reports.totalPages = reports.sitemap?.exists && reports.sitemap?.urlCount ? reports.sitemap.urlCount : (reports.links?.internalCount + 1 || 1);
 
   reports.seoScore = Math.max(10, reports.seoScore);
   return reports;

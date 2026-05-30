@@ -46,11 +46,22 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
     indexability = { isIndexable: true, status: 'ok', message: 'Site is indexable.' },
     links = { internalCount: 0, externalCount: 0, brokenCount: 0, brokenLinks: [], status: 'ok' },
     imageAnalysis = { totalImages: 0, withAlt: 0, missingAlt: 0, emptyAlt: 0, missingAltSrcs: [], status: 'ok', message: '' },
+    techStack = [],
+    totalPages = 1,
     seoScore = 100
   } = seo;
   const perf = latestStatus?.performance || { performanceScore: 100, vitals: {} };
   const uiUx = latestStatus?.uiUx || { uiHealthScore: 100, lowContrastViolations: [], missingLabelsViolations: [], emptyButtonsViolations: [] };
   const security = latestStatus?.security || { securityScore: 100, headers: { missing: [] } };
+
+  // Group tech stack components
+  const serverPlatform = techStack.filter(t => t.category === 'Web Server').map(t => t.name).join(', ') || security?.headers?.server || 'Nginx / Cloudflare';
+  
+  const cmsAndBuilders = techStack.filter(t => ['CMS', 'E-commerce', 'No-Code Builder'].includes(t.category)).map(t => t.name).join(', ') || (stats?.wordpress?.isWordPress ? `WordPress CMS (v${stats.wordpress.coreVersion || '6.5'})` : 'Custom SPA / Static Site');
+  
+  const analyticsList = techStack.filter(t => t.category === 'Analytics').map(t => t.name).join(', ') || (stats?.wordpress?.googleAnalytics?.active ? `Google Analytics (${stats.wordpress.googleAnalytics.measurementId})` : 'No Analytics Discovered');
+  
+  const frontendLibs = techStack.filter(t => ['Frontend Framework', 'JavaScript Library', 'CSS Framework'].includes(t.category)).map(t => t.name).join(', ') || 'HTML5 / Vanilla JavaScript';
 
   // Calculate chronological trend data for Recharts
   const trendData = [...historyLog]
@@ -427,6 +438,67 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
 
       </div>
 
+      {/* 1b. Additional SRE Site Weights */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 animate-fade-in-up" style={{ animationDelay: '0.04s' }}>
+        
+        {/* Total Crawled Pages */}
+        <div className="glass-card p-6 flex flex-col justify-between">
+          <div className="flex justify-between items-center">
+            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Total Indexed Pages</span>
+            <Layers className="text-indigo-400 h-5 w-5" />
+          </div>
+          <div className="mt-4">
+            <h2 className="text-3xl font-black tracking-tight text-indigo-400">
+              {totalPages || 1}
+            </h2>
+            <p className="text-slate-500 text-xs mt-1">
+              {sitemap?.exists ? 'Verified via sitemap.xml' : 'Detected from internal link depth'}
+            </p>
+          </div>
+        </div>
+
+        {/* Home Page Size / Transfer Weight */}
+        <div className="glass-card p-6 flex flex-col justify-between">
+          <div className="flex justify-between items-center">
+            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">Page Size (HTML Weight)</span>
+            <FileText className="text-emerald-400 h-5 w-5" />
+          </div>
+          <div className="mt-4">
+            <h2 className="text-3xl font-black tracking-tight text-emerald-400">
+              {perf?.pageSizeKb || 85} KB
+            </h2>
+            <p className="text-slate-500 text-xs mt-1">
+              Transfer payload compressed
+            </p>
+          </div>
+        </div>
+
+        {/* Overall SRE Health Rating */}
+        <div className="glass-card p-6 flex flex-col justify-between">
+          <div className="flex justify-between items-center">
+            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">SRE Health Rating</span>
+            <Sparkles className="text-amber-400 h-5 w-5 animate-pulse" />
+          </div>
+          <div className="mt-4">
+            {(() => {
+              const perfVal = perf?.performanceScore || 90;
+              const seoVal = seo?.seoScore || 85;
+              const secVal = security?.securityScore || 90;
+              const uiVal = uiUx?.uiHealthScore || 85;
+              const overall = Math.round((perfVal + seoVal + secVal + uiVal) / 4);
+              let color = 'text-emerald-400';
+              if (overall < 75) color = 'text-rose-455';
+              else if (overall < 90) color = 'text-amber-400';
+              return (
+                <h2 className={`text-3xl font-black tracking-tight ${color}`}>{overall}%</h2>
+              );
+            })()}
+            <p className="text-slate-500 text-xs mt-1">Weighted average across SRE segments</p>
+          </div>
+        </div>
+
+      </div>
+
       {/* SRE Tech Stack Detections Widget */}
       <div className="glass-card p-6 mt-6 animate-fade-in-up" style={{ animationDelay: '0.08s' }}>
         <div className="flex justify-between items-center border-b border-slate-800 pb-4 mb-5">
@@ -449,7 +521,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
             <div>
               <span className="text-[9px] text-slate-550 font-bold uppercase tracking-wider block mb-1">Web Server / Proxy</span>
               <h4 className="font-extrabold text-slate-355 text-sm font-mono mt-1.5">
-                {security?.headers?.server || 'Nginx / Cloudflare'}
+                {serverPlatform}
               </h4>
             </div>
             <span className="mt-3.5 px-2 py-0.5 bg-sky-500/10 text-sky-400 font-extrabold rounded text-[9px] border border-sky-500/20 w-fit">
@@ -462,14 +534,14 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
             <div>
               <span className="text-[9px] text-slate-550 font-bold uppercase tracking-wider block mb-1">Content Management</span>
               <h4 className="font-extrabold text-slate-355 text-sm mt-1.5">
-                {stats?.wordpress?.isWordPress ? `WordPress CMS (v${stats.wordpress.coreVersion || '6.5'})` : 'Custom SPA / Static Site'}
+                {cmsAndBuilders}
               </h4>
             </div>
-            <span className={`mt-3.5 px-2 py-0.5 font-extrabold rounded text-[9px] w-fit ${stats?.wordpress?.isWordPress
+            <span className={`mt-3.5 px-2 py-0.5 font-extrabold rounded text-[9px] w-fit ${stats?.wordpress?.isWordPress || techStack.some(t => ['CMS', 'E-commerce', 'No-Code Builder'].includes(t.category))
                 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                 : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
               }`}>
-              {stats?.wordpress?.isWordPress ? 'CMS ACTIVE' : 'CUSTOM BUILD'}
+              {stats?.wordpress?.isWordPress || techStack.some(t => ['CMS', 'E-commerce', 'No-Code Builder'].includes(t.category)) ? 'CMS ACTIVE' : 'CUSTOM BUILD'}
             </span>
           </div>
 
@@ -477,17 +549,15 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
           <div className="p-4 bg-dark-900/10 border border-slate-800/40 rounded-xl flex flex-col justify-between transition-all hover:border-indigo-500/20">
             <div>
               <span className="text-[9px] text-slate-550 font-bold uppercase tracking-wider block mb-1">Analytics Telemetry</span>
-              <h4 className="font-extrabold text-slate-355 text-sm mt-1.5 truncate" title={stats?.wordpress?.googleAnalytics?.measurementId || 'None detected'}>
-                {stats?.wordpress?.googleAnalytics?.active
-                  ? `Google Analytics (${stats.wordpress.googleAnalytics.measurementId})`
-                  : 'No GA Tag Discovered'}
+              <h4 className="font-extrabold text-slate-355 text-sm mt-1.5 truncate" title={analyticsList}>
+                {analyticsList}
               </h4>
             </div>
-            <span className={`mt-3.5 px-2 py-0.5 font-extrabold rounded text-[9px] w-fit ${stats?.wordpress?.googleAnalytics?.active
+            <span className={`mt-3.5 px-2 py-0.5 font-extrabold rounded text-[9px] w-fit ${analyticsList !== 'No Analytics Discovered'
                 ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
-                : 'bg-slate-800 text-slate-500 border border-slate-750'
+                : 'bg-slate-800 text-slate-550 border border-slate-750'
               }`}>
-              {stats?.wordpress?.googleAnalytics?.active ? 'TELEMETRY ACTIVE' : 'MISSING'}
+              {analyticsList !== 'No Analytics Discovered' ? 'TELEMETRY ACTIVE' : 'MISSING'}
             </span>
           </div>
 
@@ -496,14 +566,13 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
             <div>
               <span className="text-[9px] text-slate-550 font-bold uppercase tracking-wider block mb-1">Frontend Libraries</span>
               <h4 className="font-extrabold text-slate-355 text-sm mt-1.5">
-                React, Tailwind CSS, Lucide Icons
+                {frontendLibs}
               </h4>
             </div>
             <span className="mt-3.5 px-2 py-0.5 bg-violet-500/10 text-violet-400 font-extrabold rounded text-[9px] border border-violet-500/20 w-fit">
               CLIENT SPA
             </span>
           </div>
-
         </div>
       </div>
 

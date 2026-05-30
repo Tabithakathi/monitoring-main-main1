@@ -331,7 +331,7 @@ const checkWebsiteStatus = async (rawUrl) => {
   // 6. Technical SEO audits
   let seo = { seoScore: 60, alerts: [] };
   try {
-    seo = await analyzeSeo(url, htmlContent);
+    seo = await analyzeSeo(url, htmlContent, responseHeaders['server'] || '');
   } catch (e) {}
   auditReport.seoData = JSON.stringify(seo);
 

@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://node-website-monitor.vercel.app/sitemap.xml
+Sitemap: https://monitoring-main-main1.vercel.app/sitemap.xml

@@ -24,6 +24,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [auditLoading, setAuditLoading] = useState(false);
   const [dbHealth, setDbHealth] = useState(null);
+  const searchInputRef = useRef(null);
 
   // Fetch unique audited SRE target list
   const fetchTargets = async () => {
@@ -160,6 +161,68 @@ export default function App() {
     } finally {
       setAuditLoading(false);
     }
+  };
+
+  // Run a real-time Quick Scan (lightweight ping)
+  const handleQuickScan = async () => {
+    if (!url) {
+      showToast('Please specify a valid website URL', 'error');
+      return;
+    }
+    let formattedUrl = url.trim();
+    if (!/^https?:\/\//i.test(formattedUrl)) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
+
+    setLoading(true);
+    showToast('Executing real-time Quick Scan...', 'info');
+    try {
+      const response = await axios.post(`${API_BASE}/quick-scan`, { url: formattedUrl });
+      const beat = response.data;
+      
+      setStats(prev => {
+        const defaultStats = {
+          url: formattedUrl,
+          uptimePercentage: beat.isUp ? 100 : 0,
+          totalChecks: 1,
+          latestStatus: beat,
+          historyLog: [beat],
+          wordpress: prev?.wordpress || null,
+          activeAlerts: prev?.activeAlerts || [],
+          dbHealth: prev?.dbHealth || null
+        };
+        if (!prev) return defaultStats;
+        
+        const updatedHistory = [beat, ...(prev.historyLog || [])].slice(0, 30);
+        const total = (prev.totalChecks || 0) + 1;
+        const upCount = (prev.historyLog?.filter(h => h.isUp).length || 0) + (beat.isUp ? 1 : 0);
+        const uptimePct = parseFloat(((upCount / total) * 100).toFixed(2));
+        
+        return {
+          ...prev,
+          uptimePercentage: uptimePct,
+          totalChecks: total,
+          latestStatus: beat,
+          historyLog: updatedHistory
+        };
+      });
+      showToast('Quick Scan finished successfully!', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast(err.response?.data?.error || 'Quick scan failed.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Clear state and focus URL search input
+  const handleNewAudit = () => {
+    setUrl('');
+    setStats(null);
+    showToast('Dashboard cleared. Enter a new target URL to audit.', 'info');
+    setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 100);
   };
 
   const socketRef = useRef(null);
@@ -312,10 +375,11 @@ export default function App() {
           )}
 
           {/* SRE Domain search filter bar */}
-          <div className="flex-1 max-w-xl flex gap-2">
+          <div className="flex-1 max-w-3xl flex gap-2">
             <div className="flex-1 bg-dark-900 border border-slate-800/80 rounded-xl px-3.5 flex items-center gap-2 focus-within:border-indigo-500/70 transition-all shadow-inner">
               <Search className="text-slate-500 h-4 w-4" />
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Enter domain URL (e.g. wordpress.org)"
                 value={url}
@@ -326,11 +390,30 @@ export default function App() {
             </div>
 
             <button
-              onClick={() => fetchStats()}
-              disabled={loading || auditLoading}
-              className="px-4 py-2 bg-dark-800 border border-slate-700/80 hover:bg-dark-700/60 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+              onClick={handleNewAudit}
+              className="px-3.5 py-2 bg-dark-800 border border-slate-700/80 hover:bg-dark-700/60 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-[0.98] text-slate-300"
+              title="Start a new SRE audit on a different domain"
             >
-              Filter
+              New Audit
+            </button>
+
+            <button
+              onClick={handleQuickScan}
+              disabled={loading || auditLoading}
+              className="px-3.5 py-2 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+              title="Run a quick TCP ping check in real-time"
+            >
+              Quick Scan
+            </button>
+
+            <button
+              onClick={handleRunAudit}
+              disabled={loading || auditLoading}
+              className="px-4 py-2 bg-gradient-to-r from-indigo-650 to-indigo-550 hover:from-indigo-575 hover:to-indigo-475 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/15 flex items-center gap-1.5 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+              title="Run a deep multi-page crawl SRE audit in real-time"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${auditLoading ? 'rotate-infinite' : ''}`} />
+              <span>{auditLoading ? 'Scanning...' : 'Run Scan'}</span>
             </button>
 
             <button
@@ -343,21 +426,13 @@ export default function App() {
                   'info'
                 );
               }}
-              className={`px-4 py-2 border rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${autoRefresh
+              className={`px-3.5 py-2 border rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${autoRefresh
                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                 : 'bg-dark-800 border-slate-700/80 hover:bg-dark-700/60'
                 }`}
+              title="Toggle automatic 15-second SRE polling updates"
             >
-              <span>{autoRefresh ? 'Stop Monitor' : 'Auto-Monitor'}</span>
-            </button>
-
-            <button
-              onClick={handleRunAudit}
-              disabled={loading || auditLoading}
-              className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-550 hover:to-indigo-450 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-indigo-600/15 flex items-center gap-1.5 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${auditLoading ? 'rotate-infinite' : ''}`} />
-              <span>{auditLoading ? 'Running Scan...' : 'Run Scan'}</span>
+              <span>{autoRefresh ? 'Stop Polling' : 'Auto-Poll'}</span>
             </button>
           </div>
 

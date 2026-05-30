@@ -44,4 +44,19 @@ router.post('/send-test-email/', testEmail);
 // Database health diagnostics
 router.get('/db-health', getDbHealth);
 
+// Quick Ping Availability check
+router.post('/quick-scan', async (req, res) => {
+  const { url } = req.body;
+  if (!url) {
+    return res.status(400).json({ error: 'Missing target URL in request body.' });
+  }
+  try {
+    const { runQuickPing } = require('../services/monitorService');
+    const result = await runQuickPing(url);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: `Quick scan execution failure: ${error.message}` });
+  }
+});
+
 module.exports = router;

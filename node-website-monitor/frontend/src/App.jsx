@@ -202,6 +202,13 @@ export default function App() {
     };
   }, []);
 
+  // Safeguard: Redirect from wordpress tab if target website is not WordPress
+  useEffect(() => {
+    if (stats && !stats.wordpress?.isWordPress && activeTab === 'wordpress') {
+      setActiveTab('uptime');
+    }
+  }, [stats, activeTab]);
+
   // Map/align backend schema variables to the custom props structure requested by user
   if (stats) {
     if (!stats.sslData) stats.sslData = stats.latestStatus?.ssl;
@@ -322,8 +329,8 @@ export default function App() {
               </div>
               <div className="text-right">
                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">WordPress Core</span>
-                <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-[9px] mt-1.5 tracking-wider ${stats.wordpress ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25' : 'bg-slate-800 text-slate-400 border border-slate-750'}`}>
-                  {stats.wordpress ? 'DETECTED' : 'NONE'}
+                <span className={`inline-block px-2.5 py-0.5 rounded-full font-bold text-[9px] mt-1.5 tracking-wider ${stats.wordpress && stats.wordpress.isWordPress ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25' : 'bg-slate-800 text-slate-400 border border-slate-750'}`}>
+                  {stats.wordpress && stats.wordpress.isWordPress ? 'DETECTED' : 'NONE'}
                 </span>
               </div>
             </div>
@@ -342,15 +349,17 @@ export default function App() {
             Uptime & Error Logs
           </button>
 
-          <button
-            onClick={() => setActiveTab('wordpress')}
-            className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'wordpress'
-                ? 'border-indigo-500 text-indigo-400'
-                : 'border-transparent text-slate-400 hover:text-slate-250'
-              }`}
-          >
-            WordPress CMS Diagnostics
-          </button>
+          {stats?.wordpress?.isWordPress && (
+            <button
+              onClick={() => setActiveTab('wordpress')}
+              className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'wordpress'
+                  ? 'border-indigo-500 text-indigo-400'
+                  : 'border-transparent text-slate-400 hover:text-slate-250'
+                }`}
+            >
+              WordPress CMS Diagnostics
+            </button>
+          )}
 
           <button
             onClick={() => setActiveTab('ssl')}

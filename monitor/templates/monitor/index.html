@@ -887,12 +887,12 @@
           <div class="card-title">📊 History Trends</div>
           <div class="charts-grid">
             <div class="chart-wrap">
-              <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem">Load Time (ms) – Last 10 Analyses
+              <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem">Load Time (ms) – Last 30 Analyses
               </div>
               <canvas id="chart-loadtime"></canvas>
             </div>
             <div class="chart-wrap">
-              <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem">Scores – Last 10 Analyses</div>
+              <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem">Scores – Last 30 Analyses</div>
               <canvas id="chart-scores"></canvas>
             </div>
           </div>
@@ -1542,7 +1542,7 @@
 
     async function loadHistoryCharts(url) {
       try {
-        const resp = await fetch('/api/history-stats/?url=' + encodeURIComponent(url));
+        const resp = await fetch('/api/history-stats/?url=' + encodeURIComponent(url) + '&limit=30');
         if (!resp.ok) return;
         const data = await resp.json();
         if (!data.labels || data.labels.length < 2) return;

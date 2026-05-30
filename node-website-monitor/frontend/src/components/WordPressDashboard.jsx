@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 export default function WordPressDashboard({ wordpressData }) {
-  if (!wordpressData || wordpressData.message) {
+  if (!wordpressData || !wordpressData.isWordPress || wordpressData.message) {
     return (
       <div className="glass-card p-10 text-center text-slate-500 max-w-2xl mx-auto my-6 animate-fade-in-up">
         <Database className="h-10 w-10 text-slate-650 mx-auto mb-4 animate-bounce" />
@@ -286,7 +286,12 @@ export default function WordPressDashboard({ wordpressData }) {
         >
           <div className="flex items-center gap-1.5">
             <Link2Off className="h-3.5 w-3.5" />
-            Broken links ({brokenLinks.length})
+            <span>Broken links ({brokenLinks.length})</span>
+            {brokenLinks.length > 0 ? (
+              <span className="ml-1.5 px-1.5 py-0.2 bg-rose-500/20 text-rose-400 rounded text-[9px] font-black border border-rose-500/20 animate-pulse">WARNING</span>
+            ) : (
+              <span className="ml-1.5 px-1.5 py-0.2 bg-emerald-500/20 text-emerald-400 rounded text-[9px] font-black border border-emerald-500/20">OK</span>
+            )}
           </div>
         </button>
       </div>
@@ -475,10 +480,18 @@ export default function WordPressDashboard({ wordpressData }) {
                     {googleAnalytics.status}
                   </span>
                 </div>
-                <div className="border-l border-slate-800 pl-3 pr-1">
+                <div className="border-l border-slate-800 pl-3">
                   <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">Measurement ID</span>
                   <span className="text-xs font-mono text-slate-300 font-bold block mt-0.5">{googleAnalytics.measurementId || 'Missing'}</span>
                 </div>
+                {googleAnalytics.active && googleAnalytics.viewsCount !== undefined && (
+                  <div className="border-l border-slate-800 pl-3 pr-1">
+                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">Total Views</span>
+                    <span className="text-xs text-orange-400 font-black block mt-0.5 font-mono">
+                      {Number(googleAnalytics.viewsCount).toLocaleString()}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -697,6 +710,19 @@ export default function WordPressDashboard({ wordpressData }) {
                     <div className="flex justify-between items-center">
                       <span className="text-slate-450">Input Fields Count:</span>
                       <span className="font-bold text-slate-350">{form.inputsCount} fields</span>
+                    </div>
+
+                    <div className="flex justify-between items-center border-t border-slate-850 pt-2">
+                      <span className="text-slate-455">Working Status:</span>
+                      {form.status !== 'Broken' && form.status !== 'Insecure Submission' ? (
+                        <span className="text-emerald-450 font-bold flex items-center gap-1 text-[10px]">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Working / Operational
+                        </span>
+                      ) : (
+                        <span className="text-rose-455 font-bold flex items-center gap-1 text-[10px] animate-pulse">
+                          <XCircle className="h-3.5 w-3.5" /> Broken / Non-Operational
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex justify-between items-center border-t border-slate-850 pt-2">

@@ -270,6 +270,8 @@ def api_ui_ux(request):
     
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
+    if url.endswith("/"):
+        url = url[:-1]
         
     prev = AnalysisReport.objects.filter(url=url).first()
     res = analyze_ui_ux(url, previous_report=prev)
@@ -287,6 +289,8 @@ def api_wordpress(request):
     
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
+    if url.endswith("/"):
+        url = url[:-1]
         
     res = analyze_wordpress(url)
     if "error" in res:
@@ -303,6 +307,8 @@ def api_structure(request):
     
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
+    if url.endswith("/"):
+        url = url[:-1]
         
     res = analyze_structure(url)
     if "error" in res:
@@ -325,6 +331,8 @@ def api_full_analysis(request):
     # Normalize
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
+    if url.endswith("/"):
+        url = url[:-1]
 
     lang = request.GET.get("lang", "").strip()
 
@@ -503,6 +511,8 @@ def api_quick_analysis(request):
 
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
+    if url.endswith("/"):
+        url = url[:-1]
 
     lang = request.GET.get("lang", "").strip()
     with language_context(lang):
@@ -606,7 +616,7 @@ def api_report_detail(request, report_id):
 
 def api_history_stats(request):
     url_filter = request.GET.get("url", "").strip()
-    limit = min(int(request.GET.get("limit", 10)), 50)
+    limit = min(int(request.GET.get("limit", 30)), 50)
 
     qs = AnalysisReport.objects.all()
     if url_filter:

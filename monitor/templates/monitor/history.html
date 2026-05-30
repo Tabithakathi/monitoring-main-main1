@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -728,7 +728,10 @@
     // ── PAGINATION ─────────────────────────────────────────────
     function renderPagination(pageCount) {
       const pg = document.getElementById('pagination');
-      if (!pageCount || pageCount <= 1) { pg.innerHTML = ''; return; }
+      if (!pageCount || pageCount <= 1) { 
+        pg.innerHTML = `<span style="color:var(--muted);font-size:0.8rem;margin-left:1rem">Page 1 of 1 (Page Size: ${PAGE_SIZE})</span>`; 
+        return; 
+      }
       let html = `<button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
       const range = [];
       for (let i = 1; i <= pageCount; i++) {
@@ -740,6 +743,7 @@
         else html += `<button class="page-btn ${p === currentPage ? 'active' : ''}" onclick="goPage(${p})">${p}</button>`;
       });
       html += `<button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === pageCount ? 'disabled' : ''}>›</button>`;
+      html += `<span style="color:var(--muted);font-size:0.8rem;margin-left:1rem">Page ${currentPage} of ${pageCount} (Page Size: ${PAGE_SIZE})</span>`;
       pg.innerHTML = html;
     }
     function goPage(p) {
@@ -850,7 +854,7 @@
     async function loadHistoryCharts() {
       const filter = document.getElementById('search-input').value.trim();
       try {
-        const resp = await fetch('/api/history-stats/?url=' + encodeURIComponent(filter));
+        const resp = await fetch('/api/history-stats/?url=' + encodeURIComponent(filter) + '&limit=30');
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         const data = await resp.json();
         if (!data.labels || data.labels.length < 2) {

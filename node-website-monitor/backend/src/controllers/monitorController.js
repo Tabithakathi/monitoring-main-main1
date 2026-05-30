@@ -2,6 +2,15 @@ const { checkWebsiteStatus, compileStats } = require('../services/monitorService
 const { auditWordPressSite } = require('../services/wordpressService');
 const { MonitorHistory, WordPressMonitor, Alert } = require('../models/Schemas');
 
+const normalizeUrl = (url) => {
+  if (!url) return '';
+  let normalized = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
+  if (normalized.endsWith('/')) {
+    normalized = normalized.slice(0, -1);
+  }
+  return normalized;
+};
+
 /**
  * Trigger immediate site uptime and WordPress health audits concurrently.
  */
@@ -12,12 +21,15 @@ const triggerAudit = async (req, res) => {
   }
 
   try {
-    const normalizedUrl = url.startsWith('http') ? url : `https://${url}`;
+    const normalizedUrl = normalizeUrl(url);
     
     // Concurrent execution of uptime check and WordPress crawler
     await Promise.all([
       checkWebsiteStatus(normalizedUrl),
-      auditWordPressSite(normalizedUrl).catch(() => null) // WordPress check can return null if not wordpress site
+      auditWordPressSite(normalizedUrl).catch((err) => {
+        console.error(`WordPress Audit error caught safely:`, err);
+        return null;
+      })
     ]);
 
     // Gather newly compiled stats
@@ -50,7 +62,8 @@ const getDashboardStats = async (req, res) => {
   }
 
   try {
-    const stats = await compileStats(url);
+    const normalizedUrl = normalizeUrl(url);
+    const stats = await compileStats(normalizedUrl);
     res.status(200).json(stats);
   } catch (error) {
     res.status(500).json({ error: `Dashboard telemetry compilation failed: ${error.message}` });
@@ -67,7 +80,8 @@ const getWordPressDetails = async (req, res) => {
   }
 
   try {
-    const details = await WordPressMonitor.findOne({ url });
+    const normalizedUrl = normalizeUrl(url);
+    const details = await WordPressMonitor.findOne({ url: normalizedUrl });
     res.status(200).json(details || { message: 'No WordPress audit records exist for this URL.' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -79,7 +93,7 @@ const getWordPressDetails = async (req, res) => {
  */
 const getAlerts = async (req, res) => {
   const { url } = req.query;
-  const filter = url ? { url } : {};
+  const filter = url ? { url: normalizeUrl(url) } : {};
   try {
     const alerts = await Alert.find(filter).sort({ createdAt: -1 });
     res.status(200).json(alerts);

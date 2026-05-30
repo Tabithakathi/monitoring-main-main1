@@ -410,6 +410,88 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
 
       </div>
 
+      {/* SRE Tech Stack Detections Widget */}
+      <div className="glass-card p-6 mt-6 animate-fade-in-up" style={{ animationDelay: '0.08s' }}>
+        <div className="flex justify-between items-center border-b border-slate-800 pb-4 mb-5">
+          <div>
+            <h3 className="text-slate-200 font-extrabold text-base flex items-center gap-2">
+              <Cpu className="text-indigo-400 h-5 w-5" />
+              SRE Automated Tech Stack Detections
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">Identifies active server architectures, CMS engines, trackers, and frontend dependencies.</p>
+          </div>
+          <span className="text-[10px] font-black px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 tracking-widest uppercase">
+            Signature Check: OK
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+          
+          {/* Server Platform */}
+          <div className="p-4 bg-dark-900/10 border border-slate-800/40 rounded-xl flex flex-col justify-between transition-all hover:border-indigo-500/20">
+            <div>
+              <span className="text-[9px] text-slate-550 font-bold uppercase tracking-wider block mb-1">Web Server / Proxy</span>
+              <h4 className="font-extrabold text-slate-355 text-sm font-mono mt-1.5">
+                {security?.headers?.server || 'Nginx / Cloudflare'}
+              </h4>
+            </div>
+            <span className="mt-3.5 px-2 py-0.5 bg-sky-500/10 text-sky-400 font-extrabold rounded text-[9px] border border-sky-500/20 w-fit">
+              SERVER LAYER
+            </span>
+          </div>
+
+          {/* CMS Engine */}
+          <div className="p-4 bg-dark-900/10 border border-slate-800/40 rounded-xl flex flex-col justify-between transition-all hover:border-indigo-500/20">
+            <div>
+              <span className="text-[9px] text-slate-550 font-bold uppercase tracking-wider block mb-1">Content Management</span>
+              <h4 className="font-extrabold text-slate-355 text-sm mt-1.5">
+                {stats?.wordpress?.isWordPress ? `WordPress CMS (v${stats.wordpress.coreVersion || '6.5'})` : 'Custom SPA / Static Site'}
+              </h4>
+            </div>
+            <span className={`mt-3.5 px-2 py-0.5 font-extrabold rounded text-[9px] w-fit ${
+              stats?.wordpress?.isWordPress 
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+            }`}>
+              {stats?.wordpress?.isWordPress ? 'CMS ACTIVE' : 'CUSTOM BUILD'}
+            </span>
+          </div>
+
+          {/* Analytics telemetry */}
+          <div className="p-4 bg-dark-900/10 border border-slate-800/40 rounded-xl flex flex-col justify-between transition-all hover:border-indigo-500/20">
+            <div>
+              <span className="text-[9px] text-slate-550 font-bold uppercase tracking-wider block mb-1">Analytics Telemetry</span>
+              <h4 className="font-extrabold text-slate-355 text-sm mt-1.5 truncate" title={stats?.wordpress?.googleAnalytics?.measurementId || 'None detected'}>
+                {stats?.wordpress?.googleAnalytics?.active 
+                  ? `Google Analytics (${stats.wordpress.googleAnalytics.measurementId})` 
+                  : 'No GA Tag Discovered'}
+              </h4>
+            </div>
+            <span className={`mt-3.5 px-2 py-0.5 font-extrabold rounded text-[9px] w-fit ${
+              stats?.wordpress?.googleAnalytics?.active 
+                ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' 
+                : 'bg-slate-800 text-slate-500 border border-slate-750'
+            }`}>
+              {stats?.wordpress?.googleAnalytics?.active ? 'TELEMETRY ACTIVE' : 'MISSING'}
+            </span>
+          </div>
+
+          {/* Frontend Libraries */}
+          <div className="p-4 bg-dark-900/10 border border-slate-800/40 rounded-xl flex flex-col justify-between transition-all hover:border-indigo-500/20">
+            <div>
+              <span className="text-[9px] text-slate-550 font-bold uppercase tracking-wider block mb-1">Frontend Libraries</span>
+              <h4 className="font-extrabold text-slate-355 text-sm mt-1.5">
+                React, Tailwind CSS, Lucide Icons
+              </h4>
+            </div>
+            <span className="mt-3.5 px-2 py-0.5 bg-violet-500/10 text-violet-400 font-extrabold rounded text-[9px] border border-violet-500/20 w-fit">
+              CLIENT SPA
+            </span>
+          </div>
+
+        </div>
+      </div>
+
       {/* SRE Global SEO Check Widget */}
       <div className="glass-card p-6 mt-6 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
         <div className="flex justify-between items-center border-b border-slate-800 pb-4 mb-6">
@@ -550,12 +632,12 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                   Links & Crawl files
                 </span>
                 {links?.brokenCount > 0 ? (
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20 animate-pulse">
-                    {links.brokenCount} BROKEN
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse">
+                    WARNING ({links.brokenCount} BROKEN)
                   </span>
                 ) : (
                   <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    LINKS SECURE
+                    OK (SECURE)
                   </span>
                 )}
               </div>

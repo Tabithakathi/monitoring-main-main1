@@ -24,6 +24,7 @@ const monitorHistorySchema = new mongoose.Schema({
 
 const wordpressMonitorSchema = new mongoose.Schema({
   url: { type: String, required: true },
+  isWordPress: { type: Boolean, default: false },
   healthScore: { type: Number, default: 100 },
   coreVersion: { type: String },
   hasUpdate: { type: Boolean, default: false },
@@ -84,7 +85,8 @@ const wordpressMonitorSchema = new mongoose.Schema({
     active: { type: Boolean, default: false },
     measurementId: { type: String, default: '' },
     tagType: { type: String, default: 'none' },
-    status: { type: String, default: 'Not Found' }
+    status: { type: String, default: 'Not Found' },
+    viewsCount: { type: Number, default: 0 }
   },
   lastChecked: { type: Date, default: Date.now }
 });
@@ -189,6 +191,15 @@ const WordPressMonitor = {
       return doc;
     }
     return null;
+  },
+  deleteOne: async (query) => {
+    if (isConnected()) return await RealWordPressMonitor.deleteOne(query);
+    const index = inMemoryWordPress.findIndex(wp => wp.url === query.url);
+    if (index !== -1) {
+      inMemoryWordPress.splice(index, 1);
+      return { deletedCount: 1 };
+    }
+    return { deletedCount: 0 };
   }
 };
 

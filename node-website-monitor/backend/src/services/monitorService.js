@@ -10,6 +10,15 @@ const { analyzeSeo } = require('./seoService');
 const { analyzeUiUx } = require('./uiUxService');
 const { sendAlertEmail } = require('./emailService');
 
+const normalizeUrl = (url) => {
+  if (!url) return '';
+  let normalized = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
+  if (normalized.endsWith('/')) {
+    normalized = normalized.slice(0, -1);
+  }
+  return normalized;
+};
+
 /**
  * Socket-level WHOIS client on port 43 to retrieve exact domain registration expiry.
  * 
@@ -155,7 +164,8 @@ const checkSslCertificate = (hostname) => {
  * @param {string} url - Target website domain URL.
  * @returns {Promise<object>} Complete SRE telemetry report.
  */
-const checkWebsiteStatus = async (url) => {
+const checkWebsiteStatus = async (rawUrl) => {
+  const url = normalizeUrl(rawUrl);
   const parsed = new URL(url);
   const hostname = parsed.hostname;
   
@@ -295,7 +305,8 @@ const checkWebsiteStatus = async (url) => {
       missing: [],
       csp: responseHeaders['content-security-policy'] ? 'enabled' : 'disabled',
       hsts: responseHeaders['strict-transport-security'] ? 'enabled' : 'disabled',
-      xfo: responseHeaders['x-frame-options'] ? 'enabled' : 'disabled'
+      xfo: responseHeaders['x-frame-options'] ? 'enabled' : 'disabled',
+      server: responseHeaders['server'] || 'Unknown'
     },
     alerts: []
   };
@@ -348,20 +359,20 @@ const checkWebsiteStatus = async (url) => {
 /**
  * Helper to compile complete stats report for a website
  */
-const compileStats = async (url) => {
+const compileStats = async (rawUrl) => {
   const { WordPressMonitor, Alert } = require('../models/Schemas');
   
   // Normalize protocol for real-time consistency
-  const normalizedUrl = url.startsWith('http') ? url : `https://${url}`;
-  const filter = { url: normalizedUrl };
+  const url = normalizeUrl(rawUrl);
+  const filter = { url };
   
   let history = await MonitorHistory.find(filter).sort({ checkedAt: -1 }).limit(30);
   
   // If no history is stored for this target URL, execute a real-time SRE audit on-the-fly
   if (history.length === 0) {
-    console.log(`🔍 [Real-Time Audit] No previous records found for ${normalizedUrl}. Launching SRE crawler...`);
+    console.log(`🔍 [Real-Time Audit] No previous records found for ${url}. Launching SRE crawler...`);
     try {
-      await checkWebsiteStatus(normalizedUrl);
+      await checkWebsiteStatus(url);
       history = await MonitorHistory.find(filter).sort({ checkedAt: -1 }).limit(30);
     } catch (err) {
       console.warn(`⚠️ [Real-Time Audit] On-the-fly live check failed: ${err.message}`);
@@ -374,7 +385,7 @@ const compileStats = async (url) => {
   const uptimePercentage = totalChecks > 0 ? parseFloat(((successfulChecks / totalChecks) * 100).toFixed(2)) : 100;
   
   const wordpress = await WordPressMonitor.findOne(filter);
-  const activeAlerts = await Alert.find({ url: normalizedUrl, resolved: false }).sort({ createdAt: -1 });
+  const activeAlerts = await Alert.find({ url, resolved: false }).sort({ createdAt: -1 });
 
   const parseJsonSafe = (str, fallback = {}) => {
     if (!str) return fallback;

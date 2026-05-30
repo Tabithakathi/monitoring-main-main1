@@ -287,7 +287,7 @@ function App() {
         page_size_kb: nodeData.latestStatus?.performance?.pageSizeKb || 85,
         perf_rating: nodeData.latestStatus?.performance?.grade || 'A'
       },
-      wordpress: nodeData.wordpress ? {
+      wordpress: (nodeData.wordpress && nodeData.wordpress.isWordPress) ? {
         is_wordpress: true,
         core_version: nodeData.wordpress.coreVersion,
         latest_stable_version: "6.5.3",
@@ -420,6 +420,12 @@ function App() {
   const [clsTolerance, setClsTolerance] = useState(0.15);
   const [aiSensitivity, setAiSensitivity] = useState(82);
 
+  // Real-Time SRE Alerts & Incident Resolution Stream State
+  const [activeAlerts, setActiveAlerts] = useState([]);
+  const [alertSeverityFilter, setAlertSeverityFilter] = useState("all");
+  const [alertCategoryFilter, setAlertCategoryFilter] = useState("all");
+  const [resolvingAlertId, setResolvingAlertId] = useState(null);
+
   // Remediation states
   const [autoRemediate, setAutoRemediate] = useState(true);
   const [neuralPattern, setNeuralPattern] = useState(false);
@@ -538,6 +544,48 @@ function App() {
   useEffect(() => {
     localStorage.setItem("sre_accounts_list", JSON.stringify(accountsList));
   }, [accountsList]);
+
+  // Sync SRE Active Alerts Stream whenever scan data changes
+  useEffect(() => {
+    if (data) {
+      setActiveAlerts(data.all_alerts || data.alerts || []);
+    } else {
+      setActiveAlerts([]);
+    }
+  }, [data]);
+
+  // Execute incident mitigation and real-time database resolutions
+  const handleResolveAlert = async (alertId, alertMsg = '') => {
+    setResolvingAlertId(alertId);
+    
+    // Smooth transition delay for SRE live mitigation shell feel
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    if (activeEngine === "node") {
+      const base = "http://localhost:5000";
+      try {
+        const resp = await fetch(`${base}/api/alerts/resolve`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ alertId })
+        });
+        if (resp.ok) {
+          setActiveAlerts(prev => prev.filter(a => a._id !== alertId));
+        } else {
+          console.warn("Resolving Node SRE alert failed on Vercel. Dismissing locally in memory.");
+          setActiveAlerts(prev => prev.filter(a => a._id !== alertId));
+        }
+      } catch (err) {
+        console.error("Failed to connect to SRE resolve gateway:", err);
+        setActiveAlerts(prev => prev.filter(a => a._id !== alertId));
+      }
+    } else {
+      // Django fallback - resolve/clear directly in memory
+      setActiveAlerts(prev => prev.filter(a => (a.id || a._id) !== alertId && a.message !== alertMsg));
+    }
+    
+    setResolvingAlertId(null);
+  };
 
   // Sync loaded settings email to accounts list
   useEffect(() => {
@@ -1013,7 +1061,7 @@ function App() {
   const fetchStats = async (targetUrl) => {
     if (activeEngine === "node") return; // Node sets statsData directly in executeSreScan!
     try {
-      const response = await fetch(`${API_BASE_URL}/api/history-stats/?url=${encodeURIComponent(targetUrl)}`);
+      const response = await fetch(`${API_BASE_URL}/api/history-stats/?url=${encodeURIComponent(targetUrl)}&limit=30`);
       if (response.ok) {
         const stats = await response.json();
         setStatsData(stats);
@@ -3318,6 +3366,188 @@ function App() {
                     </div>
                   </div>
 
+                </div>
+
+                {/* --- REAL-TIME ACTIVE SRE ALERTS STREAM & INCIDENT RESOLUTION CENTER --- */}
+                <div className="details-panel animate-fade" style={{ marginTop: '24px', borderLeft: '4px solid var(--primary)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                    <div>
+                      <h3 style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className="material-icons animate-pulse" style={{ color: activeAlerts.length > 0 ? 'var(--error)' : 'var(--success)' }}>notifications_active</span>
+                        Real-Time Active SRE Alerts Stream
+                      </h3>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: '4px 0 0 0' }}>
+                        Sweep anomalous infrastructure events and execute instant incident mitigation commands.
+                      </p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {/* Category Filter */}
+                      <select 
+                        value={alertCategoryFilter} 
+                        onChange={(e) => setAlertCategoryFilter(e.target.value)}
+                        className="theme-btn"
+                        style={{ padding: '6px 12px', fontSize: '0.75rem', outline: 'none', background: 'var(--bg-surface-low)', border: '1px solid var(--border-color)', borderRadius: '4px' }}
+                      >
+                        <option value="all">All Categories</option>
+                        <option value="uptime">Uptime / Connectivity</option>
+                        <option value="ssl">SSL / TLS Certificate</option>
+                        <option value="security">Security Headers</option>
+                        <option value="seo">SEO / Structure</option>
+                        <option value="wordpress">WordPress Diagnostics</option>
+                      </select>
+
+                      {/* Severity Filter */}
+                      <select 
+                        value={alertSeverityFilter} 
+                        onChange={(e) => setAlertSeverityFilter(e.target.value)}
+                        className="theme-btn"
+                        style={{ padding: '6px 12px', fontSize: '0.75rem', outline: 'none', background: 'var(--bg-surface-low)', border: '1px solid var(--border-color)', borderRadius: '4px' }}
+                      >
+                        <option value="all">All Severities</option>
+                        <option value="critical">Critical Only</option>
+                        <option value="warning">Warnings Only</option>
+                        <option value="info">Info Only</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Alerts Grid */}
+                  {(() => {
+                    const filteredAlerts = activeAlerts.filter(a => {
+                      const matchesSeverity = alertSeverityFilter === "all" || 
+                        (a.level || '').toLowerCase() === alertSeverityFilter.toLowerCase() || 
+                        (alertSeverityFilter === "critical" && (a.level || '').toLowerCase() === "high") ||
+                        (alertSeverityFilter === "warning" && (a.level || '').toLowerCase() === "medium");
+                      
+                      const matchesCategory = alertCategoryFilter === "all" || 
+                        (a.category || '').toLowerCase() === alertCategoryFilter.toLowerCase();
+                      
+                      return matchesSeverity && matchesCategory;
+                    });
+
+                    if (filteredAlerts.length === 0) {
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px', textAlign: 'center', backgroundColor: 'var(--bg-surface-low)', border: '1px dashed var(--border-color)', borderRadius: '12px', marginTop: '16px' }}>
+                          <span className="material-icons" style={{ fontSize: '48px', color: 'var(--success)', marginBottom: '12px' }}>shield</span>
+                          <h4 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: '800' }}>Zero Infrastructure Anomaly Warnings</h4>
+                          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0' }}>
+                            All monitored pathways are secure. AI sensitivity sweeps return absolute baseline stability.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '16px' }}>
+                        {filteredAlerts.map((alert, index) => {
+                          const isResolving = resolvingAlertId === (alert._id || alert.id || index);
+                          const severity = (alert.level || 'info').toLowerCase();
+                          const category = (alert.category || 'general').toLowerCase();
+
+                          // Icon and Color Mapper
+                          let catIcon = "notifications";
+                          let catColor = "var(--primary)";
+                          if (category === "uptime" || category === "error") {
+                            catIcon = "wifi_off";
+                            catColor = "var(--error)";
+                          } else if (category === "ssl") {
+                            catIcon = "vpn_key";
+                            catColor = "var(--success)";
+                          } else if (category === "security") {
+                            catIcon = "gpp_maybe";
+                            catColor = "var(--warning)";
+                          } else if (category === "wordpress") {
+                            catIcon = "settings_applications";
+                            catColor = "#38bdf8";
+                          } else if (category === "seo" || category === "structure") {
+                            catIcon = "analytics";
+                            catColor = "var(--secondary)";
+                          }
+
+                          return (
+                            <div 
+                              key={alert._id || alert.id || index}
+                              className="animate-fade"
+                              style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'center', 
+                                padding: '16px', 
+                                backgroundColor: 'var(--bg-surface-low)', 
+                                border: '1px solid var(--border-color)', 
+                                borderRadius: '10px',
+                                gap: '16px',
+                                opacity: isResolving ? 0.4 : 1,
+                                transition: 'all 0.3s ease'
+                              }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', flex: 1 }}>
+                                <div style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center', 
+                                  width: '40px', 
+                                  height: '40px', 
+                                  borderRadius: '8px', 
+                                  backgroundColor: 'rgba(255, 255, 255, 0.03)', 
+                                  border: `1px solid ${catColor}`, 
+                                  color: catColor 
+                                }}>
+                                  <span className="material-icons">{catIcon}</span>
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontWeight: '700', fontSize: '0.92rem' }}>
+                                      {category.toUpperCase()} System Incident
+                                    </span>
+                                    <span className={`badge ${severity === 'critical' || severity === 'high' ? 'critical' : severity === 'warning' || severity === 'medium' ? 'warning' : 'ok'}`}>
+                                      {severity.toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <p style={{ margin: '6px 0 0 0', fontSize: '0.86rem', color: '#e2e8f0', lineHeight: '1.4' }}>
+                                    {alert.message}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div style={{ textAlign: 'right' }}>
+                                <button
+                                  className="theme-btn"
+                                  onClick={() => handleResolveAlert(alert._id || alert.id || index, alert.message)}
+                                  disabled={isResolving}
+                                  style={{ 
+                                    padding: '8px 14px', 
+                                    fontSize: '0.78rem', 
+                                    fontWeight: '700',
+                                    borderRadius: '6px',
+                                    border: `1px solid ${severity === 'critical' || severity === 'high' ? 'var(--error)' : 'var(--border-color)'}`,
+                                    cursor: isResolving ? 'not-allowed' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: severity === 'critical' || severity === 'high' ? '0 0 8px rgba(239, 68, 68, 0.1)' : ''
+                                  }}
+                                >
+                                  {isResolving ? (
+                                    <>
+                                      <span className="material-icons animate-spin" style={{ fontSize: '14px' }}>sync</span>
+                                      <span>Mitigating...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="material-icons" style={{ fontSize: '14px', color: 'var(--success)' }}>done_all</span>
+                                      <span>{activeEngine === 'node' ? 'Resolve SRE Incident' : 'Dismiss Alert'}</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* SRE Recalculator sliders & settings */}

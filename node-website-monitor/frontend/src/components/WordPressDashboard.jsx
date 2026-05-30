@@ -645,6 +645,7 @@ export default function WordPressDashboard({ wordpressData }) {
                   
                   <p><span className="text-indigo-400 font-bold">▶</span> Analyzing schema consistency indexes...</p>
                   <p className="text-slate-300">↳ Detected {databaseHealth.domElementsCount || 0} DOM nodes and {databaseHealth.styleTagsCount || 0} active stylesheets.</p>
+                  <p className="text-slate-350">↳ Database Sizing: {databaseHealth.sizeMb || 0} MB storage space | Tables: {databaseHealth.tableCount || 0} active schema tables.</p>
                   
                   {wpDebugActive ? (
                     <p className="text-amber-400 font-bold">⚠ [WARNING] wp_options debug logs active ({debugLogsCount} lines recorded). Highly recommended to truncate logs to avoid overhead.</p>

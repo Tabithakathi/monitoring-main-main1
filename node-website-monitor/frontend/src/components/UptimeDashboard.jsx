@@ -20,7 +20,8 @@ import {
   Image,
   Link,
   Sparkles,
-  Cpu
+  Cpu,
+  Compass
 } from 'lucide-react';
 import SeoDashboard from './SeoDashboard';
 import SSLMonitor from './SSLMonitor';
@@ -50,7 +51,8 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
     totalPages = 1,
     forms = { count: 0, list: [], status: 'info', message: '' },
     crawledPages = [],
-    seoScore = 100
+    seoScore = 100,
+    googleAnalytics = { active: false, measurementId: 'Missing', tagType: 'none', status: 'Not Found', viewsCount: 0 }
   } = seo;
   const perf = latestStatus?.performance || { performanceScore: 100, vitals: {} };
   const uiUx = latestStatus?.uiUx || { uiHealthScore: 100, lowContrastViolations: [], missingLabelsViolations: [], emptyButtonsViolations: [] };
@@ -61,7 +63,9 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
   
   const cmsAndBuilders = techStack.filter(t => ['CMS', 'E-commerce', 'No-Code Builder'].includes(t.category)).map(t => t.name).join(', ') || (stats?.wordpress?.isWordPress ? `WordPress CMS (v${stats.wordpress.coreVersion || '6.5'})` : 'Custom SPA / Static Site');
   
-  const analyticsList = techStack.filter(t => t.category === 'Analytics').map(t => t.name).join(', ') || (stats?.wordpress?.googleAnalytics?.active ? `Google Analytics (${stats.wordpress.googleAnalytics.measurementId})` : 'No Analytics Discovered');
+  const analyticsList = techStack.filter(t => t.category === 'Analytics').map(t => t.name).join(', ') || 
+    (googleAnalytics?.active ? `Google Analytics (${googleAnalytics.measurementId})` : '') ||
+    (stats?.wordpress?.googleAnalytics?.active ? `Google Analytics (${stats.wordpress.googleAnalytics.measurementId})` : 'No Analytics Discovered');
   
   const frontendLibs = techStack.filter(t => ['Frontend Framework', 'JavaScript Library', 'CSS Framework'].includes(t.category)).map(t => t.name).join(', ') || 'HTML5 / Vanilla JavaScript';
 
@@ -599,6 +603,43 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
             <span className="mt-3.5 px-2 py-0.5 bg-violet-500/10 text-violet-400 font-extrabold rounded text-[9px] border border-violet-500/20 w-fit">
               CLIENT SPA
             </span>
+          </div>
+        </div>
+      </div>
+
+      {/* SRE Google Analytics Telemetry Widget */}
+      <div className="glass-card p-6 mt-6 animate-fade-in-up" style={{ animationDelay: '0.085s' }}>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-orange-500/10 border border-orange-500/25 flex items-center justify-center text-orange-400 shrink-0">
+              <Compass className="h-5 w-5 animate-pulse" />
+            </div>
+            <div>
+              <h4 className="text-slate-200 font-bold text-sm">Google Analytics Page View Tracking</h4>
+              <p className="text-xs text-slate-450 mt-0.5">Scans page scripts for tracking tag scripts (gtag.js / gtm.js).</p>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3 bg-dark-900 border border-slate-800 p-2.5 rounded-xl">
+            <div>
+              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">GA Status</span>
+              <span className={`inline-flex items-center gap-1 font-bold text-xs mt-0.5 ${googleAnalytics.active ? 'text-orange-400' : 'text-slate-500'}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${googleAnalytics.active ? 'bg-orange-500' : 'bg-slate-500'}`}></span>
+                {googleAnalytics.status}
+              </span>
+            </div>
+            <div className="border-l border-slate-800 pl-3">
+              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">Measurement ID</span>
+              <span className="text-xs font-mono text-slate-300 font-bold block mt-0.5">{googleAnalytics.measurementId || 'Missing'}</span>
+            </div>
+            {googleAnalytics.active && googleAnalytics.viewsCount !== undefined && (
+              <div className="border-l border-slate-800 pl-3 pr-1">
+                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block">Total Views (30d)</span>
+                <span className="text-xs text-orange-400 font-black block mt-0.5 font-mono">
+                  {Number(googleAnalytics.viewsCount).toLocaleString()}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

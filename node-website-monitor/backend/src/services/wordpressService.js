@@ -2,7 +2,7 @@ const axios = require('axios');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
-const { google } = require('googleapis');
+const { detectGoogleAnalyticsTag, fetchGoogleAnalyticsStats } = require('./googleAnalyticsService');
 const { WordPressMonitor, Alert } = require('../models/Schemas');
 const { sendAlertEmail } = require('./emailService');
 const { scanWordPress } = require('./wordpressScanner');
@@ -49,60 +49,6 @@ const INCOMPATIBLE_PLUGINS = [
   { slug1: 'elementor', slug2: 'divi-builder', message: 'Multiple builder frameworks active. Can cause visual collision errors.' }
 ];
 
-/**
- * Fetch GA4 report view counts using service account.
- */
-const fetchGoogleAnalyticsStats = async (propertyId, clientEmail, privateKey) => {
-  try {
-    const auth = new google.auth.JWT(
-      clientEmail,
-      null,
-      privateKey.replace(/\\n/g, '\n'),
-      ['https://www.googleapis.com/auth/analytics.readonly']
-    );
-
-    const analyticsdata = google.analyticsdata({
-      version: 'v1beta',
-      auth
-    });
-
-    const response = await analyticsdata.properties.runReport({
-      property: `properties/${propertyId}`,
-      requestBody: {
-        dateRanges: [
-          {
-            startDate: '30daysAgo',
-            endDate: 'today'
-          }
-        ],
-        metrics: [
-          {
-            name: 'screenPageViews'
-          }
-        ]
-      }
-    });
-
-    let viewsCount = 0;
-    if (response.data && response.data.rows) {
-      for (const row of response.data.rows) {
-        if (row.metricValues && row.metricValues[0]) {
-          viewsCount += parseInt(row.metricValues[0].value || '0', 10);
-        }
-      }
-    }
-    return {
-      success: true,
-      viewsCount
-    };
-  } catch (err) {
-    console.error('Error fetching GA4 stats:', err.message);
-    return {
-      success: false,
-      error: err.message
-    };
-  }
-};
 
 /**
  * Perform a comprehensive WordPress security, core, theme and plugin vulnerability audit.
@@ -324,22 +270,10 @@ const auditWordPressSite = async (url, htmlContent = '') => {
 
     // Google Analytics Tag Sniffer
     if (!detectedGaId) {
-      const gtagMatch = body.match(/googletagmanager\.com\/gtag\/js\?id=(G-[A-Z0-9]+|UA-[0-9]+-[0-9]+)/i);
-      if (gtagMatch && gtagMatch[1]) {
-        detectedGaId = gtagMatch[1];
-        detectedGaType = 'gtag';
-      } else {
-        const gtmMatch = body.match(/googletagmanager\.com\/gtm\.js\?id=(GTM-[A-Z0-9]+)/i);
-        if (gtmMatch && gtmMatch[1]) {
-          detectedGaId = gtmMatch[1];
-          detectedGaType = 'gtm';
-        } else {
-          const gaMatch = body.match(/ga\('create',\s*['"](UA-[0-9]+-[0-9]+)['"]/i);
-          if (gaMatch && gaMatch[1]) {
-            detectedGaId = gaMatch[1];
-            detectedGaType = 'ga';
-          }
-        }
+      const gaTag = detectGoogleAnalyticsTag(body);
+      if (gaTag) {
+        detectedGaId = gaTag.measurementId;
+        detectedGaType = gaTag.tagType;
       }
     }
 

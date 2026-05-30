@@ -10,6 +10,9 @@ const { analyzeSeo } = require('./seoService');
 const { analyzeUiUx } = require('./uiUxService');
 const { sendAlertEmail } = require('./emailService');
 const { crawlSite } = require('./crawlerService');
+const { detectGoogleAnalyticsTag, fetchGoogleAnalyticsStats } = require('./googleAnalyticsService');
+const fs = require('fs');
+const path = require('path');
 
 const normalizeUrl = (url) => {
   if (!url) return '';
@@ -344,6 +347,77 @@ const checkWebsiteStatus = async (rawUrl) => {
       loadTimeMs: page.loadTimeMs,
       isUp: page.isUp
     }));
+
+    // Google Analytics Tag Sniffer
+    let detectedGaId = '';
+    let detectedGaType = '';
+    
+    // 1. Check main page HTML
+    const mainGaTag = detectGoogleAnalyticsTag(htmlContent);
+    if (mainGaTag) {
+      detectedGaId = mainGaTag.measurementId;
+      detectedGaType = mainGaTag.tagType;
+    } else {
+      // 2. Check crawled pages HTML
+      for (const page of crawledPages) {
+        if (page.html) {
+          const pgGaTag = detectGoogleAnalyticsTag(page.html);
+          if (pgGaTag) {
+            detectedGaId = pgGaTag.measurementId;
+            detectedGaType = pgGaTag.tagType;
+            break;
+          }
+        }
+      }
+    }
+
+    let googleAnalytics = {
+      active: false,
+      measurementId: 'Missing',
+      tagType: 'none',
+      status: 'Tag Not Discovered',
+      viewsCount: 0
+    };
+
+    if (detectedGaId) {
+      googleAnalytics = {
+        active: true,
+        measurementId: detectedGaId,
+        tagType: detectedGaType,
+        status: 'Operational',
+        viewsCount: 0
+      };
+
+      // Load settings to fetch views
+      let settings = {};
+      const settingsPath = path.join(__dirname, '../../../../sre_settings.json');
+      try {
+        if (fs.existsSync(settingsPath)) {
+          settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+        }
+      } catch (err) {
+        console.error('Failed to read settings for GA4 integration:', err.message);
+      }
+
+      const { ga4_property_id, ga4_client_email, ga4_private_key } = settings;
+      if (ga4_property_id && ga4_client_email && ga4_private_key) {
+        const gaStats = await fetchGoogleAnalyticsStats(ga4_property_id, ga4_client_email, ga4_private_key);
+        if (gaStats.success) {
+          googleAnalytics.viewsCount = gaStats.viewsCount;
+          googleAnalytics.status = 'Operational (API Connected)';
+        } else {
+          googleAnalytics.status = `API Error: ${gaStats.error}`;
+        }
+      } else {
+        googleAnalytics.status = 'API Credentials Not Configured';
+      }
+    } else {
+      // Deduct 10 points from seoScore if analytics is missing
+      seo.seoScore = Math.max(10, seo.seoScore - 10);
+    }
+
+    seo.googleAnalytics = googleAnalytics;
+
   } catch (e) {
     console.error(`🕷️ [Multi-Page Crawler Error] ${e.message}`);
   }

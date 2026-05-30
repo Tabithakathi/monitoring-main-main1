@@ -1,9 +1,26 @@
 import React, { useState } from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
-import { 
-  Activity, ShieldCheck, ShieldAlert, Wifi, Globe, Database, FileText, 
-  AlertTriangle, Download, Printer, CheckCircle2, XCircle, Clock, 
-  Layers, Search, AlertCircle, Image, Link, Sparkles
+import {
+  Activity,
+  ShieldCheck,
+  ShieldAlert,
+  Wifi,
+  Globe,
+  Database,
+  FileText,
+  AlertTriangle,
+  Download,
+  Printer,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Layers,
+  Search,
+  AlertCircle,
+  Image,
+  Link,
+  Sparkles,
+  Cpu
 } from 'lucide-react';
 import SeoDashboard from './SeoDashboard';
 import SSLMonitor from './SSLMonitor';
@@ -11,7 +28,7 @@ import AccessibilityAudit from './AccessibilityAudit';
 
 export default function UptimeDashboard({ stats, isSocketConnected }) {
   const [activeSubTab, setActiveSubTab] = useState('performance'); // performance, seo, ui_ux, security, history
-  
+
   if (!stats) return null;
 
   const { uptimePercentage, latestStatus, historyLog = [], activeAlerts = [] } = stats;
@@ -40,10 +57,10 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
     .reverse()
     .map(item => {
       const overall = Math.round(
-        ((item.performance?.performanceScore || 90) + 
-         (item.seo?.seoScore || 85) + 
-         (item.security?.securityScore || 90) + 
-         (item.uiUx?.uiHealthScore || 85)) / 4
+        ((item.performance?.performanceScore || 90) +
+          (item.seo?.seoScore || 85) +
+          (item.security?.securityScore || 90) +
+          (item.uiUx?.uiHealthScore || 85)) / 4
       );
       return {
         time: new Date(item.checkedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -65,7 +82,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
       const secVal = h.security?.securityScore || 90;
       const uiVal = h.uiUx?.uiHealthScore || 85;
       const overall = Math.round((perfVal + seoVal + secVal + uiVal) / 4);
-      
+
       return [
         new Date(h.checkedAt).toISOString(),
         `"${h.url}"`,
@@ -87,7 +104,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `monitorpro_node_history_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("download", `monitorpro_node_history_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -96,7 +113,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
   // High-fidelity custom PDF report print template
   const printPdf = (h) => {
     const w = window.open('', '_blank');
-    
+
     const isUpLabel = h.isUp ? 'OPERATIONAL' : 'DOWN / OFFLINE';
     const isUpColor = h.isUp ? '#10b981' : '#ef4444';
     const perfVal = h.performance?.performanceScore || 90;
@@ -256,7 +273,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
               <div class="meta-item"><strong>Target URL:</strong> ${h.url}</div>
               <div class="meta-item"><strong>Scan Date:</strong> ${new Date(h.checkedAt).toLocaleString()}</div>
               <div class="meta-item"><strong>Report Reference ID:</strong> MP-NODE-${h._id}</div>
-              <div class="meta-item"><strong>Server Status:</strong> HTTP ${h.statusCode || 200} (Load Time: ${h.isUp ? `${(h.loadTimeMs/1000).toFixed(2)}s` : '—'})</div>
+              <div class="meta-item"><strong>Server Status:</strong> HTTP ${h.statusCode || 200} (Load Time: ${h.isUp ? `${(h.loadTimeMs / 1000).toFixed(2)}s` : '—'})</div>
           </div>
  
           <div class="score-container">
@@ -333,10 +350,10 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
 
   return (
     <div className="space-y-6">
-      
+
       {/* 1. Real-time Uptime Indicators */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-fade-in-up">
-        
+
         {/* Status Indicator */}
         <div className="glass-card p-6 flex flex-col justify-between">
           <div className="flex justify-between items-center">
@@ -426,7 +443,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-          
+
           {/* Server Platform */}
           <div className="p-4 bg-dark-900/10 border border-slate-800/40 rounded-xl flex flex-col justify-between transition-all hover:border-indigo-500/20">
             <div>
@@ -448,11 +465,10 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                 {stats?.wordpress?.isWordPress ? `WordPress CMS (v${stats.wordpress.coreVersion || '6.5'})` : 'Custom SPA / Static Site'}
               </h4>
             </div>
-            <span className={`mt-3.5 px-2 py-0.5 font-extrabold rounded text-[9px] w-fit ${
-              stats?.wordpress?.isWordPress 
-                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+            <span className={`mt-3.5 px-2 py-0.5 font-extrabold rounded text-[9px] w-fit ${stats?.wordpress?.isWordPress
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                 : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
-            }`}>
+              }`}>
               {stats?.wordpress?.isWordPress ? 'CMS ACTIVE' : 'CUSTOM BUILD'}
             </span>
           </div>
@@ -462,16 +478,15 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
             <div>
               <span className="text-[9px] text-slate-550 font-bold uppercase tracking-wider block mb-1">Analytics Telemetry</span>
               <h4 className="font-extrabold text-slate-355 text-sm mt-1.5 truncate" title={stats?.wordpress?.googleAnalytics?.measurementId || 'None detected'}>
-                {stats?.wordpress?.googleAnalytics?.active 
-                  ? `Google Analytics (${stats.wordpress.googleAnalytics.measurementId})` 
+                {stats?.wordpress?.googleAnalytics?.active
+                  ? `Google Analytics (${stats.wordpress.googleAnalytics.measurementId})`
                   : 'No GA Tag Discovered'}
               </h4>
             </div>
-            <span className={`mt-3.5 px-2 py-0.5 font-extrabold rounded text-[9px] w-fit ${
-              stats?.wordpress?.googleAnalytics?.active 
-                ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' 
+            <span className={`mt-3.5 px-2 py-0.5 font-extrabold rounded text-[9px] w-fit ${stats?.wordpress?.googleAnalytics?.active
+                ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20'
                 : 'bg-slate-800 text-slate-500 border border-slate-750'
-            }`}>
+              }`}>
               {stats?.wordpress?.googleAnalytics?.active ? 'TELEMETRY ACTIVE' : 'MISSING'}
             </span>
           </div>
@@ -511,7 +526,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
           {/* Circular Score */}
           <div className="lg:col-span-3 bg-dark-900/20 border border-slate-800/60 p-5 rounded-2xl flex flex-col items-center justify-center text-center">
             <span className="text-[10px] text-slate-550 font-bold uppercase tracking-wider mb-3 w-full text-left">Audit Score</span>
-            
+
             <div className="relative w-28 h-28 flex items-center justify-center">
               <svg className="w-full h-full transform -rotate-90">
                 <circle cx="56" cy="56" r="48" fill="transparent" stroke="rgba(255,255,255,0.03)" strokeWidth="6"></circle>
@@ -537,7 +552,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
 
           {/* Audit Details */}
           <div className="lg:col-span-9 grid grid-cols-1 md:grid-cols-2 gap-4">
-            
+
             {/* Meta Title Auditor */}
             <div className="p-4 bg-dark-900/10 border border-slate-800/40 rounded-xl flex flex-col justify-between hover:border-slate-800/40 transition-all">
               <div>
@@ -603,11 +618,11 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                     </span>
                     <span className="text-[10px] font-mono font-bold text-slate-400">{valid}/{total} Images</span>
                   </div>
-                  
+
                   <div className="w-full bg-slate-950/60 rounded-full h-1.5 overflow-hidden border border-slate-850/80 mb-2.5">
                     <div className={`h-full rounded-full transition-all duration-500 ${pct >= 90 ? 'bg-emerald-500' : pct >= 70 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${pct}%` }}></div>
                   </div>
-                  
+
                   <div className="flex justify-between items-center text-[10px]">
                     <span className="text-slate-500">Compliance Rate: {pct}%</span>
                     {missing > 0 ? (
@@ -686,11 +701,10 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
           <button
             key={sub.id}
             onClick={() => setActiveSubTab(sub.id)}
-            className={`pb-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
-              activeSubTab === sub.id
+            className={`pb-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeSubTab === sub.id
                 ? 'border-indigo-500 text-indigo-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
           >
             {sub.label}
           </button>
@@ -699,7 +713,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
 
       {/* 3. Sub-tab panel renders */}
       <div className="animate-fade mt-4">
-        
+
         {/* Core Web Vitals Tab */}
         {activeSubTab === 'performance' && (
           <div className="space-y-6">
@@ -737,7 +751,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                   } else if (v.key === 'cls' ? val > 0.1 : v.key === 'lcp' ? val > 2.5 : val > 100) {
                     color = 'text-amber-400';
                   }
-                  
+
                   return (
                     <div key={v.key} className="bg-dark-800/40 border border-slate-800/60 p-5 rounded-xl flex flex-col justify-between hover:border-indigo-500/25 transition-all">
                       <div>
@@ -792,7 +806,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
         {/* Scan History and Recharts Trends Tab */}
         {activeSubTab === 'history' && (
           <div className="space-y-6">
-            
+
             {/* Top Recharts chronological trends */}
             <div className="glass-card p-6">
               <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-6">
@@ -803,9 +817,9 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                   </h3>
                   <p className="text-[11px] text-slate-500 mt-0.5">Dual-axis telemetry tracking overall score variations vs site load latency speeds.</p>
                 </div>
-                
+
                 {/* Download CSV button */}
-                <button 
+                <button
                   onClick={downloadCsv}
                   className="px-4 py-2 bg-indigo-600 border-none hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-lg shadow-indigo-600/15 cursor-pointer"
                 >
@@ -851,7 +865,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                 <span>Auditing History Logs</span>
                 <span className="text-xs text-slate-500 font-bold bg-slate-800/60 px-2.5 py-0.5 rounded-full">{historyLog.length} scan records</span>
               </h3>
-              
+
               <div className="overflow-x-auto max-h-80 overflow-y-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
@@ -870,12 +884,12 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                   <tbody>
                     {historyLog.map((log) => {
                       const overall = Math.round(
-                        ((log.performance?.performanceScore || 90) + 
-                         (log.seo?.seoScore || 85) + 
-                         (log.security?.securityScore || 90) + 
-                         (log.uiUx?.uiHealthScore || 85)) / 4
+                        ((log.performance?.performanceScore || 90) +
+                          (log.seo?.seoScore || 85) +
+                          (log.security?.securityScore || 90) +
+                          (log.uiUx?.uiHealthScore || 85)) / 4
                       );
-                      
+
                       return (
                         <tr key={log._id} className="border-b border-slate-800/40 hover:bg-dark-900/20 transition-colors">
                           <td className="py-3 px-3 text-slate-500 font-mono">
@@ -897,7 +911,7 @@ export default function UptimeDashboard({ stats, isSocketConnected }) {
                             </span>
                           </td>
                           <td className="py-3 px-3 text-right">
-                            <button 
+                            <button
                               onClick={() => printPdf(log)}
                               className="p-1.5 bg-dark-900/60 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-200 border border-slate-800 transition-all cursor-pointer"
                               title="Print high-fidelity PDF report"

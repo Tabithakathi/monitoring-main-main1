@@ -77,16 +77,27 @@ export default function App() {
   const fetchStats = async (targetUrl = url) => {
     setLoading(true);
     setError(null);
-    
+
     // Normalize .in, .org, .com links by prepending protocol schema if absent
     let formattedUrl = targetUrl.trim();
     if (formattedUrl && !/^https?:\/\//i.test(formattedUrl)) {
       formattedUrl = 'https://' + formattedUrl;
     }
-    
+
     try {
-      const response = await axios.get(`${API_BASE}/stats?url=${encodeURIComponent(formattedUrl)}`);
-      setStats(response.data);
+      const response = await axios.get(
+        `${API_BASE}/stats?url=${encodeURIComponent(formattedUrl)}`
+      );
+
+      console.log("API RESPONSE:", response.data);
+      console.log("TYPE:", typeof response.data);
+
+      if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+        setStats(response.data);
+      } else {
+        console.error("Received invalid stats format (HTML instead of JSON):", response.data);
+        setError("Invalid response format received from SRE Monitor backend.");
+      }
       if (formattedUrl !== url) {
         setUrl(formattedUrl);
       }
@@ -119,7 +130,7 @@ export default function App() {
       if (response.data.success) {
         showToast('Site SRE audit scan completed successfully!', 'success');
         // Synchronously update the React SRE state with fresh compiled stats
-        if (response.data.stats) {
+        if (response.data.stats && typeof response.data.stats === 'object' && !Array.isArray(response.data.stats)) {
           setStats(response.data.stats);
         }
         // Refresh target quick-switcher list
@@ -138,7 +149,7 @@ export default function App() {
     fetchTargets();
 
     // Establish Socket.io connection to backend SRE Gateway
-    const socketUrl = typeof window !== 'undefined' && 
+    const socketUrl = typeof window !== 'undefined' &&
       (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port === '5173')
       ? 'http://localhost:8000'
       : 'https://monitoring-main-main1.onrender.com';
@@ -166,7 +177,10 @@ export default function App() {
           if (!prev) return prev;
 
           // Prepend new beat to history and keep last 30 entries
-          const updatedHistory = [beat, ...prev.historyLog].slice(0, 30);
+          const updatedHistory = [
+            beat,
+            ...(prev?.historyLog || [])
+          ].slice(0, 30);
 
           return {
             ...prev,
@@ -192,8 +206,10 @@ export default function App() {
       const normalizedAudit = normalizeUrlString(freshStats.url);
 
       if (normalizedCurrent === normalizedAudit) {
-        setStats(freshStats);
-        showToast('Real-time SRE audit synchronized!', 'success');
+        if (freshStats && typeof freshStats === 'object' && !Array.isArray(freshStats)) {
+          setStats(freshStats);
+          showToast('Real-time SRE audit synchronized!', 'success');
+        }
       }
     });
 
@@ -210,13 +226,12 @@ export default function App() {
   }, [stats, activeTab]);
 
   // Map/align backend schema variables to the custom props structure requested by user
-  if (stats) {
-    if (!stats.sslData) stats.sslData = stats.latestStatus?.ssl;
-    if (!stats.securityData) stats.securityData = stats.latestStatus?.security;
-    if (!stats.seoData) stats.seoData = stats.latestStatus?.seo;
-    if (!stats.uiUxData) stats.uiUxData = stats.latestStatus?.uiUx;
+  if (stats && typeof stats === 'object' && !Array.isArray(stats)) {
+    stats.sslData ??= stats.latestStatus?.ssl;
+    stats.securityData ??= stats.latestStatus?.security;
+    stats.seoData ??= stats.latestStatus?.seo;
+    stats.uiUxData ??= stats.latestStatus?.uiUx;
   }
-
   return (
     <div className="min-h-screen text-slate-100 font-sans pb-12 relative overflow-hidden">
 
@@ -280,8 +295,8 @@ export default function App() {
                 );
               }}
               className={`px-4 py-2 border rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${autoRefresh
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                  : 'bg-dark-800 border-slate-700/80 hover:bg-dark-700/60'
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                : 'bg-dark-800 border-slate-700/80 hover:bg-dark-700/60'
                 }`}
             >
               <span>{autoRefresh ? 'Stop Monitor' : 'Auto-Monitor'}</span>
@@ -342,8 +357,8 @@ export default function App() {
           <button
             onClick={() => setActiveTab('uptime')}
             className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'uptime'
-                ? 'border-indigo-500 text-indigo-400'
-                : 'border-transparent text-slate-400 hover:text-slate-250'
+              ? 'border-indigo-500 text-indigo-400'
+              : 'border-transparent text-slate-400 hover:text-slate-250'
               }`}
           >
             Uptime & Error Logs
@@ -353,8 +368,8 @@ export default function App() {
             <button
               onClick={() => setActiveTab('wordpress')}
               className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'wordpress'
-                  ? 'border-indigo-500 text-indigo-400'
-                  : 'border-transparent text-slate-400 hover:text-slate-250'
+                ? 'border-indigo-500 text-indigo-400'
+                : 'border-transparent text-slate-400 hover:text-slate-250'
                 }`}
             >
               WordPress CMS Diagnostics
@@ -364,8 +379,8 @@ export default function App() {
           <button
             onClick={() => setActiveTab('ssl')}
             className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'ssl'
-                ? 'border-indigo-500 text-indigo-400'
-                : 'border-transparent text-slate-400 hover:text-slate-250'
+              ? 'border-indigo-500 text-indigo-400'
+              : 'border-transparent text-slate-400 hover:text-slate-250'
               }`}
           >
             SSL & Security
@@ -374,8 +389,8 @@ export default function App() {
           <button
             onClick={() => setActiveTab('seo')}
             className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'seo'
-                ? 'border-indigo-500 text-indigo-400'
-                : 'border-transparent text-slate-400 hover:text-slate-250'
+              ? 'border-indigo-500 text-indigo-400'
+              : 'border-transparent text-slate-400 hover:text-slate-250'
               }`}
           >
             SEO Optimization
@@ -384,8 +399,8 @@ export default function App() {
           <button
             onClick={() => setActiveTab('accessibility')}
             className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'accessibility'
-                ? 'border-indigo-500 text-indigo-400'
-                : 'border-transparent text-slate-400 hover:text-slate-250'
+              ? 'border-indigo-500 text-indigo-400'
+              : 'border-transparent text-slate-400 hover:text-slate-250'
               }`}
           >
             UI Consistency & Accessibility
@@ -394,8 +409,8 @@ export default function App() {
           <button
             onClick={() => setActiveTab('settings')}
             className={`px-6 py-3 font-bold text-xs uppercase tracking-wider border-b-2 transition-all cursor-pointer ${activeTab === 'settings'
-                ? 'border-indigo-500 text-indigo-400'
-                : 'border-transparent text-slate-400 hover:text-slate-250'
+              ? 'border-indigo-500 text-indigo-400'
+              : 'border-transparent text-slate-400 hover:text-slate-250'
               }`}
           >
             Gmail Alerts & Credentials
@@ -414,24 +429,15 @@ export default function App() {
           </div>
         ) : stats ? (
           <div className="space-y-8">
-            {activeTab === 'uptime' && (
-              <UptimeDashboard stats={stats} isSocketConnected={isSocketConnected} />
-            )}
-            {activeTab === 'wordpress' && (
-              <WordPressDashboard wordpressData={stats.wordpress} />
-            )}
-            {activeTab === 'ssl' && (
-              <SSLMonitor sslData={stats?.sslData} securityData={stats?.securityData} />
-            )}
-            {activeTab === 'seo' && (
-              <SeoDashboard seoData={stats?.seoData} />
-            )}
-            {activeTab === 'accessibility' && (
-              <AccessibilityAudit 
-                uiUxData={stats?.uiUxData}
-                mobileFriendliness={stats?.seoData?.mobileFriendliness}
-              />
-            )}
+            <div
+              style={{
+                color: "white",
+                fontSize: "30px",
+                padding: "40px"
+              }}
+            >
+              DASHBOARD WORKING
+            </div>
           </div>
         ) : (
           <div className="py-24 text-center glass-card border-dashed border-slate-800 rounded-3xl max-w-3xl mx-auto my-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
@@ -457,11 +463,10 @@ export default function App() {
                       setUrl(tgt.url);
                       fetchStats(tgt.url);
                     }}
-                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 ${
-                      isActive 
-                        ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400 shadow-md shadow-indigo-500/5' 
-                        : 'bg-dark-800/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                    }`}
+                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 ${isActive
+                      ? 'bg-indigo-500/10 border-indigo-500 text-indigo-400 shadow-md shadow-indigo-500/5'
+                      : 'bg-dark-800/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                      }`}
                   >
                     <span className={`h-1.5 w-1.5 rounded-full ${tgt.isUp ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`}></span>
                     <span>{tgt.url.replace(/^https?:\/\//i, '').replace(/\/$/, '')}</span>
@@ -478,8 +483,8 @@ export default function App() {
       {toast && (
         <div className="fixed bottom-6 right-6 z-[99999] animate-fade">
           <div className={`px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border text-xs font-bold ${toast.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
-              toast.type === 'error' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
-                'bg-indigo-500/10 text-indigo-400 border-indigo-500/30'
+            toast.type === 'error' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
+              'bg-indigo-500/10 text-indigo-400 border-indigo-500/30'
             }`}>
             {toast.type === 'success' && <ShieldCheck className="h-4.5 w-4.5" />}
             {toast.type === 'error' && <AlertCircle className="h-4.5 w-4.5" />}
@@ -492,3 +497,5 @@ export default function App() {
     </div>
   );
 }
+
+

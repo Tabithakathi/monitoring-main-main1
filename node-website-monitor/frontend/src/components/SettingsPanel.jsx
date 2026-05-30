@@ -31,8 +31,10 @@ export default function SettingsPanel({ showToast }) {
     setLoading(true);
     try {
       const response = await axios.get(`${API_BASE}/settings`);
-      if (response.data) {
-        setSettings(response.data.settings);
+      if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+        if (response.data.settings && typeof response.data.settings === 'object') {
+          setSettings(response.data.settings);
+        }
         setEmailLogs(response.data.emailLogs || []);
         setTotalLogsCount(response.data.totalLogsCount || 0);
       }
